@@ -19,8 +19,18 @@
     
     <title>SaudiCord - Made With Love By SirAbody</title>
     
-    <!-- Socket.io Client from CDN as fallback -->
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+    <!-- Socket.io Client from CDN (must load before app) -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js"></script>
+    <script>
+      // Verify Socket.io loaded correctly
+      window.addEventListener('load', function() {
+        if (typeof window.io === 'function') {
+          console.log('✅ Socket.io loaded successfully from CDN');
+        } else {
+          console.error('❌ Socket.io failed to load from CDN');
+        }
+      });
+    </script>
     
     <style>
       /* Initial loading styles */

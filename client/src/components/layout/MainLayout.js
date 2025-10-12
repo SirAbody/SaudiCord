@@ -32,13 +32,14 @@ function MainLayout() {
         attempts++;
         
         // Check if Socket.io is available from CDN
-        if (window.io) {
+        if (window.io && typeof window.io === 'function') {
+          console.log('Socket.io found, attempting connection...');
           try {
             const socket = socketService.connect(token);
             if (!socket) {
               console.warn('Socket connection failed, running in offline mode');
             } else {
-              console.log('Socket connection established');
+              console.log('Socket connection established successfully');
             }
           } catch (error) {
             console.error('Socket connection error:', error);
@@ -47,9 +48,11 @@ function MainLayout() {
         } else if (attempts < maxAttempts) {
           // Try again after a delay
           console.log(`Waiting for Socket.io CDN to load... (attempt ${attempts}/${maxAttempts})`);
-          setTimeout(tryConnect, 500);
+          console.log('window.io type:', typeof window.io);
+          setTimeout(tryConnect, 1000); // Increased delay
         } else {
-          console.warn('Socket.io CDN failed to load, running in offline mode');
+          console.warn('Socket.io CDN failed to load after', attempts, 'attempts');
+          console.warn('Running in offline mode - real-time features disabled');
         }
       };
 

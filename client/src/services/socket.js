@@ -25,6 +25,12 @@ class SocketService {
         this.socket = null;
       }
 
+      // Check if Socket.io is available from CDN
+      if (!window.io) {
+        console.warn('Socket.io not loaded from CDN yet');
+        return null;
+      }
+
       // Use same origin in production, full URL in development
       const serverUrl = process.env.NODE_ENV === 'production'
         ? window.location.origin
@@ -36,9 +42,8 @@ class SocketService {
       const io = window.io;
       
       // Validate io function exists
-      if (!io || typeof io !== 'function') {
-        console.error('Socket.io client not available from CDN. Make sure it is loaded.');
-        // Return null to allow app to work without socket
+      if (typeof io !== 'function') {
+        console.error('window.io exists but is not a function. Type:', typeof io);
         return null;
       }
       
