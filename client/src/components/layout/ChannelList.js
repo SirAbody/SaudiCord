@@ -5,7 +5,7 @@ import { useChatStore } from '../../stores/chatStore';
 import EmptyState from '../common/EmptyState';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { socketService } from '../../services/socket';
+import socketService from '../../services/socket';
 
 function ChannelList() {
   const { currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
