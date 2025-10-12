@@ -100,9 +100,9 @@ export const useAuthStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      // Add timeout to prevent hanging
+      // Add shorter timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
       
       const response = await axios.get('/auth/verify', {
         signal: controller.signal
@@ -117,24 +117,13 @@ export const useAuthStore = create((set, get) => ({
         set({ user: null, loading: false });
       }
     } catch (error) {
-      console.error('Auth check error:', error);
-      
-      // If it's a network error or timeout, don't remove token immediately
-      // User might just have temporary connection issues
-      if (error.code === 'ECONNABORTED' || error.message?.includes('Network') || !error.response) {
-        console.warn('Network issue during auth check, keeping token for retry');
-        // Still set loading to false to prevent infinite loading
-        set({ loading: false });
-        // Throw the error so App.js can handle it
-        throw error;
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
-        // Only remove token if server explicitly says it's invalid
+      // Simplified error handling - just fail silently
+      if (error.response?.status === 401 || error.response?.status === 403) {
         localStorage.removeItem('token');
         set({ user: null, loading: false });
       } else {
-        // For other errors, just stop loading but keep token
+        // For any other error, keep token but stop loading
         set({ loading: false });
-        throw error;
       }
     }
   },

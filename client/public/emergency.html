@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaudiCord - Lite Mode</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a1a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 72px;
+      background: #0f0f0f;
+      padding: 10px;
+      text-align: center;
+    }
+    .server-icon {
+      width: 48px;
+      height: 48px;
+      background: #FF0000;
+      border-radius: 50%;
+      margin: 10px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-radius 0.2s;
+    }
+    .server-icon:hover {
+      border-radius: 35%;
+    }
+    .channels {
+      width: 240px;
+      background: #151515;
+      padding: 10px;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      height: 48px;
+      background: #151515;
+      border-bottom: 1px solid #0a0a0a;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+    }
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .input-area {
+      padding: 20px;
+      background: #151515;
+    }
+    .input {
+      width: 100%;
+      padding: 11px 16px;
+      background: #1a1a1a;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+    }
+    .channel {
+      padding: 6px 8px;
+      margin: 2px 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .channel:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .message {
+      padding: 10px;
+      margin: 5px 0;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+    }
+    .welcome {
+      text-align: center;
+      margin-top: 100px;
+    }
+    h1 { margin-bottom: 10px; }
+    .subtitle { opacity: 0.7; }
+    .footer { margin-top: 30px; font-size: 12px; opacity: 0.5; }
+    .error-msg {
+      background: rgba(255, 0, 0, 0.1);
+      border: 1px solid rgba(255, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="server-icon" onclick="location.reload()">SC</div>
+  </div>
+  
+  <div class="channels">
+    <div style="padding: 10px; font-weight: bold;">SaudiCord Community</div>
+    <div class="channel"># general</div>
+    <div class="channel"># announcements</div>
+    <div class="channel">🔊 Voice Chat</div>
+  </div>
+  
+  <div class="main">
+    <div class="header">
+      <span># general</span>
+    </div>
+    
+    <div class="messages">
+      <div class="welcome">
+        <h1>Welcome to SaudiCord</h1>
+        <p class="subtitle">Select a channel to start chatting</p>
+        
+        <div class="error-msg" style="margin-top: 40px; max-width: 500px; margin-left: auto; margin-right: auto;">
+          <h3>⚠️ Performance Mode Activated</h3>
+          <p style="margin-top: 10px;">The main app is experiencing performance issues. This is a lightweight version while we fix the problem.</p>
+          <p style="margin-top: 10px;">
+            <button onclick="tryMainApp()" style="background: #FF0000; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+              Try Main App Again
+            </button>
+          </p>
+        </div>
+        
+        <p class="footer">Made With Love By SirAbody</p>
+      </div>
+    </div>
+    
+    <div class="input-area">
+      <input type="text" class="input" placeholder="Message #general (Lite mode - read only)" disabled>
+    </div>
+  </div>
+  
+  <script>
+    function tryMainApp() {
+      window.location.href = '/';
+    }
+    
+    // Auto-refresh every 30 seconds to check if main app is working
+    setTimeout(() => {
+      // Try to load main app
+      fetch('/api/health')
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'healthy') {
+            window.location.href = '/';
+          }
+        })
+        .catch(() => {
+          // Stay in lite mode
+        });
+    }, 30000);
+  </script>
+</body>
+</html>
