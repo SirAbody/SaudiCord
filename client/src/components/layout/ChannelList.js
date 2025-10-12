@@ -3,25 +3,41 @@ import React, { useEffect, useState } from 'react';
 import { HashtagIcon, SpeakerWaveIcon, VideoCameraIcon, ChevronDownIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import socketService from '../../services/socket';
+import axios from 'axios';
 
 function ChannelList() {
-  const { channels, currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
+  const { currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching channels - in production this would come from the API
-    setTextChannels([
-      { id: '1', name: 'general', type: 'text' },
-      { id: '2', name: 'random', type: 'text' },
-      { id: '3', name: 'tech-talk', type: 'text' },
-    ]);
-
-    setVoiceChannels([
-      { id: '4', name: 'General Voice', type: 'voice' },
-      { id: '5', name: 'Gaming', type: 'voice' },
-    ]);
+    // Load real channels from server
+    loadChannels();
   }, []);
+
+  const loadChannels = async () => {
+    try {
+      const response = await axios.get('/api/channels');
+      const channels = response.data || [];
+      
+      // Separate text and voice channels
+      const text = channels.filter(ch => ch.type === 'text');
+      const voice = channels.filter(ch => ch.type === 'voice');
+      
+      setTextChannels(text);
+      setVoiceChannels(voice);
+      
+      // Auto-select first text channel
+      if (text.length > 0 && !currentChannel) {
+        handleChannelClick(text[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load channels:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChannelClick = async (channel) => {
     if (currentChannel?.id === channel.id) return;

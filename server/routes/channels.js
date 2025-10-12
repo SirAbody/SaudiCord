@@ -6,6 +6,48 @@ const { Op } = require('sequelize');
 
 const router = express.Router();
 
+// Get all channels accessible by the current user
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    // Get user's servers
+    const user = await User.findByPk(req.userId, {
+      include: [{
+        model: Server,
+        as: 'servers',
+        include: [{
+          model: Channel,
+          as: 'channels'
+        }]
+      }]
+    });
+
+    // Flatten all channels from all servers
+    const channels = [];
+    if (user && user.servers) {
+      user.servers.forEach(server => {
+        if (server.channels) {
+          server.channels.forEach(channel => {
+            channels.push({
+              id: channel.id,
+              name: channel.name,
+              type: channel.type,
+              description: channel.description,
+              serverId: server.id,
+              serverName: server.name,
+              position: channel.position
+            });
+          });
+        }
+      });
+    }
+
+    res.json(channels);
+  } catch (error) {
+    console.error('Error fetching user channels:', error);
+    res.status(500).json({ error: 'Failed to fetch channels' });
+  }
+});
+
 // Get all channels for a server
 router.get('/server/:serverId', authenticateToken, async (req, res) => {
   try {
