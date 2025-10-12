@@ -177,22 +177,25 @@ app.get('/api/health', async (req, res) => {
     message: 'SaudiCord Server is running',
     database: dbStatus,
     environment: process.env.NODE_ENV || 'development',
-    port: PORT,
     author: 'Made With Love By SirAbody',
     timestamp: new Date().toISOString()
   });
 });
 
-// Socket.io connection handling with error logging
-const socketHandler = require('./socket/socketHandler');
+// Initialize Socket.io with fallback support
 try {
+  const socketHandler = require('./socket/socketHandler');
   socketHandler(io);
-  logger.info('Socket.io initialized successfully');
-} catch (error) {
-  logger.error('Failed to initialize Socket.io', error);
+  logger.info('Socket.io initialized with database support');
+} catch (err) {
+  // Use fallback handler if main handler fails
+  logger.warn('Using fallback socket handler (no database)');
+  const socketFallback = require('./socket/socketFallback');
+  socketFallback(io);
+  logger.info('Socket.io initialized with fallback handler');
 }
 
-// Catch-all route for React app (must be after API routes but before error handlers)
+// Catch-all route for React Router (production only)
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/build/index.html'));

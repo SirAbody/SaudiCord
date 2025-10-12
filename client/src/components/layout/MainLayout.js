@@ -24,12 +24,21 @@ function MainLayout() {
     // Connect to socket server
     const token = localStorage.getItem('token');
     if (token) {
-      socketService.connect(token);
+      try {
+        socketService.connect(token);
+      } catch (error) {
+        console.error('Socket connection error:', error);
+        // Continue without socket - UI should still work
+      }
     }
 
     // Cleanup on unmount
     return () => {
-      socketService.disconnect();
+      try {
+        socketService.disconnect();
+      } catch (error) {
+        console.error('Socket disconnect error:', error);
+      }
     };
   }, []);
 

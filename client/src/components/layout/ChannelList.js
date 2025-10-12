@@ -1,10 +1,11 @@
 // Channel List Component
-import React, { useEffect, useState } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
-import socketService from '../../services/socket';
+import EmptyState from '../common/EmptyState';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { socketService } from '../../services/socket';
 
 function ChannelList() {
   const { currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
@@ -25,7 +26,7 @@ function ChannelList() {
 
   const loadChannels = async () => {
     try {
-      const response = await axios.get('/channels');
+      const response = await axios.get('/api/channels');
       const channels = response.data || [];
       
       // Get first server ID if available
@@ -62,7 +63,7 @@ function ChannelList() {
 
     setCreating(true);
     try {
-      const response = await axios.post('/channels', {
+      const response = await axios.post('/api/channels', {
         name: newChannelName.toLowerCase().replace(/\s+/g, '-'),
         type: channelType,
         description: newChannelDescription,

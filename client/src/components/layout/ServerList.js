@@ -20,7 +20,7 @@ function ServerList() {
 
   const loadServers = async () => {
     try {
-      const response = await axios.get('/servers');
+      const response = await axios.get('/api/servers');
       setServers(response.data || []);
     } catch (error) {
       console.error('Failed to load servers:', error);
@@ -45,7 +45,7 @@ function ServerList() {
 
     setCreating(true);
     try {
-      const response = await axios.post('/servers', {
+      const response = await axios.post('/api/servers', {
         name: newServerName,
         description: newServerDescription
       });

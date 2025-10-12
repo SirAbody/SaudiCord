@@ -15,7 +15,7 @@ export const useChatStore = create((set, get) => ({
   // Fetch user's servers
   fetchServers: async () => {
     try {
-      const response = await axios.get('/servers/me');
+      const response = await axios.get('/api/servers/me');
       set({ servers: response.data });
     } catch (error) {
       console.error('Failed to fetch servers:', error);
@@ -26,7 +26,7 @@ export const useChatStore = create((set, get) => ({
   fetchChannels: async (serverId) => {
     set({ loading: true });
     try {
-      const response = await axios.get(`/channels/server/${serverId}`);
+      const response = await axios.get(`/api/channels/server/${serverId}`);
       set({ channels: response.data, loading: false });
     } catch (error) {
       console.error('Failed to fetch channels:', error);
@@ -34,22 +34,20 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // Set current channel
-  setCurrentChannel: (channel) => {
+  // Select a channel
+  selectChannel: (channel) => {
     set({ currentChannel: channel });
-    // Clear typing users for this channel
-    set((state) => ({
-      typingUsers: {
-        ...state.typingUsers,
-        [channel.id]: []
-      }
-    }));
+    
+    // Fetch messages for this channel
+    if (channel) {
+      get().fetchMessages(channel.id);
+    }
   },
 
   // Fetch messages for a channel
   fetchMessages: async (channelId) => {
     try {
-      const response = await axios.get(`/messages/channel/${channelId}`);
+      const response = await axios.get(`/api/messages/channel/${channelId}`);
       set((state) => ({
         messages: {
           ...state.messages,
@@ -143,7 +141,7 @@ export const useChatStore = create((set, get) => ({
   // Create new channel
   createChannel: async (name, type, serverId, description) => {
     try {
-      const response = await axios.post('/channels', {
+      const response = await axios.post('/api/channels', {
         name,
         type,
         serverId,
@@ -163,7 +161,7 @@ export const useChatStore = create((set, get) => ({
   // Create DM channel
   createDMChannel: async (targetUserId) => {
     try {
-      const response = await axios.post('/channels/dm', { targetUserId });
+      const response = await axios.post('/api/channels/dm', { targetUserId });
       return response.data;
     } catch (error) {
       toast.error('Failed to create DM channel');

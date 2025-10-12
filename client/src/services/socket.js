@@ -20,10 +20,13 @@ class SocketService {
       : (process.env.REACT_APP_SERVER_URL || 'http://localhost:5000');
     
     this.socket = io(serverUrl, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'], // Add polling as fallback
       reconnection: true,
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
+      auth: {
+        token: token
+      }
     });
 
     this.setupEventHandlers(token);

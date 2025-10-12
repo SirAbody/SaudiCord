@@ -72,7 +72,7 @@ function DirectMessages() {
 
   const loadFriends = async () => {
     try {
-      const response = await axios.get('/friends');
+      const response = await axios.get('/api/friends');
       setFriends(response.data);
     } catch (error) {
       console.error('Failed to load friends:', error);
@@ -81,7 +81,7 @@ function DirectMessages() {
 
   const loadConversations = async () => {
     try {
-      const response = await axios.get('/conversations');
+      const response = await axios.get('/api/conversations');
       setConversations(response.data);
     } catch (error) {
       console.error('Failed to load conversations:', error);
@@ -90,7 +90,7 @@ function DirectMessages() {
 
   const loadMessages = async (userId) => {
     try {
-      const response = await axios.get(`/messages/dm/${userId}`);
+      const response = await axios.get(`/api/messages/dm/${userId}`);
       setMessages(response.data);
     } catch (error) {
       console.error('Failed to load messages:', error);
@@ -104,7 +104,7 @@ function DirectMessages() {
     }
 
     try {
-      await axios.post('/friends/request', { username: friendUsername });
+      await axios.post('/api/friends/request', { username: friendUsername });
       toast.success('Friend request sent!');
       setFriendUsername('');
       setShowAddFriend(false);
@@ -115,7 +115,7 @@ function DirectMessages() {
 
   const acceptFriendRequest = async (friendshipId) => {
     try {
-      await axios.post(`/friends/accept/${friendshipId}`);
+      await axios.post(`/api/friends/accept/${friendshipId}`);
       toast.success('Friend request accepted!');
       loadFriends();
     } catch (error) {
@@ -127,7 +127,7 @@ function DirectMessages() {
     if (!window.confirm('Are you sure you want to block this user?')) return;
     
     try {
-      await axios.post(`/friends/block/${userId}`);
+      await axios.post(`/api/friends/block/${userId}`);
       toast.success('User blocked');
       loadFriends();
       if (selectedConversation?.id === userId) {
@@ -160,7 +160,7 @@ function DirectMessages() {
     };
 
     try {
-      const response = await axios.post('/messages/dm', message);
+      const response = await axios.post('/api/messages/dm', message);
       socketService.emit('dm:send', response.data);
       setMessages(prev => [...prev, response.data]);
       setMessageInput('');
