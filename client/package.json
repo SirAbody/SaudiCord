@@ -22,7 +22,8 @@
   "scripts": {
     "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-scripts start",
     "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "build": "set GENERATE_SOURCEMAP=false && react-scripts build",
+    "build": "set GENERATE_SOURCEMAP=false && set BUILD_PATH=./build-minimal && react-scripts build",
+    "build:full": "set GENERATE_SOURCEMAP=false && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

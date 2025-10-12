@@ -3,11 +3,19 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 
-// Lazy load heavy components
-const Login = lazy(() => import('./components/auth/Login'));
-const Register = lazy(() => import('./components/auth/Register'));
-const MainLayout = lazy(() => import('./components/layout/MainLayout'));
-const ErrorBoundary = lazy(() => import('./components/ErrorBoundary'));
+// Lazy load heavy components with preload
+const Login = lazy(() => 
+  import(/* webpackChunkName: "login" */ './components/auth/Login')
+);
+const Register = lazy(() => 
+  import(/* webpackChunkName: "register" */ './components/auth/Register')
+);
+const MainLayout = lazy(() => 
+  import(/* webpackChunkName: "main" */ './components/layout/MainLayout')
+);
+const ErrorBoundary = lazy(() => 
+  import(/* webpackChunkName: "error" */ './components/ErrorBoundary')
+);
 
 // Loading component
 const LoadingScreen = () => (
