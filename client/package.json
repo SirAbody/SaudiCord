@@ -10,7 +10,6 @@
     "date-fns": "^2.29.3",
     "emoji-picker-react": "^4.4.9",
     "react": "^18.2.0",
-    "react-app-rewired": "^2.2.1",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.43.9",
     "react-hot-toast": "^2.4.1",
@@ -18,14 +17,13 @@
     "react-router-dom": "^6.10.0",
     "react-scripts": "5.0.1",
     "simple-peer": "^9.11.1",
-    "socket.io-client": "^4.6.1",
     "zustand": "^4.3.7"
   },
   "scripts": {
-    "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-app-rewired start",
-    "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-app-rewired start",
-    "build": "react-app-rewired build",
-    "test": "react-app-rewired test",
+    "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-scripts start",
+    "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

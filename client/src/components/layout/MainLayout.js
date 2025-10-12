@@ -24,18 +24,37 @@ function MainLayout() {
     // Connect to socket server with better error handling
     const token = localStorage.getItem('token');
     if (token) {
-      // Delay socket connection slightly to ensure DOM is ready
-      const connectTimeout = setTimeout(() => {
-        try {
-          const socket = socketService.connect(token);
-          if (!socket) {
-            console.warn('Socket connection failed, running in offline mode');
+      // Wait for Socket.io CDN to load
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const tryConnect = () => {
+        attempts++;
+        
+        // Check if Socket.io is available from CDN
+        if (window.io) {
+          try {
+            const socket = socketService.connect(token);
+            if (!socket) {
+              console.warn('Socket connection failed, running in offline mode');
+            } else {
+              console.log('Socket connection established');
+            }
+          } catch (error) {
+            console.error('Socket connection error:', error);
+            // Continue without socket - UI should still work
           }
-        } catch (error) {
-          console.error('Socket connection error:', error);
-          // Continue without socket - UI should still work
+        } else if (attempts < maxAttempts) {
+          // Try again after a delay
+          console.log(`Waiting for Socket.io CDN to load... (attempt ${attempts}/${maxAttempts})`);
+          setTimeout(tryConnect, 500);
+        } else {
+          console.warn('Socket.io CDN failed to load, running in offline mode');
         }
-      }, 100); // Small delay to ensure everything is loaded
+      };
+
+      // Start connection attempt after small delay
+      const connectTimeout = setTimeout(tryConnect, 100);
 
       // Cleanup
       return () => {

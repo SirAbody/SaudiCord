@@ -3,17 +3,6 @@ import { useChatStore } from '../stores/chatStore';
 import { useCallStore } from '../stores/callStore';
 import toast from 'react-hot-toast';
 
-// Try to import Socket.io, fallback to global if available
-let io;
-try {
-  const socketIoClient = require('socket.io-client');
-  io = socketIoClient.io || socketIoClient.default || socketIoClient;
-} catch (e) {
-  // Fallback to global io from CDN
-  io = window.io;
-  console.log('Using Socket.io from CDN');
-}
-
 class SocketService {
   constructor() {
     this.socket = null;
@@ -43,10 +32,14 @@ class SocketService {
       
       console.log('Attempting socket connection to:', serverUrl);
       
+      // Get io from window (loaded from CDN)
+      const io = window.io;
+      
       // Validate io function exists
       if (!io || typeof io !== 'function') {
-        console.error('Socket.io client not properly loaded. Type:', typeof io);
-        throw new Error('Socket.io client library not available');
+        console.error('Socket.io client not available from CDN. Make sure it is loaded.');
+        // Return null to allow app to work without socket
+        return null;
       }
       
       // Create socket with defensive options
