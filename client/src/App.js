@@ -27,6 +27,7 @@ function App() {
     } else {
       setInitialLoad(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - only run once on mount
 
   // Show loading screen during initial load
