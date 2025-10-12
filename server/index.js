@@ -64,7 +64,8 @@ const app = express();
 const server = http.createServer(app);
 
 // Socket.io configuration with CORS
-const io = socketIo(server, {
+// In production we serve client and server from the same origin, so no CORS needed
+const io = socketIo(server, process.env.NODE_ENV === 'production' ? {} : {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
@@ -150,7 +151,8 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/friends', friendRoutes);
-app.use('/api/dm', directMessageRoutes);
+// Mount DM routes at /api to make endpoints like /api/dm/*
+app.use('/api', directMessageRoutes);
 app.use('/api/monitor', monitoringRoutes);
 app.use('/api/errors', errorRoutes);
 

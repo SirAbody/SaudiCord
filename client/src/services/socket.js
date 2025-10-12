@@ -53,7 +53,9 @@ class SocketService {
     this.socket.on('auth:error', (data) => {
       console.error('Authentication failed:', data.message);
       toast.error('Authentication failed. Please login again.');
-      window.location.href = '/login';
+      // Do not hard-redirect; keep UI usable without realtime
+      // Optionally disconnect to prevent loops
+      try { this.socket.disconnect(); } catch {}
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -68,8 +70,8 @@ class SocketService {
       console.error('Connection error:', error.message);
       if (error.message === 'Authentication error') {
         toast.error('Authentication failed. Please login again.');
-        // Redirect to login
-        window.location.href = '/login';
+        // Do not redirect to avoid blank screen; UI will operate in degraded mode
+        try { this.socket.disconnect(); } catch {}
       }
     });
 

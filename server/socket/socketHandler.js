@@ -25,12 +25,13 @@ const activeUsers = new Map();
 const userSockets = new Map();
 
 module.exports = (io) => {
-  // Middleware for socket authentication
+  // Middleware for socket authentication (non-blocking)
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token;
+      const token = socket.handshake.auth && socket.handshake.auth.token;
       if (!token) {
-        return next(new Error('Authentication error'));
+        // Allow connection; client will authenticate after connect
+        return next();
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
@@ -40,20 +41,26 @@ module.exports = (io) => {
         const user = await User.findByPk(decoded.userId);
         
         if (!user) {
-          return next(new Error('User not found'));
+          // Proceed unauthenticated; client will re-authenticate
+          return next();
         }
 
         socket.user = user;
-        logger.debug(`Socket authentication successful for user: ${user.username}`);
+        socket.userId = user.id;
+        socket.username = user.username;
+        logger.debug(`Socket pre-auth successful for user: ${user.username}`);
       } else {
         // If no database, use decoded token data
         socket.user = { id: decoded.userId, username: decoded.username || 'Unknown' };
-        logger.debug('Socket authentication successful (no database)');
+        socket.userId = decoded.userId;
+        socket.username = decoded.username || 'Unknown';
+        logger.debug('Socket pre-auth successful (no database)');
       }
       next();
     } catch (err) {
-      logger.warn('Socket authentication failed', { error: err.message });
-      next(new Error('Authentication error'));
+      logger.warn('Socket pre-auth failed', { error: err.message });
+      // Do not block connection; rely on runtime authenticate event
+      next();
     }
   });
 

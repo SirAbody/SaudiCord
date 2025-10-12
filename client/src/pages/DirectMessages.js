@@ -81,7 +81,7 @@ function DirectMessages() {
 
   const loadConversations = async () => {
     try {
-      const response = await axios.get('/conversations');
+      const response = await axios.get('/friends/conversations');
       setConversations(response.data);
     } catch (error) {
       console.error('Failed to load conversations:', error);
@@ -90,7 +90,7 @@ function DirectMessages() {
 
   const loadMessages = async (userId) => {
     try {
-      const response = await axios.get(`/messages/dm/${userId}`);
+      const response = await axios.get(`/dm/${userId}`);
       setMessages(response.data);
     } catch (error) {
       console.error('Failed to load messages:', error);
@@ -160,7 +160,7 @@ function DirectMessages() {
     };
 
     try {
-      const response = await axios.post('/messages/dm', message);
+      const response = await axios.post('/dm', message);
       socketService.emit('dm:send', response.data);
       setMessages(prev => [...prev, response.data]);
       setMessageInput('');

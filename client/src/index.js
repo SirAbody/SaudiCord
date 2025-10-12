@@ -1,6 +1,7 @@
 // SaudiCord Client - Made With Love By SirAbody
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './services/axiosSetup';
 import './index.css';
 import App from './App';
 import { BrowserRouter } from 'react-router-dom';

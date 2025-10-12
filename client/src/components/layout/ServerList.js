@@ -20,7 +20,7 @@ function ServerList() {
 
   const loadServers = async () => {
     try {
-      const response = await axios.get('/servers');
+      const response = await axios.get('/servers/me');
       setServers(response.data || []);
     } catch (error) {
       console.error('Failed to load servers:', error);
