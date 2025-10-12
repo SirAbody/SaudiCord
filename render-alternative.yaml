@@ -1,6 +1,5 @@
-# Render Blueprint for SaudiCord
+# Render Blueprint for SaudiCord - Alternative Configuration
 # Made With Love By SirAbody
-# Single service deployment (Frontend + Backend)
 
 databases:
   - name: saudicord-db
@@ -9,9 +8,9 @@ databases:
     user: saudicord_user
 
 services:
-  # Combined Backend + Frontend Service
+  # Backend API + Socket.io Server + Static Files
   - type: web
-    name: saudicord
+    name: saudicord-app
     runtime: node
     plan: free
     buildCommand: npm run install:all && cd client && npm run build
@@ -48,6 +47,10 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CLIENT_URL
-        sync: false
+        value: https://saudicord-app.onrender.com
       - key: STUN_SERVER
         value: stun:stun.l.google.com:19302
+      - key: REACT_APP_API_URL
+        value: /api
+      - key: REACT_APP_SERVER_URL
+        value: 
