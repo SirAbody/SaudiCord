@@ -22,7 +22,7 @@ async function initializeDatabase() {
     console.log('✅ Database synced successfully');
     
     // Create default admin user
-    const adminPassword = await bcrypt.hash('admin123', 10);
+    const adminPassword = await bcrypt.hash('admin123', 8);
     const adminUser = await User.create({
       username: 'admin',
       email: 'admin@saudicord.com',
@@ -34,7 +34,7 @@ async function initializeDatabase() {
     console.log('[INFO] ✅ Default admin user created');
     
     // Create test user liongtas
-    const lionPassword = await bcrypt.hash('Lion509', 10);
+    const lionPassword = await bcrypt.hash('Lion509', 8);
     const lionUser = await User.create({
       username: 'liongtas',
       email: 'liongtas@saudicord.com',
@@ -46,7 +46,7 @@ async function initializeDatabase() {
     console.log('[INFO] ✅ Test user liongtas created');
     
     // Create SirAbody admin user
-    const sirAbodyPassword = await bcrypt.hash('admin123', 10);
+    const sirAbodyPassword = await bcrypt.hash('admin123', 8);
     const sirAbodyUser = await User.create({
       username: 'SirAbody',
       email: 'sirabody@saudicord.com',

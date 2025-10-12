@@ -21,43 +21,25 @@ function MainLayout() {
   // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 
   useEffect(() => {
-    // Connect to socket server with better error handling
+    // Connect to socket server - simpler approach
     const token = localStorage.getItem('token');
     if (token) {
-      // Wait for Socket.io CDN to load
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      const tryConnect = () => {
-        attempts++;
-        
-        // Check if Socket.io is available from CDN
+      // Single attempt after delay
+      const connectTimeout = setTimeout(() => {
+        // Check if Socket.io is available
         if (window.io && typeof window.io === 'function') {
-          console.log('Socket.io found, attempting connection...');
           try {
             const socket = socketService.connect(token);
-            if (!socket) {
-              console.warn('Socket connection failed, running in offline mode');
-            } else {
-              console.log('Socket connection established successfully');
+            if (socket) {
+              console.log('Socket connection established');
             }
           } catch (error) {
-            console.error('Socket connection error:', error);
-            // Continue without socket - UI should still work
+            console.warn('Socket connection failed, continuing without real-time features');
           }
-        } else if (attempts < maxAttempts) {
-          // Try again after a delay
-          console.log(`Waiting for Socket.io CDN to load... (attempt ${attempts}/${maxAttempts})`);
-          console.log('window.io type:', typeof window.io);
-          setTimeout(tryConnect, 1000); // Increased delay
         } else {
-          console.warn('Socket.io CDN failed to load after', attempts, 'attempts');
-          console.warn('Running in offline mode - real-time features disabled');
+          console.warn('Socket.io not available, continuing without real-time features');
         }
-      };
-
-      // Start connection attempt after small delay
-      const connectTimeout = setTimeout(tryConnect, 100);
+      }, 500); // Small delay to ensure CDN is loaded
 
       // Cleanup
       return () => {
@@ -65,7 +47,7 @@ function MainLayout() {
         try {
           socketService.disconnect();
         } catch (error) {
-          console.error('Socket disconnect error:', error);
+          // Silent fail
         }
       };
     }
