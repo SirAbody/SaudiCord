@@ -88,10 +88,29 @@ module.exports = (io) => {
       });
     });
 
-    // Handle text messages
+    // Handle getting users list
+    socket.on('users:get', async () => {
+      try {
+        const users = await User.findAll({
+          where: { status: { [require('sequelize').Op.ne]: null } },
+          attributes: ['id', 'username', 'displayName', 'avatar', 'status', 'lastSeen']
+        });
+        
+        socket.emit('users:list', { users });
+      } catch (error) {
+        logger.error('Error fetching users', { error });
+      }
+    });
+
+    // Handle sending messages
     socket.on('message:send', async (data) => {
       try {
         const { channelId, content, attachments = [] } = data;
+        
+        if (!channelId || !content) {
+          socket.emit('error', { message: 'Channel ID and content are required' });
+          return;
+        }
         
         // Create message in database
         const message = await Message.create({
@@ -117,11 +136,11 @@ module.exports = (io) => {
         
         logger.debug('Message sent successfully', { 
           messageId: message.id, 
-          channelId, 
+          channelId: data.channelId, 
           userId: socket.userId 
         });
       } catch (error) {
-        logger.error('Error sending message:', { error, channelId, userId: socket.userId });
+        logger.error('Error sending message:', { error, channelId: data.channelId, userId: socket.userId });
         socket.emit('error', { message: 'Failed to send message' });
       }
     });

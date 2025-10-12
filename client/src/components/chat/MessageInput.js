@@ -16,20 +16,24 @@ function MessageInput() {
   const typingTimeoutRef = useRef(null);
 
   const handleSend = () => {
-    if (message.trim() || selectedFiles.length > 0) {
-      // Send message via socket
-      socketService.sendMessage(currentChannel.id, message.trim(), selectedFiles);
-      
-      // Clear input
-      setMessage('');
-      setSelectedFiles([]);
-      
-      // Stop typing indicator
-      if (isTyping) {
-        socketService.stopTyping(currentChannel.id);
-        setIsTyping(false);
-      }
+    if (!message.trim() || !currentChannel) {
+      console.warn('Cannot send message: No content or channel');
+      return;
     }
+
+    console.log('Sending message:', { channelId: currentChannel.id, content: message.trim() });
+
+    // Send message via socket
+    socketService.sendMessage(currentChannel.id, message.trim());
+    
+    // Clear input
+    setMessage('');
+    setIsTyping(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSend();
   };
 
   const handleKeyDown = (e) => {

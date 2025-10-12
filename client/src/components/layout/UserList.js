@@ -1,21 +1,44 @@
-// User List Component
+// User List Component - Real Users Only
 import React, { useState, useEffect } from 'react';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
+import socketService from '../../services/socket';
 
 function UserList() {
-  const { onlineUsers } = useChatStore();
   const { user: currentUser } = useAuthStore();
   const [users, setUsers] = useState([]);
+  const [onlineUserIds, setOnlineUserIds] = useState([]);
 
   useEffect(() => {
-    // Simulate users - in production this would come from the API
-    setUsers([
-      { id: '1', username: 'Admin', displayName: 'Admin', status: 'online', role: 'Owner' },
-      { id: '2', username: 'Moderator', displayName: 'Mod', status: 'idle', role: 'Moderator' },
-      { id: '3', username: 'User1', displayName: 'User 1', status: 'dnd', role: 'Member' },
-      { id: '4', username: 'User2', displayName: 'User 2', status: 'offline', role: 'Member' },
-    ]);
+    // Listen for real user updates
+    const handleUserOnline = (data) => {
+      setOnlineUserIds(prev => [...new Set([...prev, data.userId])]);
+    };
+
+    const handleUserOffline = (data) => {
+      setOnlineUserIds(prev => prev.filter(id => id !== data.userId));
+    };
+
+    const handleUsersList = (data) => {
+      if (data.users) {
+        setUsers(data.users);
+        const online = data.users.filter(u => u.status === 'online').map(u => u.id);
+        setOnlineUserIds(online);
+      }
+    };
+
+    socketService.on('user:online', handleUserOnline);
+    socketService.on('user:offline', handleUserOffline);
+    socketService.on('users:list', handleUsersList);
+
+    // Request current users list
+    socketService.emit('users:get');
+
+    return () => {
+      socketService.off('user:online', handleUserOnline);
+      socketService.off('user:offline', handleUserOffline);
+      socketService.off('users:list', handleUsersList);
+    };
   }, []);
 
   const getStatusColor = (status) => {
@@ -35,10 +58,9 @@ function UserList() {
     }
   };
 
-  // Group users by role
-  const ownerUsers = users.filter(u => u.role === 'Owner');
-  const moderatorUsers = users.filter(u => u.role === 'Moderator');
-  const memberUsers = users.filter(u => u.role === 'Member');
+  // Filter real users only
+  const onlineUsers = users.filter(u => onlineUserIds.includes(u.id) && u.id !== currentUser?.id);
+  const offlineUsers = users.filter(u => !onlineUserIds.includes(u.id) && u.id !== currentUser?.id);
 
   const UserItem = ({ user }) => (
     <button className="w-full px-2 py-1.5 flex items-center hover:bg-dark-400/50 rounded group transition-colors">
@@ -48,61 +70,55 @@ function UserList() {
           alt={user.username}
           className="w-8 h-8 rounded-full"
         />
-        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background-secondary ${getStatusColor(user.status)}`}></div>
+        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${getStatusColor(user.status)} rounded-full ring-2 ring-dark-600`} />
       </div>
-      <div className="ml-2 flex-1 text-left min-w-0">
+      <div className="flex-1 ml-3 text-left">
         <p className={`text-sm font-medium truncate ${getRoleColor(user.role)}`}>
-          {user.displayName || user.username}
+          {user.username || 'Anonymous'}
         </p>
-        {user.activity && (
-          <p className="text-xs text-text-tertiary truncate">{user.activity}</p>
+        {user.displayName && user.displayName !== user.username && (
+          <p className="text-xs text-text-tertiary truncate">{user.displayName}</p>
         )}
       </div>
     </button>
   );
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="h-12 px-4 flex items-center shadow-md border-b border-dark-400">
-        <h3 className="font-semibold text-text-primary">Members</h3>
+    <div className="w-60 bg-dark-700 flex flex-col">
+      <div className="px-4 py-3 border-b border-dark-500">
+        <h3 className="text-text-secondary uppercase text-xs font-semibold">
+          Online — {onlineUsers.length}
+        </h3>
       </div>
-      
-      {/* User List */}
-      <div className="flex-1 overflow-y-auto p-2">
-        {/* Owners */}
-        {ownerUsers.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-text-tertiary px-2 mb-1">
-              OWNER — {ownerUsers.length}
-            </h4>
-            {ownerUsers.map(user => (
+
+      <div className="flex-1 overflow-y-auto">
+        {/* Online Users */}
+        {onlineUsers.length > 0 && (
+          <div className="px-2 py-2">
+            {onlineUsers.map(user => (
               <UserItem key={user.id} user={user} />
             ))}
           </div>
         )}
 
-        {/* Moderators */}
-        {moderatorUsers.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-text-tertiary px-2 mb-1">
-              MODERATORS — {moderatorUsers.length}
-            </h4>
-            {moderatorUsers.map(user => (
-              <UserItem key={user.id} user={user} />
-            ))}
+        {/* Offline Users */}
+        {offlineUsers.length > 0 && (
+          <div className="px-2 py-2">
+            <h3 className="px-2 mb-2 text-text-tertiary uppercase text-xs font-semibold">
+              Offline — {offlineUsers.length}
+            </h3>
+            <div className="opacity-60">
+              {offlineUsers.map(user => (
+                <UserItem key={user.id} user={{ ...user, status: 'offline' }} />
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Members */}
-        {memberUsers.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-text-tertiary px-2 mb-1">
-              MEMBERS — {memberUsers.length}
-            </h4>
-            {memberUsers.map(user => (
-              <UserItem key={user.id} user={user} />
-            ))}
+        {/* Empty State */}
+        {users.length === 0 && (
+          <div className="px-4 py-8 text-center text-text-tertiary text-sm">
+            No users in this server
           </div>
         )}
       </div>

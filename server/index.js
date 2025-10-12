@@ -47,6 +47,9 @@ const io = socketIo(server, {
 // Make io accessible to routes
 app.set('io', io);
 
+// Trust proxy for Render.com
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for development, configure for production
@@ -54,11 +57,19 @@ app.use(helmet({
 }));
 app.use(compression());
 
-// Rate limiting
+// Rate limiting (fixed for production with proxy)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for localhost in development
+  skip: (req) => process.env.NODE_ENV === 'development',
+  // Trust proxy for production
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress;
+  },
   handler: (req, res) => {
     logger.warn('Rate limit exceeded', { ip: req.ip });
     res.status(429).json({
