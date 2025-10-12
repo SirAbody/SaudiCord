@@ -1,28 +1,11 @@
-// Optimized App Component - Faster and Lighter
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+// Simple App Component - Fixed for production build
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-
-// Lazy load heavy components with preload
-const Login = lazy(() => 
-  import(/* webpackChunkName: "login" */ './components/auth/Login')
-);
-const Register = lazy(() => 
-  import(/* webpackChunkName: "register" */ './components/auth/Register')
-);
-const MainLayout = lazy(() => 
-  import(/* webpackChunkName: "main" */ './components/layout/MainLayout')
-);
-const ErrorBoundary = lazy(() => 
-  import(/* webpackChunkName: "error" */ './components/ErrorBoundary')
-);
-
-// Loading component
-const LoadingScreen = () => (
-  <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-    <div className="text-white text-xl">Loading...</div>
-  </div>
-);
+import ErrorBoundary from './components/ErrorBoundary';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import MainLayout from './components/layout/MainLayout';
 
 function App() {
   const { user, checkAuth } = useAuthStore();
@@ -30,17 +13,17 @@ function App() {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    // Faster auth check with shorter timeout
+    // Quick auth check with timeout
     const token = localStorage.getItem('token');
     if (token && checkAuth) {
       // Set a timeout to prevent hanging
       const timeout = setTimeout(() => {
         setInitialLoad(false);
-      }, 3000); // 3 second max wait
+      }, 2000); // 2 second max wait
 
       checkAuth()
         .catch(() => {
-          // Silent fail - continue anyway
+          // Silent fail
         })
         .finally(() => {
           clearTimeout(timeout);
@@ -53,38 +36,40 @@ function App() {
 
   // Show simple loading during initial check
   if (initialLoad) {
-    return <LoadingScreen />;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading SaudiCord...</div>
+      </div>
+    );
   }
 
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <ErrorBoundary>
-        <div className="App">
-          <Routes>
-            <Route 
-              path="/" 
-              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-            />
-            <Route 
-              path="/login" 
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
-            />
-            <Route 
-              path="/register" 
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
-            />
-            <Route 
-              path="/dashboard/*" 
-              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-            />
-            <Route 
-              path="*" 
-              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-            />
-          </Routes>
-        </div>
-      </ErrorBoundary>
-    </Suspense>
+    <ErrorBoundary>
+      <div className="App">
+        <Routes>
+          <Route 
+            path="/" 
+            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/login" 
+            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+          />
+          <Route 
+            path="/register" 
+            element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
+          />
+          <Route 
+            path="/dashboard/*" 
+            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="*" 
+            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+          />
+        </Routes>
+      </div>
+    </ErrorBoundary>
   );
 }
 
