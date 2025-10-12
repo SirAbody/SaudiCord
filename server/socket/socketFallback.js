@@ -16,57 +16,83 @@ const logger = {
 };
 
 module.exports = (io) => {
-  // Allow all connections but validate token
+  // Non-blocking authentication - allow connection even without token
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+      const token = socket.handshake.auth?.token || 
+                   socket.handshake.query?.token ||
+                   socket.handshake.headers?.authorization?.split(' ')[1];
       
       if (!token) {
-        logger.warn('Connection attempt without token');
-        return next(new Error('Authentication required'));
+        logger.debug('No token provided, allowing connection for later auth');
+        // Allow connection without token - client will authenticate after connect
+        return next();
       }
 
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
         socket.userId = decoded.userId;
         socket.username = decoded.username || 'User';
-        logger.info(`Socket authenticated for user: ${socket.username}`);
-        next();
+        logger.info(`Socket pre-authenticated for user: ${socket.username}`);
       } catch (err) {
-        logger.error('Token verification failed:', err.message);
-        return next(new Error('Invalid token'));
+        logger.debug('Token verification failed during handshake:', err.message);
+        // Still allow connection - client can re-authenticate
       }
+      
+      next();
     } catch (error) {
-      logger.error('Socket authentication error:', error);
-      return next(new Error('Authentication error'));
+      logger.warn('Socket middleware error:', error);
+      // Never block connections in production
+      next();
     }
   });
 
   io.on('connection', (socket) => {
-    logger.info(`User connected: ${socket.username} (${socket.id})`);
+    logger.info(`Socket connected: ${socket.id}, User: ${socket.username || 'unauthenticated'}`);
     
-    // Store user socket
-    if (!userSockets.has(socket.userId)) {
-      userSockets.set(socket.userId, new Set());
-    }
-    userSockets.get(socket.userId).add(socket.id);
-    
-    // Mark user as online
-    activeUsers.set(socket.userId, {
-      id: socket.userId,
-      username: socket.username,
-      status: 'online',
-      socketId: socket.id
-    });
+    // Handle authentication event from client
+    socket.on('authenticate', (token) => {
+      try {
+        if (!token) {
+          socket.emit('auth:error', { message: 'Token required' });
+          return;
+        }
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        socket.userId = decoded.userId;
+        socket.username = decoded.username || 'User';
+        
+        // Store user socket
+        if (!userSockets.has(socket.userId)) {
+          userSockets.set(socket.userId, new Set());
+        }
+        userSockets.get(socket.userId).add(socket.id);
+        
+        // Mark user as online
+        activeUsers.set(socket.userId, {
+          id: socket.userId,
+          username: socket.username,
+          status: 'online',
+          socketId: socket.id
+        });
 
-    // Emit authentication success
-    socket.emit('auth:success', {
-      userId: socket.userId,
-      username: socket.username
-    });
+        // Emit authentication success
+        socket.emit('auth:success', {
+          user: {
+            id: socket.userId,
+            username: socket.username
+          }
+        });
 
-    // Broadcast user online status
-    socket.broadcast.emit('user:online', socket.userId);
+        // Broadcast user online status
+        socket.broadcast.emit('user:online', { userId: socket.userId });
+        
+        logger.info(`Socket authenticated: ${socket.username}`);
+      } catch (error) {
+        logger.error('Authentication error:', error);
+        socket.emit('auth:error', { message: 'Authentication failed' });
+      }
+    });
 
     // Handle disconnect
     socket.on('disconnect', () => {

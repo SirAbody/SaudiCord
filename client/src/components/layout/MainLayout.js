@@ -21,25 +21,32 @@ function MainLayout() {
   // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 
   useEffect(() => {
-    // Connect to socket server
+    // Connect to socket server with better error handling
     const token = localStorage.getItem('token');
     if (token) {
-      try {
-        socketService.connect(token);
-      } catch (error) {
-        console.error('Socket connection error:', error);
-        // Continue without socket - UI should still work
-      }
-    }
+      // Delay socket connection slightly to ensure DOM is ready
+      const connectTimeout = setTimeout(() => {
+        try {
+          const socket = socketService.connect(token);
+          if (!socket) {
+            console.warn('Socket connection failed, running in offline mode');
+          }
+        } catch (error) {
+          console.error('Socket connection error:', error);
+          // Continue without socket - UI should still work
+        }
+      }, 100); // Small delay to ensure everything is loaded
 
-    // Cleanup on unmount
-    return () => {
-      try {
-        socketService.disconnect();
-      } catch (error) {
-        console.error('Socket disconnect error:', error);
-      }
-    };
+      // Cleanup
+      return () => {
+        clearTimeout(connectTimeout);
+        try {
+          socketService.disconnect();
+        } catch (error) {
+          console.error('Socket disconnect error:', error);
+        }
+      };
+    }
   }, []);
 
   return (
