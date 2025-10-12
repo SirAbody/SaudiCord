@@ -20,18 +20,17 @@ class SocketService {
       : (process.env.REACT_APP_SERVER_URL || 'http://localhost:10000');
     
     this.socket = io(serverUrl, {
-      auth: { token },
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000
     });
 
-    this.setupEventHandlers();
+    this.setupEventHandlers(token);
     return this.socket;
   }
 
-  setupEventHandlers() {
+  setupEventHandlers(token) {
     const chatStore = useChatStore.getState();
     const callStore = useCallStore.getState();
 
@@ -39,6 +38,19 @@ class SocketService {
     this.socket.on('connect', () => {
       console.log('Connected to SaudiCord server');
       toast.success('Connected to server');
+      // Send authentication after connecting
+      this.socket.emit('authenticate', token);
+    });
+
+    // Authentication events
+    this.socket.on('auth:success', (data) => {
+      console.log('Authentication successful', data);
+    });
+
+    this.socket.on('auth:error', (data) => {
+      console.error('Authentication failed:', data.message);
+      toast.error('Authentication failed. Please login again.');
+      window.location.href = '/login';
     });
 
     this.socket.on('disconnect', (reason) => {

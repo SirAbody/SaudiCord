@@ -42,39 +42,55 @@ module.exports = (io) => {
         const user = await User.findByPk(decoded.userId);
         
         if (!user) {
-          return next(new Error('User not found'));
+          socket.emit('auth:error', { message: 'User not found' });
+          return;
         }
 
         socket.userId = user.id;
         socket.user = user;
-        logger.debug(`Socket authentication successful for user: ${user.username}`);
-        next();
+        
+        // Store user socket connection
+        activeUsers.set(socket.userId, socket.id);
+        userSockets.set(socket.userId, socket);
+        
+        // Update user status to online
+        await User.update(
+          { status: 'online', lastSeen: new Date() },
+          { where: { id: socket.userId } }
+        );
+
+        // Join user to their personal room
+        socket.join(`user-${socket.userId}`);
+
+        // Broadcast user online status
+        socket.broadcast.emit('user:online', {
+          userId: socket.userId,
+          username: socket.user.username
+        });
+        
+        // Send success confirmation
+        socket.emit('auth:success', {
+          userId: user.id,
+          username: user.username
+        });
+        
+        logger.info(`User ${user.username} connected`, {
+          socketId: socket.id,
+          userId: user.id
+        });
       } catch (err) {
         logger.warn('Socket authentication failed', { error: err.message });
-        next(new Error('Authentication error'));
+        socket.emit('auth:error', { message: 'Authentication failed' });
       }
-    });
-    
-    // Store user socket connection
-    activeUsers.set(socket.userId, socket.id);
-    userSockets.set(socket.userId, socket);
-    // Update user status to online
-    User.update(
-      { status: 'online', lastSeen: new Date() },
-      { where: { id: socket.userId } }
-    );
-
-    // Join user to their personal room
-    socket.join(`user-${socket.userId}`);
-
-    // Broadcast user online status
-    socket.broadcast.emit('user:online', {
-      userId: socket.userId,
-      username: socket.user.username
     });
 
     // Handle joining channels/servers
     socket.on('join:channel', async (channelId) => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+      
       try {
         socket.join(`channel-${channelId}`);
         logger.debug(`User ${socket.user.username} joined channel ${channelId}`);
@@ -105,6 +121,11 @@ module.exports = (io) => {
 
     // Handle getting users list
     socket.on('users:get', async () => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+      
       try {
         const users = await User.findAll({
           where: { status: { [require('sequelize').Op.ne]: null } },
@@ -119,6 +140,11 @@ module.exports = (io) => {
 
     // Handle sending messages
     socket.on('message:send', async (data) => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+      
       try {
         const { channelId, content, attachments = [] } = data;
         
@@ -205,6 +231,9 @@ module.exports = (io) => {
 
     // Handle typing indicators
     socket.on('typing:start', (data) => {
+      if (!socket.userId || !socket.user) {
+        return;
+      }
       socket.to(`channel-${data.channelId}`).emit('typing:user', {
         channelId: data.channelId,
         userId: socket.userId,
@@ -213,6 +242,9 @@ module.exports = (io) => {
     });
 
     socket.on('typing:stop', (data) => {
+      if (!socket.userId || !socket.user) {
+        return;
+      }
       socket.to(`channel-${data.channelId}`).emit('typing:user:stop', {
         channelId: data.channelId,
         userId: socket.userId
@@ -384,25 +416,29 @@ module.exports = (io) => {
 
     // Handle disconnection
     socket.on('disconnect', async () => {
-      logger.info(`User ${socket.user.username} disconnected`, {
-        socketId: socket.id,
-        userId: socket.userId
-      });
-      
-      // Remove from active users
-      activeUsers.delete(socket.userId);
-      userSockets.delete(socket.userId);
-      
-      // Update user status
-      await User.update(
-        { status: 'offline', lastSeen: new Date() },
-        { where: { id: socket.userId } }
-      );
-      
-      // Broadcast user offline status
-      socket.broadcast.emit('user:offline', {
-        userId: socket.userId
-      });
+      if (socket.userId && socket.user) {
+        logger.info(`User ${socket.user.username} disconnected`, {
+          socketId: socket.id,
+          userId: socket.userId
+        });
+        
+        // Remove from active users
+        activeUsers.delete(socket.userId);
+        userSockets.delete(socket.userId);
+        
+        // Update user status
+        await User.update(
+          { status: 'offline', lastSeen: new Date() },
+          { where: { id: socket.userId } }
+        );
+        
+        // Broadcast user offline status
+        socket.broadcast.emit('user:offline', {
+          userId: socket.userId
+        });
+      } else {
+        logger.info(`Unauthenticated socket disconnected`, { socketId: socket.id });
+      }
     });
   });
 };
