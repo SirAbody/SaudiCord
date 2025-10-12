@@ -8,7 +8,9 @@ import {
   MicrophoneIcon,
   VideoCameraIcon,
   VideoCameraSlashIcon,
-  ComputerDesktopIcon
+  ComputerDesktopIcon,
+  ArrowUpTrayIcon,
+  SpeakerXMarkIcon
 } from '@heroicons/react/24/solid';
 import socketService from '../../services/socket';
 

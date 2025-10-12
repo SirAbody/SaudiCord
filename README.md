@@ -19,10 +19,13 @@
 ### ✨ Features
 
 - **💬 Real-time Messaging** - Instant text messaging with WebSocket support
+- **📨 Direct Messages** - Private 1-on-1 messaging with friends
+- **👥 Friend System** - Add, remove, and manage friends
 - **🎤 Voice Chat** - High-quality voice calling using WebRTC
 - **📹 Video Calls** - Face-to-face video communication
-- **🖥️ Screen Sharing** - Share your screen during calls
-- **👥 User Management** - Complete authentication and user profile system
+- **🖥️ Screen Sharing** - Share your screen in 1080p during calls
+- **🏢 Servers & Channels** - Create and manage servers with text/voice channels
+- **👤 User Management** - Complete authentication and user profile system
 - **🌙 Dark Theme** - Beautiful dark UI with red (#FF0000) accents
 - **📱 Responsive Design** - Works on desktop and mobile devices
 - **🔒 Secure** - JWT authentication and encrypted communications
@@ -100,7 +103,7 @@ CREATE DATABASE saudicord;
 npm run dev
 
 # This will start:
-# - Backend server on http://localhost:5000
+# - Backend server on http://localhost:10000
 # - React client on http://localhost:3000
 ```
 
@@ -168,7 +171,7 @@ docker run -d \
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PORT` | Server port | `5000` |
+| `PORT` | Server port | `10000` |
 | `DB_HOST` | PostgreSQL host | `localhost` |
 | `DB_PORT` | PostgreSQL port | `5432` |
 | `DB_NAME` | Database name | `saudicord` |

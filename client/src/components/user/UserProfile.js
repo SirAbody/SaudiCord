@@ -44,7 +44,9 @@ function UserProfile({ onClose }) {
         toast.error('Image must be less than 5MB');
         return;
       }
-      setAvatarFile(file);
+      // TODO: Implement avatar upload functionality
+      // For now, just show a message
+      toast.success('Avatar upload feature coming soon!');
       // Preview
       const reader = new FileReader();
       reader.onload = (e) => {
