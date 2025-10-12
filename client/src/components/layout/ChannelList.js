@@ -1,15 +1,22 @@
 // Channel List Component
 import React, { useEffect, useState } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, VideoCameraIcon, ChevronDownIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, SpeakerWaveIcon, VideoCameraIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import socketService from '../../services/socket';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 function ChannelList() {
   const { currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [channelType, setChannelType] = useState('text');
+  const [newChannelName, setNewChannelName] = useState('');
+  const [newChannelDescription, setNewChannelDescription] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [currentServerId, setCurrentServerId] = useState(null);
 
   useEffect(() => {
     // Load real channels from server
@@ -18,8 +25,13 @@ function ChannelList() {
 
   const loadChannels = async () => {
     try {
-      const response = await axios.get('/api/channels');
+      const response = await axios.get('/channels');
       const channels = response.data || [];
+      
+      // Get first server ID if available
+      if (channels.length > 0 && channels[0].serverId) {
+        setCurrentServerId(channels[0].serverId);
+      }
       
       // Separate text and voice channels
       const text = channels.filter(ch => ch.type === 'text');
@@ -36,6 +48,47 @@ function ChannelList() {
       console.error('Failed to load channels:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateChannel = async () => {
+    if (!newChannelName.trim()) {
+      toast.error('Channel name is required');
+      return;
+    }
+
+    if (!currentServerId) {
+      toast.error('No server selected');
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const response = await axios.post('/channels', {
+        name: newChannelName.toLowerCase().replace(/\s+/g, '-'),
+        type: channelType,
+        description: newChannelDescription,
+        serverId: currentServerId
+      });
+      
+      toast.success(`${channelType === 'text' ? 'Text' : 'Voice'} channel created!`);
+      
+      // Update local state
+      if (channelType === 'text') {
+        setTextChannels([...textChannels, response.data]);
+      } else {
+        setVoiceChannels([...voiceChannels, response.data]);
+      }
+      
+      // Reset and close modal
+      setShowCreateModal(false);
+      setNewChannelName('');
+      setNewChannelDescription('');
+      setChannelType('text');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to create channel');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -70,7 +123,13 @@ function ChannelList() {
         {/* Text Channels */}
         <div className="mt-4">
           <div className="px-2 mb-1">
-            <button className="flex items-center text-xs font-semibold text-text-tertiary hover:text-text-secondary w-full">
+            <button 
+              onClick={() => {
+                setChannelType('text');
+                setShowCreateModal(true);
+              }}
+              className="flex items-center text-xs font-semibold text-text-tertiary hover:text-text-secondary w-full"
+            >
               <ChevronDownIcon className="w-3 h-3 mr-0.5" />
               TEXT CHANNELS
               <PlusIcon className="w-4 h-4 ml-auto hover:text-text-primary" />
@@ -94,7 +153,13 @@ function ChannelList() {
         {/* Voice Channels */}
         <div className="mt-6">
           <div className="px-2 mb-1">
-            <button className="flex items-center text-xs font-semibold text-text-tertiary hover:text-text-secondary w-full">
+            <button 
+              onClick={() => {
+                setChannelType('voice');
+                setShowCreateModal(true);
+              }}
+              className="flex items-center text-xs font-semibold text-text-tertiary hover:text-text-secondary w-full"
+            >
               <ChevronDownIcon className="w-3 h-3 mr-0.5" />
               VOICE CHANNELS
               <PlusIcon className="w-4 h-4 ml-auto hover:text-text-primary" />
@@ -115,6 +180,96 @@ function ChannelList() {
           ))}
         </div>
       </div>
+
+      {/* Create Channel Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-dark-600 rounded-lg p-6 w-96">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-text-primary">
+                Create {channelType === 'text' ? 'Text' : 'Voice'} Channel
+              </h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-text-secondary hover:text-text-primary"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Channel Type
+                </label>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setChannelType('text')}
+                    className={`flex-1 px-3 py-2 rounded flex items-center justify-center space-x-2 ${
+                      channelType === 'text' ? 'bg-accent text-white' : 'bg-dark-400 text-text-secondary'
+                    }`}
+                  >
+                    <HashtagIcon className="w-4 h-4" />
+                    <span>Text</span>
+                  </button>
+                  <button
+                    onClick={() => setChannelType('voice')}
+                    className={`flex-1 px-3 py-2 rounded flex items-center justify-center space-x-2 ${
+                      channelType === 'voice' ? 'bg-accent text-white' : 'bg-dark-400 text-text-secondary'
+                    }`}
+                  >
+                    <SpeakerWaveIcon className="w-4 h-4" />
+                    <span>Voice</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Channel Name
+                </label>
+                <input
+                  type="text"
+                  value={newChannelName}
+                  onChange={(e) => setNewChannelName(e.target.value)}
+                  className="w-full bg-dark-400 text-text-primary rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                  placeholder={channelType === 'text' ? 'general' : 'General Voice'}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={newChannelDescription}
+                  onChange={(e) => setNewChannelDescription(e.target.value)}
+                  className="w-full bg-dark-400 text-text-primary rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                  placeholder="What's this channel for?"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2 bg-dark-400 text-text-primary rounded hover:bg-dark-500 transition"
+                  disabled={creating}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateChannel}
+                  className="flex-1 px-4 py-2 bg-accent text-white rounded hover:bg-accent-dark transition disabled:opacity-50"
+                  disabled={creating}
+                >
+                  {creating ? 'Creating...' : 'Create Channel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,7 +23,6 @@ module.exports = (io) => {
         return next(new Error('User not found'));
       }
 
-      socket.userId = user.id;
       socket.user = user;
       logger.debug(`Socket authentication successful for user: ${user.username}`);
       next();
@@ -34,15 +33,31 @@ module.exports = (io) => {
   });
 
   io.on('connection', (socket) => {
-    logger.info(`User ${socket.user.username} connected`, { 
-      socketId: socket.id, 
-      userId: socket.userId 
+    logger.info('New socket connection', { socketId: socket.id });
+
+    // Handle user authentication
+    socket.on('authenticate', async (token) => {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const user = await User.findByPk(decoded.userId);
+        
+        if (!user) {
+          return next(new Error('User not found'));
+        }
+
+        socket.userId = user.id;
+        socket.user = user;
+        logger.debug(`Socket authentication successful for user: ${user.username}`);
+        next();
+      } catch (err) {
+        logger.warn('Socket authentication failed', { error: err.message });
+        next(new Error('Authentication error'));
+      }
     });
     
     // Store user socket connection
     activeUsers.set(socket.userId, socket.id);
     userSockets.set(socket.userId, socket);
-
     // Update user status to online
     User.update(
       { status: 'online', lastSeen: new Date() },
@@ -241,7 +256,84 @@ module.exports = (io) => {
       }
     });
 
-    // WebRTC signaling
+    // Direct Message Handlers
+    socket.on('dm:send', async (data) => {
+      const { receiverId, content } = data;
+      const receiverSocket = userSockets.get(receiverId);
+      
+      if (receiverSocket) {
+        receiverSocket.emit('dm:receive', {
+          senderId: socket.userId,
+          senderName: socket.user.username,
+          content,
+          timestamp: new Date()
+        });
+      }
+    });
+
+    // Screen Sharing Handlers
+    socket.on('screenshare:started', (data) => {
+      const { receiverId } = data;
+      const receiverSocket = userSockets.get(receiverId);
+      
+      if (receiverSocket) {
+        receiverSocket.emit('screenshare:started', {
+          senderId: socket.userId
+        });
+      }
+    });
+
+    socket.on('screenshare:stopped', (data) => {
+      const { receiverId } = data;
+      const receiverSocket = userSockets.get(receiverId);
+      
+      if (receiverSocket) {
+        receiverSocket.emit('screenshare:stopped', {
+          senderId: socket.userId
+        });
+      }
+    });
+
+    // WebRTC signaling for calls
+    socket.on('call:offer', (data) => {
+      const { receiverId, offer, callType } = data;
+      const receiverSocket = userSockets.get(receiverId);
+      
+      if (receiverSocket) {
+        receiverSocket.emit('call:offer', {
+          callerId: socket.userId,
+          callerName: socket.user.username,
+          offer,
+          callType
+        });
+      }
+    });
+
+    socket.on('call:answer', (data) => {
+      const { callerId, answer } = data;
+      const callerSocket = userSockets.get(callerId);
+      
+      if (callerSocket) {
+        callerSocket.emit('call:answer', {
+          answererId: socket.userId,
+          answer
+        });
+      }
+    });
+
+    socket.on('call:ice-candidate', (data) => {
+      const { targetUserId, candidate } = data;
+      const targetSocket = userSockets.get(targetUserId);
+      
+      if (targetSocket) {
+        targetSocket.emit('call:ice-candidate', {
+          senderId: socket.userId,
+          candidate
+        });
+      }
+    });
+
+    // Legacy WebRTC signaling (keeping for compatibility)
     socket.on('webrtc:offer', (data) => {
       const { targetUserId, offer } = data;
       const targetSocket = userSockets.get(targetUserId);

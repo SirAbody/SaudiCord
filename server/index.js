@@ -17,21 +17,10 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 // Ensure required directories exist
 require('./startup');
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const serverRoutes = require('./routes/servers');
-const channelRoutes = require('./routes/channels');
-const messageRoutes = require('./routes/messages');
-const errorRoutes = require('./routes/errors');
-const monitoringRoutes = require('./routes/monitoring');
-
-// Import socket handlers
-const socketHandler = require('./socket/socketHandler');
-
 // Import database
 const { sequelize } = require('./models');
 
+// Create express app and server
 const app = express();
 const server = http.createServer(app);
 
@@ -102,12 +91,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes (must come before static file serving)
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const serverRoutes = require('./routes/servers');
+const channelRoutes = require('./routes/channels');
+const messageRoutes = require('./routes/messages');
+const voiceRoutes = require('./routes/voice');
+const friendRoutes = require('./routes/friends');
+const directMessageRoutes = require('./routes/directMessages');
+const monitoringRoutes = require('./routes/monitoring');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/errors', errorRoutes);
+app.use('/api/voice', voiceRoutes);
+app.use('/api/friends', friendRoutes);
+app.use('/api/dm', directMessageRoutes);
 app.use('/api/monitor', monitoringRoutes);
 
 // Serve React build in production
@@ -131,6 +132,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Socket.io connection handling with error logging
+const socketHandler = require('./socket/socketHandler');
 try {
   socketHandler(io);
   logger.info('Socket.io initialized successfully');

@@ -1,16 +1,12 @@
 // Database Models Configuration
-const { Sequelize } = require('sequelize');
 const sequelize = require('../config/database');
-const UserModel = require('./User');
-const ChannelModel = require('./Channel');
-const MessageModel = require('./Message');
-const ServerModel = require('./Server');
-
-// Initialize models
-const User = UserModel(sequelize, Sequelize.DataTypes);
-const Channel = ChannelModel(sequelize, Sequelize.DataTypes);
-const Message = MessageModel(sequelize, Sequelize.DataTypes);
-const Server = ServerModel(sequelize, Sequelize.DataTypes);
+const User = require('./User');
+const Server = require('./Server');
+const Channel = require('./Channel');
+const Message = require('./Message');
+const VoiceCall = require('./VoiceCall');
+const Friendship = require('./Friendship');
+const DirectMessage = require('./DirectMessage');
 
 // Define associations
 // Server has many channels
@@ -29,18 +25,32 @@ Message.belongsTo(Channel, { foreignKey: 'channelId', as: 'channel' });
 User.hasMany(Message, { foreignKey: 'userId', as: 'messages' });
 Message.belongsTo(User, { foreignKey: 'userId', as: 'author' });
 
-// User friends (self-referencing many-to-many)
-User.belongsToMany(User, {
-  through: 'UserFriends',
-  as: 'friends',
-  foreignKey: 'userId',
-  otherKey: 'friendId'
-});
+// Friendship associations
+User.hasMany(Friendship, { foreignKey: 'userId', as: 'friendships' });
+User.hasMany(Friendship, { foreignKey: 'friendId', as: 'friendRequests' });
+Friendship.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Friendship.belongsTo(User, { foreignKey: 'friendId', as: 'friend' });
+Friendship.belongsTo(User, { foreignKey: 'initiatedBy', as: 'initiator' });
+
+// Direct Message associations
+User.hasMany(DirectMessage, { foreignKey: 'senderId', as: 'sentMessages' });
+User.hasMany(DirectMessage, { foreignKey: 'receiverId', as: 'receivedMessages' });
+DirectMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+DirectMessage.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver' });
+
+// Voice Call associations
+User.hasMany(VoiceCall, { foreignKey: 'callerId', as: 'outgoingCalls' });
+User.hasMany(VoiceCall, { foreignKey: 'receiverId', as: 'incomingCalls' });
+VoiceCall.belongsTo(User, { foreignKey: 'callerId', as: 'caller' });
+VoiceCall.belongsTo(User, { foreignKey: 'receiverId', as: 'receiver' });
 
 module.exports = {
   sequelize,
   User,
+  Server,
   Channel,
   Message,
-  Server
+  VoiceCall,
+  Friendship,
+  DirectMessage
 };
