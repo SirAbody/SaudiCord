@@ -15,40 +15,47 @@ async function initializeDatabase() {
     const { User, Server, Channel, ServerMember, Message } = require('../models');
     
     // Test connection
-    await sequelize.authenticate();
     console.log('✅ Database connection established');
     
     // Sync all models (force: true will drop existing tables)
     await sequelize.sync({ force: true });
     console.log('✅ Database synced successfully');
     
-    // Create admin user
-    const hashedAdminPassword = await bcrypt.hash('admin509', 10);
+    // Create default admin user
+    const adminPassword = await bcrypt.hash('admin123', 10);
     const adminUser = await User.create({
       username: 'admin',
       email: 'admin@saudicord.com',
+      password: adminPassword,
       displayName: 'Administrator',
-      password: hashedAdminPassword,
-      status: 'offline',
-      avatar: null,
-      bio: 'System Administrator - Made With Love By SirAbody',
-      lastSeen: new Date()
+      bio: 'SaudiCord Administrator',
+      isAdmin: true
     });
-    console.log('✅ Admin user created (username: admin, password: admin509)');
+    console.log('[INFO] ✅ Default admin user created');
     
-    // Create regular user (Liongtas)
-    const hashedLionPassword = await bcrypt.hash('Lion509', 10);
+    // Create test user liongtas
+    const lionPassword = await bcrypt.hash('Lion509', 10);
     const lionUser = await User.create({
-      username: 'Liongtas',
+      username: 'liongtas',
       email: 'liongtas@saudicord.com',
+      password: lionPassword,
       displayName: 'Lion',
-      password: hashedLionPassword,
-      status: 'offline',
-      avatar: null,
       bio: 'SaudiCord Member',
-      lastSeen: new Date()
+      isAdmin: false
     });
-    console.log('✅ Regular user Liongtas created (username: Liongtas, password: Lion509)');
+    console.log('[INFO] ✅ Test user liongtas created');
+    
+    // Create SirAbody admin user
+    const sirAbodyPassword = await bcrypt.hash('admin123', 10);
+    const sirAbodyUser = await User.create({
+      username: 'SirAbody',
+      email: 'sirabody@saudicord.com',
+      password: sirAbodyPassword,
+      displayName: 'SirAbody',
+      bio: 'Made With Love By SirAbody',
+      isAdmin: true
+    });
+    console.log('[INFO] ✅ SirAbody admin user created');
     
     // Create default server
     const defaultServer = await Server.create({
@@ -58,7 +65,7 @@ async function initializeDatabase() {
       ownerId: adminUser.id,
       inviteCode: 'saudi2025',
       isPublic: true,
-      memberCount: 2
+      memberCount: 3
     });
     console.log('✅ Default server created');
     
@@ -98,6 +105,14 @@ async function initializeDatabase() {
       nickname: null,
       joinedAt: new Date()
     });
+    
+    await ServerMember.create({
+      serverId: defaultServer.id,
+      userId: sirAbodyUser.id,
+      role: 'admin',
+      nickname: null,
+      joinedAt: new Date()
+    });
     console.log('✅ Users added to default server');
     
     // Create welcome message
@@ -113,8 +128,9 @@ async function initializeDatabase() {
     console.log('✅ Database initialized successfully!');
     console.log('========================================');
     console.log('\n📝 Default Users:');
-    console.log('   Admin: username=admin, password=admin509');
-    console.log('   User:  username=Liongtas, password=Lion509');
+    console.log('   Admin: username=admin, password=admin123');
+    console.log('   User:  username=liongtas, password=Lion509');
+    console.log('   Admin: username=SirAbody, password=admin123');
     console.log('\n🚀 You can now start the server and login!');
     console.log('========================================\n');
     
