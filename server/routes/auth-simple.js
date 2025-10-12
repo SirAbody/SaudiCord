@@ -234,6 +234,44 @@ router.get('/me', (req, res) => {
   }
 });
 
+// Verify token
+router.get('/verify', (req, res) => {
+  try {
+    // Get token from header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.json({ valid: false, message: 'No token provided' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) {
+      return res.json({ valid: false, message: 'No token provided' });
+    }
+
+    // Verify token
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+      
+      const user = users.get(Array.from(users.keys()).find(key => 
+        users.get(key).id === decoded.userId
+      ));
+
+      if (!user) {
+        return res.json({ valid: false, error: 'User not found' });
+      }
+
+      const { password: _, ...userData } = user;
+      res.json({ valid: true, user: userData });
+    } catch (err) {
+      console.error('[AUTH] Token verification error:', err);
+      res.json({ valid: false, error: 'Invalid token' });
+    }
+  } catch (error) {
+    console.error('[AUTH] Token verification error:', error);
+    res.json({ valid: false, error: 'Failed to verify token' });
+  }
+});
+
 // Logout (optional, mainly for client-side)
 router.post('/logout', (req, res) => {
   res.json({ message: 'Logout successful' });
