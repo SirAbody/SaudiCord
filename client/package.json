@@ -3,16 +3,28 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@headlessui/react": "^1.7.14",
+    "@heroicons/react": "^2.0.17",
+    "axios": "^1.4.0",
+    "date-fns": "^2.29.3",
+    "emoji-picker-react": "^4.4.9",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-hook-form": "^7.43.9",
+    "react-hot-toast": "^2.4.1",
+    "react-intersection-observer": "^9.4.3",
+    "react-router-dom": "^6.10.0",
+    "react-app-rewired": "^2.2.1",
+    "react-scripts": "5.0.1",
+    "simple-peer": "^9.11.1",
+    "zustand": "^4.3.7"
   },
   "scripts": {
-    "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-scripts start",
-    "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "build": "set GENERATE_SOURCEMAP=false && react-scripts build",
-    "build:full": "set GENERATE_SOURCEMAP=false && react-scripts build",
-    "test": "react-scripts test",
+    "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-app-rewired start",
+    "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-app-rewired start",
+    "build": "set GENERATE_SOURCEMAP=false && react-app-rewired build",
+    "build:full": "set GENERATE_SOURCEMAP=false && react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -33,5 +45,11 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.3",
+    "autoprefixer": "^10.4.14",
+    "http-proxy-middleware": "^2.0.9",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.3.0"
+  }
 }
