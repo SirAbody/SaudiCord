@@ -3,14 +3,18 @@ module.exports = (sequelize, DataTypes) => {
   const Message = sequelize.define('Message', {
     id: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    channelId: {
+      type: DataTypes.UUID,
+      allowNull: false
     },
     content: {
       type: DataTypes.TEXT,
       allowNull: false
     },
-    type: {
+    messageType: {
       type: DataTypes.ENUM('text', 'image', 'file', 'system'),
       defaultValue: 'text'
     },

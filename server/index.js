@@ -147,18 +147,19 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 10000;
 
 // Database sync and server start
-sequelize.sync({ force: false }).then(async () => {
+// Set force: true temporarily to recreate tables with UUIDs
+sequelize.sync({ force: process.env.RESET_DB === 'true' || false }).then(async () => {
   logger.info('✅ Database connected and synced');
   
-  // Auto-create admin user if not exists
+  // Auto-create admin user and default data if not exists
   try {
     const bcrypt = require('bcrypt');
-    const { User } = require('./models');
+    const { User, Server, Channel } = require('./models');
     
     const adminExists = await User.findOne({ where: { username: 'admin' } });
     if (!adminExists) {
       const hashedPassword = await bcrypt.hash('admin509', 10);
-      await User.create({
+      const adminUser = await User.create({
         username: 'admin',
         email: 'admin@saudicord.com',
         displayName: 'Administrator',
@@ -169,9 +170,78 @@ sequelize.sync({ force: false }).then(async () => {
         lastSeen: new Date()
       });
       logger.info('✅ Admin user created (username: admin, password: admin509)');
+      
+      // Create regular user (Liongtas)
+      const lionPassword = await bcrypt.hash('Lion509', 10);
+      const lionUser = await User.create({
+        username: 'Liongtas',
+        email: 'liongtas@saudicord.com',
+        displayName: 'Lion',
+        password: lionPassword,
+        status: 'offline',
+        avatar: null,
+        bio: 'SaudiCord Member',
+        lastSeen: new Date()
+      });
+      logger.info('✅ Regular user Liongtas created (username: Liongtas, password: Lion509)');
+      
+      // Create default server
+      const defaultServer = await Server.create({
+        name: 'SaudiCord Community',
+        description: 'Welcome to SaudiCord - Made With Love By SirAbody',
+        icon: null,
+        ownerId: adminUser.id,
+        inviteCode: 'saudi2025',
+        isPublic: true,
+        memberCount: 1
+      });
+      logger.info('✅ Default server created');
+      
+      // Create default channels
+      await Channel.create({
+        serverId: defaultServer.id,
+        name: 'general',
+        type: 'text',
+        description: 'General discussion channel',
+        position: 0,
+        isPrivate: false
+      });
+      
+      await Channel.create({
+        serverId: defaultServer.id,
+        name: 'voice-chat',
+        type: 'voice',
+        description: 'General voice channel',
+        position: 1,
+        isPrivate: false
+      });
+      logger.info('✅ Default channels created');
+      
+      // Add users to server
+      await defaultServer.addMember(adminUser);
+      await defaultServer.addMember(lionUser);
+      await defaultServer.update({ memberCount: 2 });
+      logger.info('✅ Users added to default server');
+    } else {
+      // Check if Liongtas exists, create if not
+      const lionExists = await User.findOne({ where: { username: 'Liongtas' } });
+      if (!lionExists) {
+        const lionPassword = await bcrypt.hash('Lion509', 10);
+        await User.create({
+          username: 'Liongtas',
+          email: 'liongtas@saudicord.com',
+          displayName: 'Lion',
+          password: lionPassword,
+          status: 'offline',
+          avatar: null,
+          bio: 'SaudiCord Member',
+          lastSeen: new Date()
+        });
+        logger.info('✅ Regular user Liongtas created');
+      }
     }
   } catch (error) {
-    logger.warn('Could not create admin user:', error.message);
+    logger.warn('Could not create default data:', error.message);
   }
   
   server.listen(PORT, () => {

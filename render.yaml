@@ -51,3 +51,5 @@ services:
         value: https://saudicord.onrender.com
       - key: STUN_SERVER
         value: stun:stun.l.google.com:19302
+      - key: RESET_DB
+        value: true

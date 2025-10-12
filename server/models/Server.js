@@ -3,8 +3,12 @@ module.exports = (sequelize, DataTypes) => {
   const Server = sequelize.define('Server', {
     id: {
       type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
+      primaryKey: true,
+      defaultValue: DataTypes.UUIDV4
+    },
+    ownerId: {
+      type: DataTypes.UUID,
+      allowNull: false
     },
     name: {
       type: DataTypes.STRING,

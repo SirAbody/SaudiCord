@@ -159,7 +159,7 @@ export const useChatStore = create((set, get) => ({
       throw error;
     }
   },
-
+  
   // Create DM channel
   createDMChannel: async (targetUserId) => {
     try {
