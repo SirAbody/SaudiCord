@@ -1,8 +1,18 @@
 // Socket.io Service with Enhanced Error Handling
-import io from 'socket.io-client';
 import { useChatStore } from '../stores/chatStore';
 import { useCallStore } from '../stores/callStore';
 import toast from 'react-hot-toast';
+
+// Try to import Socket.io, fallback to global if available
+let io;
+try {
+  const socketIoClient = require('socket.io-client');
+  io = socketIoClient.io || socketIoClient.default || socketIoClient;
+} catch (e) {
+  // Fallback to global io from CDN
+  io = window.io;
+  console.log('Using Socket.io from CDN');
+}
 
 class SocketService {
   constructor() {
@@ -32,6 +42,12 @@ class SocketService {
         : (process.env.REACT_APP_SERVER_URL || 'http://localhost:5000');
       
       console.log('Attempting socket connection to:', serverUrl);
+      
+      // Validate io function exists
+      if (!io || typeof io !== 'function') {
+        console.error('Socket.io client not properly loaded. Type:', typeof io);
+        throw new Error('Socket.io client library not available');
+      }
       
       // Create socket with defensive options
       this.socket = io(serverUrl, {
