@@ -7,18 +7,37 @@ class SocketService {
   constructor() {
     this.socket = null;
     this.connectionAttempts = 0;
+    this.mockSocket = null;
+  }
+
+  // Create a mock socket that prevents errors
+  createMockSocket() {
+    if (this.mockSocket) return this.mockSocket;
+    
+    console.warn('Creating mock socket - real-time features disabled');
+    this.mockSocket = {
+      connected: false,
+      on: () => {},
+      emit: () => {},
+      off: () => {},
+      removeAllListeners: () => {},
+      disconnect: () => {},
+      connect: () => {},
+      id: 'mock-socket'
+    };
+    return this.mockSocket;
   }
 
   connect(token) {
     try {
       // Check if already connected
-      if (this.socket && this.socket.connected) {
+      if (this.socket && this.socket.connected && this.socket !== this.mockSocket) {
         console.log('Socket already connected');
         return this.socket;
       }
 
-      // Clean up any existing socket
-      if (this.socket) {
+      // Clean up any existing real socket
+      if (this.socket && this.socket !== this.mockSocket) {
         console.log('Cleaning up existing socket');
         this.socket.removeAllListeners();
         this.socket.disconnect();
@@ -26,9 +45,10 @@ class SocketService {
       }
 
       // Check if Socket.io is available from CDN
-      if (!window.io) {
-        console.warn('Socket.io not loaded from CDN yet');
-        return null;
+      if (!window.io || typeof window.io !== 'function') {
+        console.warn('Socket.io not available, using mock socket');
+        this.socket = this.createMockSocket();
+        return this.socket;
       }
 
       // Use same origin in production, full URL in development
@@ -40,12 +60,6 @@ class SocketService {
       
       // Get io from window (loaded from CDN)
       const io = window.io;
-      
-      // Validate io function exists
-      if (typeof io !== 'function') {
-        console.error('window.io exists but is not a function. Type:', typeof io);
-        return null;
-      }
       
       // Create socket with defensive options
       this.socket = io(serverUrl, {
@@ -88,15 +102,15 @@ class SocketService {
     }
 
     // Defensive check for socket.on function
-    if (typeof this.socket.on !== 'function') {
-      console.error('Socket.on is not a function. Socket object:', this.socket);
-      return;
+    if (!this.socket || typeof this.socket.on !== 'function') {
+      console.error('Socket.on is not a function, using mock socket');
+      this.socket = this.createMockSocket();
+      return this.socket;
     }
 
     try {
       const chatStore = useChatStore.getState();
       const callStore = useCallStore.getState();
-
       // Connection events with error handling
       this.socket.on('connect', () => {
         console.log('Connected to SaudiCord server');
@@ -256,19 +270,19 @@ class SocketService {
 
   // Emit events
   joinChannel(channelId) {
-    if (this.socket) {
+    if (this.socket && typeof this.socket.emit === 'function') {
       this.socket.emit('join:channel', channelId);
     }
   }
 
   leaveChannel(channelId) {
-    if (this.socket) {
+    if (this.socket && typeof this.socket.emit === 'function') {
       this.socket.emit('leave:channel', channelId);
     }
   }
 
   sendMessage(channelId, content, attachments = []) {
-    if (this.socket) {
+    if (this.socket && typeof this.socket.emit === 'function') {
       this.socket.emit('message:send', {
         channelId,
         content,
@@ -277,55 +291,49 @@ class SocketService {
     }
   }
 
-  editMessage(messageId, content) {
-    if (this.socket) {
-      this.socket.emit('message:edit', {
-        messageId,
-        content
-      });
+  sendTyping(channelId, userId, username) {
+    if (this.socket && typeof this.socket.emit === 'function') {
+      this.socket.emit('typing:start', { channelId, userId, username });
     }
   }
 
-  deleteMessage(messageId) {
-    if (this.socket) {
-      this.socket.emit('message:delete', {
-        messageId
-      });
+  stopTyping(channelId, userId) {
+    if (this.socket && typeof this.socket.emit === 'function') {
+      this.socket.emit('typing:stop', { channelId, userId });
     }
   }
 
-  startTyping(channelId) {
-    if (this.socket) {
-      this.socket.emit('typing:start', { channelId });
+  updateStatus(status) {
+    if (this.socket && typeof this.socket.emit === 'function') {
+      this.socket.emit('user:status', status);
     }
   }
 
-  stopTyping(channelId) {
-    if (this.socket) {
-      this.socket.emit('typing:stop', { channelId });
+  joinVoiceChannel(channelId) {
+    if (this.socket && typeof this.socket.emit === 'function') {
+      this.socket.emit('voice:join', channelId);
+    }
+  }
+
+  leaveVoiceChannel(channelId) {
+    if (this.socket && typeof this.socket.emit === 'function') {
+      this.socket.emit('voice:leave', channelId);
     }
   }
 
   disconnect() {
-    try {
-      if (this.socket) {
-        console.log('Disconnecting socket');
-        this.socket.removeAllListeners();
-        this.socket.disconnect();
-        this.socket = null;
-      }
-    } catch (error) {
-      console.error('Error disconnecting socket:', error);
+    if (this.socket && typeof this.socket.disconnect === 'function') {
+      this.socket.disconnect();
       this.socket = null;
     }
   }
 
   getSocket() {
-    return this.socket;
+    return this.socket || this.createMockSocket();
   }
 
   isConnected() {
-    return this.socket && this.socket.connected;
+    return this.socket && this.socket.connected && this.socket !== this.mockSocket;
   }
 }
 
