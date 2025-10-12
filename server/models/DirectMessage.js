@@ -1,8 +1,6 @@
 // Direct Message Model
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-
-const DirectMessage = sequelize.define('DirectMessage', {
+module.exports = (sequelize, DataTypes) => {
+  const DirectMessage = sequelize.define('DirectMessage', {
   id: {
     type: DataTypes.UUID,
     primaryKey: true,
@@ -62,4 +60,5 @@ const DirectMessage = sequelize.define('DirectMessage', {
   ]
 });
 
-module.exports = DirectMessage;
+  return DirectMessage;
+};

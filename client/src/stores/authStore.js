@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 // Use relative URL in production, full URL in development
 const API_URL = process.env.NODE_ENV === 'production' 
   ? '/api' 
-  : (process.env.REACT_APP_API_URL || 'http://localhost:10000/api');
+  : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;

@@ -2,7 +2,15 @@
 const express = require('express');
 const router = express.Router();
 const os = require('os');
-const { sequelize } = require('../models');
+
+// Safely load sequelize
+let sequelize;
+try {
+  const models = require('../models');
+  sequelize = models.sequelize;
+} catch (err) {
+  console.warn('Database models not available for monitoring');
+}
 
 // Simple logger for production
 const logger = {
@@ -28,12 +36,16 @@ router.get('/status', async (req, res) => {
   try {
     // Check database connection
     let dbStatus = 'disconnected';
-    try {
-      await sequelize.authenticate();
-      dbStatus = 'connected';
-    } catch (error) {
-      dbStatus = 'error';
-      logger.error('Database health check failed', error);
+    if (sequelize) {
+      try {
+        await sequelize.authenticate();
+        dbStatus = 'connected';
+      } catch (error) {
+        dbStatus = 'error';
+        logger.error('Database health check failed', error);
+      }
+    } else {
+      dbStatus = 'not-configured';
     }
 
     // Get memory usage
@@ -54,7 +66,7 @@ router.get('/status', async (req, res) => {
         formatted: formatUptime(process.uptime())
       },
       environment: process.env.NODE_ENV || 'development',
-      version: require('../../package.json').version,
+      version: '1.0.0',
       database: {
         status: dbStatus,
         type: 'PostgreSQL'

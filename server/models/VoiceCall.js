@@ -1,8 +1,6 @@
 // Voice Call Model
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-
-const VoiceCall = sequelize.define('VoiceCall', {
+module.exports = (sequelize, DataTypes) => {
+  const VoiceCall = sequelize.define('VoiceCall', {
   id: {
     type: DataTypes.UUID,
     primaryKey: true,
@@ -66,4 +64,5 @@ const VoiceCall = sequelize.define('VoiceCall', {
   ]
 });
 
-module.exports = VoiceCall;
+  return VoiceCall;
+};

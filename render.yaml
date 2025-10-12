@@ -15,7 +15,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm run build
-    startCommand: cd server && node index.js
+    startCommand: cd server && node start-production.js
     envVars:
       - key: NODE_ENV
         value: production

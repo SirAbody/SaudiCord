@@ -17,7 +17,7 @@ class SocketService {
     // Use same origin in production, full URL in development
     const serverUrl = process.env.NODE_ENV === 'production'
       ? window.location.origin
-      : (process.env.REACT_APP_SERVER_URL || 'http://localhost:10000');
+      : (process.env.REACT_APP_SERVER_URL || 'http://localhost:5000');
     
     this.socket = io(serverUrl, {
       transports: ['websocket'],

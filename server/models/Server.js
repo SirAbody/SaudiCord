@@ -21,10 +21,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       defaultValue: null
     },
-    ownerId: {
-      type: DataTypes.UUID,
-      allowNull: false
-    },
     description: {
       type: DataTypes.TEXT,
       defaultValue: ''

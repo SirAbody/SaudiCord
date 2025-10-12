@@ -1,6 +1,4 @@
-// Simple logger without winston dependency
-// Made With Love By SirAbody
-
+// Simple logger without dependencies
 const logger = {
   info: (...args) => console.log('[INFO]', new Date().toISOString(), ...args),
   error: (...args) => console.error('[ERROR]', new Date().toISOString(), ...args),

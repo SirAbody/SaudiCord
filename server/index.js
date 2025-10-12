@@ -14,6 +14,16 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
+// Prevent process from exiting
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  console.error(err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // Create simple logger wrapper for production
 const logger = {
   info: (...args) => console.log('[INFO]', ...args),
@@ -28,10 +38,26 @@ const logger = {
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Ensure required directories exist
-require('./startup');
+try {
+  require('./startup');
+} catch (err) {
+  console.error('Startup script error:', err);
+}
 
 // Import database
-const { sequelize } = require('./models');
+let sequelize;
+try {
+  const models = require('./models');
+  sequelize = models.sequelize;
+} catch (err) {
+  console.warn('Database models could not be loaded:', err.message);
+  // Create a dummy sequelize object to prevent crashes
+  sequelize = {
+    authenticate: () => Promise.reject(new Error('Database not configured')),
+    sync: () => Promise.reject(new Error('Database not configured')),
+    close: () => Promise.resolve()
+  };
+}
 
 // Create express app and server
 const app = express();
@@ -177,11 +203,19 @@ const PORT = process.env.PORT || 10000;
 
 // Start server immediately without waiting for database
 logger.info('🚀 Starting SaudiCord Server...');
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   logger.info(`✅ Server running on port ${PORT}`);
   logger.info('💝 Made With Love By SirAbody');
   logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🌐 URL: ${process.env.NODE_ENV === 'production' ? 'https://saudicord.onrender.com' : `http://localhost:${PORT}`}`);
+  logger.info('✨ Server is ready to accept connections');
+  
+  // Keep the process alive
+  if (process.env.NODE_ENV === 'production') {
+    setInterval(() => {
+      logger.debug('Server heartbeat - still running');
+    }, 30000); // Log every 30 seconds in production
+  }
 });
 
 // Try to connect to database (non-blocking)
@@ -310,6 +344,33 @@ sequelize.authenticate()
   // Server is already running, just log the database status
   logger.warn('⚠️  Server running without database connection');
   logger.info('📌 Health check and static files are still available');
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    logger.info('HTTP server closed');
+    sequelize.close().then(() => {
+      logger.info('Database connection closed');
+      process.exit(0);
+    }).catch(() => {
+      process.exit(0);
+    });
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT signal received: closing HTTP server');
+  server.close(() => {
+    logger.info('HTTP server closed');
+    sequelize.close().then(() => {
+      logger.info('Database connection closed');
+      process.exit(0);
+    }).catch(() => {
+      process.exit(0);
+    });
+  });
 });
 
 module.exports = { app, io };

@@ -1,8 +1,6 @@
 // Friendship Model
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-
-const Friendship = sequelize.define('Friendship', {
+module.exports = (sequelize, DataTypes) => {
+  const Friendship = sequelize.define('Friendship', {
   id: {
     type: DataTypes.UUID,
     primaryKey: true,
@@ -37,14 +35,8 @@ const Friendship = sequelize.define('Friendship', {
     }
   }
 }, {
-  tableName: 'friendships',
-  timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['userId', 'friendId']
-    }
-  ]
+  tableName: 'friendships'
 });
 
-module.exports = Friendship;
+  return Friendship;
+};

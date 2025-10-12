@@ -1,6 +1,16 @@
 // Socket.io Handler for Real-time Communication
 const jwt = require('jsonwebtoken');
-const { User, Message, Channel } = require('../models');
+
+// Safely load models (might fail if database is not connected)
+let User, Message, Channel;
+try {
+  const models = require('../models');
+  User = models.User;
+  Message = models.Message;
+  Channel = models.Channel;
+} catch (err) {
+  console.warn('Models not loaded - database might be unavailable');
+}
 
 // Simple logger for production
 const logger = {
@@ -24,14 +34,22 @@ module.exports = (io) => {
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
-      const user = await User.findByPk(decoded.userId);
       
-      if (!user) {
-        return next(new Error('User not found'));
-      }
+      // Only try to fetch user if User model is available
+      if (User) {
+        const user = await User.findByPk(decoded.userId);
+        
+        if (!user) {
+          return next(new Error('User not found'));
+        }
 
-      socket.user = user;
-      logger.debug(`Socket authentication successful for user: ${user.username}`);
+        socket.user = user;
+        logger.debug(`Socket authentication successful for user: ${user.username}`);
+      } else {
+        // If no database, use decoded token data
+        socket.user = { id: decoded.userId, username: decoded.username || 'Unknown' };
+        logger.debug('Socket authentication successful (no database)');
+      }
       next();
     } catch (err) {
       logger.warn('Socket authentication failed', { error: err.message });
@@ -46,6 +64,17 @@ module.exports = (io) => {
     socket.on('authenticate', async (token) => {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        
+        if (!User) {
+          socket.userId = decoded.userId;
+          socket.username = decoded.username || 'Unknown';
+          activeUsers.set(socket.userId, { id: socket.userId, username: socket.username });
+          userSockets.set(socket.userId, socket);
+          socket.emit('auth:success', { user: { id: socket.userId, username: socket.username } });
+          logger.info(`User authenticated (no database): ${socket.username}`);
+          return;
+        }
+        
         const user = await User.findByPk(decoded.userId);
         
         if (!user) {
@@ -61,10 +90,12 @@ module.exports = (io) => {
         userSockets.set(socket.userId, socket);
         
         // Update user status to online
-        await User.update(
-          { status: 'online', lastSeen: new Date() },
-          { where: { id: socket.userId } }
-        );
+        if (User) {
+          await User.update(
+            { status: 'online', lastSeen: new Date() },
+            { where: { id: socket.userId } }
+          );
+        }
 
         // Join user to their personal room
         socket.join(`user-${socket.userId}`);
@@ -134,6 +165,12 @@ module.exports = (io) => {
       }
       
       try {
+        if (!User) {
+          const onlineUsers = Array.from(activeUsers.values());
+          socket.emit('users:list', onlineUsers);
+          return;
+        }
+        
         const users = await User.findAll({
           where: { status: { [require('sequelize').Op.ne]: null } },
           attributes: ['id', 'username', 'displayName', 'avatar', 'status', 'lastSeen']
@@ -161,11 +198,30 @@ module.exports = (io) => {
         }
         
         // Create message in database
+        if (!Message || !User) {
+          // If no database, create a simple message object
+          const simpleMessage = {
+            id: Date.now().toString(),
+            content,
+            channelId,
+            userId: socket.userId,
+            author: {
+              id: socket.userId,
+              username: socket.username || 'Unknown',
+              displayName: socket.username || 'Unknown'
+            },
+            createdAt: new Date()
+          };
+          io.to(`channel:${channelId}`).emit('message:receive', simpleMessage);
+          logger.info(`Message sent (no database): ${content.substring(0, 50)}...`);
+          return;
+        }
+        
         const message = await Message.create({
           content,
           channelId,
           userId: socket.userId,
-          attachments
+          serverId: data.serverId
         });
 
         // Get full message with author info
@@ -198,6 +254,11 @@ module.exports = (io) => {
       try {
         const { messageId, content } = data;
         
+        if (!Message) {
+          logger.warn('Message editing not available without database');
+          return;
+        }
+        
         const message = await Message.findByPk(messageId);
         if (message && message.userId === socket.userId) {
           await message.update({
@@ -222,6 +283,11 @@ module.exports = (io) => {
     socket.on('message:delete', async (data) => {
       try {
         const { messageId } = data;
+        
+        if (!Message) {
+          logger.warn('Message deletion not available without database');
+          return;
+        }
         
         const message = await Message.findByPk(messageId);
         if (message && message.userId === socket.userId) {
@@ -434,10 +500,12 @@ module.exports = (io) => {
         userSockets.delete(socket.userId);
         
         // Update user status
-        await User.update(
-          { status: 'offline', lastSeen: new Date() },
-          { where: { id: socket.userId } }
-        );
+        if (User) {
+          await User.update(
+            { status: 'offline', lastSeen: new Date() },
+            { where: { id: socket.userId } }
+          );
+        }
         
         // Broadcast user offline status
         socket.broadcast.emit('user:offline', {
@@ -449,3 +517,6 @@ module.exports = (io) => {
     });
   });
 };
+
+module.exports.activeUsers = activeUsers;
+module.exports.userSockets = userSockets;

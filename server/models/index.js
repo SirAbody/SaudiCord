@@ -1,12 +1,15 @@
 // Database Models Configuration
 const sequelize = require('../config/database');
-const User = require('./User');
-const Server = require('./Server');
-const Channel = require('./Channel');
-const Message = require('./Message');
-const VoiceCall = require('./VoiceCall');
-const Friendship = require('./Friendship');
-const DirectMessage = require('./DirectMessage');
+const { DataTypes } = require('sequelize');
+
+// Initialize models
+const User = require('./User')(sequelize, DataTypes);
+const Server = require('./Server')(sequelize, DataTypes);
+const Channel = require('./Channel')(sequelize, DataTypes);
+const Message = require('./Message')(sequelize, DataTypes);
+const VoiceCall = require('./VoiceCall')(sequelize, DataTypes);
+const Friendship = require('./Friendship')(sequelize, DataTypes);
+const DirectMessage = require('./DirectMessage')(sequelize, DataTypes);
 
 // Define associations
 // Server has many channels
