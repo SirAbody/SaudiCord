@@ -4,10 +4,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
 import ErrorBoundary from './components/ErrorBoundary';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import Dashboard from './pages/Dashboard';
-import NotFound from './pages/NotFound';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import MainLayout from './components/layout/MainLayout';
 
 function App() {
   const { isAuthenticated } = useAuthStore();
@@ -44,21 +43,24 @@ function App() {
           <Routes>
             <Route 
               path="/" 
-              element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} 
+              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />} 
             />
             <Route 
               path="/login" 
-              element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} 
+              element={isAuthenticated ? <Navigate to="/" /> : <Login />} 
             />
             <Route 
               path="/register" 
-              element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} 
+              element={isAuthenticated ? <Navigate to="/" /> : <Register />} 
             />
             <Route 
-              path="/dashboard" 
-              element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} 
+              path="/dashboard/*" 
+              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />} 
             />
-            <Route path="*" element={<NotFound />} />
+            <Route 
+              path="*" 
+              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />} 
+            />
           </Routes>
         </div>
       </Router>
