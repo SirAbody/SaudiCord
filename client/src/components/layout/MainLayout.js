@@ -1,6 +1,6 @@
 // Main Layout Component
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useChatStore } from '../../stores/chatStore';
 import socketService from '../../services/socket';
@@ -17,7 +17,7 @@ function MainLayout() {
   const { user } = useAuthStore();
   const { currentChannel } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
-  const location = useLocation();
+  // const location = useLocation(); // Reserved for future use
   // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 
   useEffect(() => {

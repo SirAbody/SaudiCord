@@ -4,11 +4,9 @@ import { useCallStore } from '../../stores/callStore';
 import { 
   XMarkIcon, 
   PhoneIcon,
-  PhoneXMarkIcon,
   MicrophoneIcon,
   VideoCameraIcon,
   VideoCameraSlashIcon,
-  ComputerDesktopIcon,
   ArrowUpTrayIcon,
   SpeakerXMarkIcon
 } from '@heroicons/react/24/solid';

@@ -1,5 +1,9 @@
-// SaudiCord Server - Made With Love By SirAbody
+// SaudiCord Backend Server
+// Made With Love By SirAbody
+
+// Load environment variables first
 require('dotenv').config();
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -123,11 +127,23 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (works without database)
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'unknown';
+  
+  try {
+    await sequelize.authenticate();
+    dbStatus = 'connected';
+  } catch (error) {
+    dbStatus = 'disconnected';
+  }
+  
   res.json({ 
-    status: 'OK', 
+    status: dbStatus === 'connected' ? 'OK' : 'DEGRADED',
     message: 'SaudiCord Server is running',
+    database: dbStatus,
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT,
     author: 'Made With Love By SirAbody',
     timestamp: new Date().toISOString()
   });
@@ -152,8 +168,15 @@ const PORT = process.env.PORT || 10000;
 
 // Database sync and server start
 const shouldResetDB = process.env.RESET_DB === 'true';
-sequelize.sync({ force: shouldResetDB }).then(async () => {
-  logger.info('✅ Database connected and synced');
+
+// Test database connection first
+sequelize.authenticate()
+  .then(() => {
+    logger.info('✅ Database connection established successfully');
+    return sequelize.sync({ force: shouldResetDB });
+  })
+  .then(async () => {
+    logger.info('✅ Database models synced successfully');
   
   // Auto-create admin user and default data if not exists
   try {
@@ -255,8 +278,34 @@ sequelize.sync({ force: shouldResetDB }).then(async () => {
     logger.info(`Client URL: ${process.env.CLIENT_URL || 'http://localhost:3000'}`);
   });
 }).catch(err => {
-  logger.error('❌ Unable to connect to database:', err);
-  process.exit(1);
+  logger.error('❌ Database connection failed');
+  logger.error('Error details:', err.message);
+  
+  // Check common issues
+  if (err.message.includes('ECONNREFUSED')) {
+    logger.error('⚠️  Make sure PostgreSQL is running and accessible');
+  }
+  if (err.message.includes('authentication')) {
+    logger.error('⚠️  Check your database credentials in environment variables');
+  }
+  if (err.message.includes('database') && err.message.includes('does not exist')) {
+    logger.error('⚠️  The database does not exist. Please create it first.');
+  }
+  
+  logger.error('📋 Required environment variables:');
+  logger.error('   DATABASE_URL or (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)');
+  logger.error('   Current DATABASE_URL:', process.env.DATABASE_URL ? '✅ Set' : '❌ Not set');
+  
+  // In production, try to start without database (for monitoring endpoints)
+  if (process.env.NODE_ENV === 'production') {
+    logger.warn('⚠️  Starting server without database connection for monitoring');
+    server.listen(PORT, () => {
+      logger.info(`🚀 Server running on port ${PORT} (Database not connected)`);
+      logger.info('📌 Only health check endpoints are available');
+    });
+  } else {
+    process.exit(1);
+  }
 });
 
 module.exports = { app, io };

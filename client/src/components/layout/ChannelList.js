@@ -10,8 +10,7 @@ function ChannelList() {
   const { currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
-  const [loading, setLoading] = useState(true);
-  // Note: loading is used to track initial load state
+  // const [loading, setLoading] = useState(true); // Reserved for loading state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [channelType, setChannelType] = useState('text');
   const [newChannelName, setNewChannelName] = useState('');
@@ -47,8 +46,6 @@ function ChannelList() {
       }
     } catch (error) {
       console.error('Failed to load channels:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

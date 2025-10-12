@@ -1,7 +1,7 @@
 // Chat Area Component
 import React, { useState } from 'react';
 import { useChatStore } from '../../stores/chatStore';
-import { useAuthStore } from '../../stores/authStore';
+// import { useAuthStore } from '../../stores/authStore'; // Reserved for future use
 import { useCallStore } from '../../stores/callStore';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
