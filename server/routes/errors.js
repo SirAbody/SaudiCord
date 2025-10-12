@@ -1,7 +1,14 @@
 // Error Logging Route for Client-side Errors
 const express = require('express');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
-const logger = require('../utils/logger');
+
+// Simple logger for production
+const logger = {
+  info: (...args) => console.log('[INFO]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  debug: (...args) => process.env.NODE_ENV !== 'production' && console.log('[DEBUG]', ...args)
+};
 
 const router = express.Router();
 

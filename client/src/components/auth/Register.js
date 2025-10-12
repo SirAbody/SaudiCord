@@ -31,6 +31,11 @@ function Register() {
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-8">
+          <img 
+            src="/SaudiCordLogo.png" 
+            alt="SaudiCord Logo" 
+            className="w-24 h-24 mx-auto mb-4 rounded-full shadow-xl"
+          />
           <h1 className="text-5xl font-bold text-accent mb-2">SaudiCord</h1>
           <p className="text-text-secondary">Made With Love By SirAbody</p>
         </div>

@@ -4,9 +4,19 @@
   "description": "Self-hosted chat platform with voice/video calling. Made With Love By SirAbody",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "SaudiCordLogo.png",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "type": "image/png"
+    },
+    {
+      "src": "SaudiCordLogo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "SaudiCordLogo.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ],
   "start_url": ".",

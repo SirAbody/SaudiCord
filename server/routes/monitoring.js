@@ -1,10 +1,16 @@
 // System Monitoring and Health Check Routes
 const express = require('express');
+const router = express.Router();
 const os = require('os');
 const { sequelize } = require('../models');
-const logger = require('../utils/logger');
 
-const router = express.Router();
+// Simple logger for production
+const logger = {
+  info: (...args) => console.log('[INFO]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  debug: (...args) => process.env.NODE_ENV !== 'production' && console.log('[DEBUG]', ...args)
+};
 
 // Basic health check
 router.get('/health', (req, res) => {

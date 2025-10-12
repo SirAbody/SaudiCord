@@ -14,8 +14,15 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
+// Create simple logger wrapper for production
+const logger = {
+  info: (...args) => console.log('[INFO]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  debug: (...args) => process.env.NODE_ENV !== 'production' && console.log('[DEBUG]', ...args)
+};
+
 // Import utilities
-const logger = require('./utils/logger');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Ensure required directories exist
