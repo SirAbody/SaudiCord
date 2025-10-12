@@ -173,10 +173,17 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 10000;
 
-// Database sync and server start
-const shouldResetDB = process.env.RESET_DB === 'true';
+// Start server immediately without waiting for database
+logger.info('🚀 Starting SaudiCord Server...');
+server.listen(PORT, () => {
+  logger.info(`✅ Server running on port ${PORT}`);
+  logger.info('💝 Made With Love By SirAbody');
+  logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🌐 URL: ${process.env.NODE_ENV === 'production' ? 'https://saudicord.onrender.com' : `http://localhost:${PORT}`}`);
+});
 
-// Test database connection first
+// Try to connect to database (non-blocking)
+const shouldResetDB = process.env.RESET_DB === 'true';
 sequelize.authenticate()
   .then(() => {
     logger.info('✅ Database connection established successfully');
@@ -278,12 +285,7 @@ sequelize.authenticate()
     logger.warn('Could not create default data:', error.message);
   }
   
-  server.listen(PORT, () => {
-    logger.info(`🚀 SaudiCord Server running on port ${PORT}`);
-    logger.info('💝 Made With Love By SirAbody');
-    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    logger.info(`Client URL: ${process.env.CLIENT_URL || 'http://localhost:3000'}`);
-  });
+  logger.info('✅ Database initialized with default data');
 }).catch(err => {
   logger.error('❌ Database connection failed');
   logger.error('Error details:', err.message);
@@ -303,16 +305,9 @@ sequelize.authenticate()
   logger.error('   DATABASE_URL or (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME)');
   logger.error('   Current DATABASE_URL:', process.env.DATABASE_URL ? '✅ Set' : '❌ Not set');
   
-  // In production, try to start without database (for monitoring endpoints)
-  if (process.env.NODE_ENV === 'production') {
-    logger.warn('⚠️  Starting server without database connection for monitoring');
-    server.listen(PORT, () => {
-      logger.info(`🚀 Server running on port ${PORT} (Database not connected)`);
-      logger.info('📌 Only health check endpoints are available');
-    });
-  } else {
-    process.exit(1);
-  }
+  // Server is already running, just log the database status
+  logger.warn('⚠️  Server running without database connection');
+  logger.info('📌 Health check and static files are still available');
 });
 
 module.exports = { app, io };
