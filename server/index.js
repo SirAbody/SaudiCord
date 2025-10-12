@@ -147,7 +147,7 @@ if (io) {
 }
 
 // Error handling middleware
-const { errorHandler, notFound } = require('./middleware/error');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Serve index.html for all other routes in production (SPA support)
 if (process.env.NODE_ENV === 'production') {
