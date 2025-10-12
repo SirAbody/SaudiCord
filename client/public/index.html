@@ -19,17 +19,27 @@
     
     <title>SaudiCord - Made With Love By SirAbody</title>
     
-    <!-- Socket.io Client from CDN (must load before app) -->
-    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js"></script>
+    <!-- Socket.io Client from CDN (optional - app works without it) -->
     <script>
-      // Verify Socket.io loaded correctly
-      window.addEventListener('load', function() {
-        if (typeof window.io === 'function') {
-          console.log('✅ Socket.io loaded successfully from CDN');
-        } else {
-          console.error('❌ Socket.io failed to load from CDN');
-        }
-      });
+      // Try to load Socket.io, but don't fail if it doesn't work
+      (function() {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js';
+        script.async = false;
+        script.onload = function() {
+          if (typeof window.io === 'function') {
+            console.log('✅ Socket.io loaded successfully from CDN');
+          } else {
+            console.warn('⚠️ Socket.io loaded but not functional');
+            window.io = null; // Clear it to trigger mock socket
+          }
+        };
+        script.onerror = function() {
+          console.warn('⚠️ Socket.io CDN failed to load - app will work offline');
+          window.io = null;
+        };
+        document.head.appendChild(script);
+      })();
     </script>
     
     <style>
