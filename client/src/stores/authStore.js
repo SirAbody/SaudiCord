@@ -101,8 +101,14 @@ export const useAuthStore = create((set, get) => ({
     set({ loading: true });
     try {
       const response = await axios.get('/auth/verify');
-      set({ user: response.data.user, loading: false });
+      if (response.data.valid && response.data.user) {
+        set({ user: response.data.user, loading: false });
+      } else {
+        localStorage.removeItem('token');
+        set({ user: null, loading: false });
+      }
     } catch (error) {
+      console.error('Auth check error:', error);
       localStorage.removeItem('token');
       set({ user: null, loading: false });
     }

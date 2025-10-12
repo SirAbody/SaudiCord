@@ -129,7 +129,25 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes (must come before static file serving)
-const authRoutes = require('./routes/auth');
+// Check if database is available, if not use simple auth
+let authRoutes;
+try {
+  const models = require('./models');
+  // If models load successfully, use regular auth routes
+  authRoutes = require('./routes/auth');
+  console.log('Using database auth routes');
+} catch (err) {
+  // If models fail to load, use simple auth without database
+  try {
+    authRoutes = require('./routes/auth-simple');
+    console.log('Using simple auth routes (no database)');
+  } catch (simpleErr) {
+    // Fallback to regular auth if auth-simple doesn't exist
+    authRoutes = require('./routes/auth');
+    console.log('Fallback to regular auth routes');
+  }
+}
+
 const userRoutes = require('./routes/users');
 const serverRoutes = require('./routes/servers');
 const channelRoutes = require('./routes/channels');

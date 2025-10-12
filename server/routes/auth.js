@@ -172,20 +172,34 @@ router.post('/logout', authenticateToken, async (req, res) => {
 });
 
 // Verify token
-router.get('/verify', authenticateToken, async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
-    const user = await User.findByPk(req.userId, {
+    // Get token from header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.json({ valid: false, message: 'No token provided' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    if (!token) {
+      return res.json({ valid: false, message: 'No token provided' });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+    
+    const user = await User.findByPk(decoded.userId, {
       attributes: { exclude: ['password'] }
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.json({ valid: false, error: 'User not found' });
     }
 
     res.json({ valid: true, user });
   } catch (error) {
     console.error('Token verification error:', error);
-    res.status(500).json({ error: 'Failed to verify token' });
+    res.json({ valid: false, error: 'Invalid token' });
   }
 });
 
