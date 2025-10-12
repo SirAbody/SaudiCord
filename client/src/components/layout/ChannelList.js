@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
 
 function ChannelList() {
-  const { currentChannel, setCurrentChannel, fetchMessages } = useChatStore();
+  const { currentChannel, selectChannel, fetchMessages } = useChatStore();
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
   // const [loading, setLoading] = useState(true); // Reserved for loading state
@@ -26,7 +26,7 @@ function ChannelList() {
 
   const loadChannels = async () => {
     try {
-      const response = await axios.get('/api/channels');
+      const response = await axios.get('/channels');
       const channels = response.data || [];
       
       // Get first server ID if available
@@ -63,7 +63,7 @@ function ChannelList() {
 
     setCreating(true);
     try {
-      const response = await axios.post('/api/channels', {
+      const response = await axios.post('/channels', {
         name: newChannelName.toLowerCase().replace(/\s+/g, '-'),
         type: channelType,
         description: newChannelDescription,
@@ -100,7 +100,7 @@ function ChannelList() {
     }
     
     // Join new channel
-    setCurrentChannel(channel);
+    selectChannel(channel);
     socketService.joinChannel(channel.id);
     
     // Fetch messages for text channels
