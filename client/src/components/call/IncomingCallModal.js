@@ -26,7 +26,7 @@ function IncomingCallModal() {
         audio.pause();
       };
     }
-  }, [incomingCall]);
+  }, [incomingCall]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAccept = async () => {
     clearTimeout(ringTimeout);

@@ -18,7 +18,7 @@ function MainLayout() {
   const { currentChannel } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
   const location = useLocation();
-  const isDirectMessages = location.pathname === '/dashboard';
+  // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 
   useEffect(() => {
     // Connect to socket server

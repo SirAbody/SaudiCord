@@ -100,6 +100,7 @@ const voiceRoutes = require('./routes/voice');
 const friendRoutes = require('./routes/friends');
 const directMessageRoutes = require('./routes/directMessages');
 const monitoringRoutes = require('./routes/monitoring');
+const errorRoutes = require('./routes/errors');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -110,6 +111,7 @@ app.use('/api/voice', voiceRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/dm', directMessageRoutes);
 app.use('/api/monitor', monitoringRoutes);
+app.use('/api/errors', errorRoutes);
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
@@ -149,8 +151,8 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 10000;
 
 // Database sync and server start
-// Set force: true temporarily to recreate tables with UUIDs
-sequelize.sync({ force: process.env.RESET_DB === 'true' || false }).then(async () => {
+const shouldResetDB = process.env.RESET_DB === 'true';
+sequelize.sync({ force: shouldResetDB }).then(async () => {
   logger.info('✅ Database connected and synced');
   
   // Auto-create admin user and default data if not exists

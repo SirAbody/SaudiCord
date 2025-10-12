@@ -3,15 +3,13 @@ import React, { useEffect, useRef } from 'react';
 import { useCallStore } from '../../stores/callStore';
 import { 
   XMarkIcon, 
-  MicrophoneIcon, 
-  VideoCameraIcon, 
-  ArrowUpTrayIcon,
   PhoneIcon,
+  PhoneXMarkIcon,
+  MicrophoneIcon,
+  VideoCameraIcon,
   VideoCameraSlashIcon,
-  SpeakerWaveIcon,
-  SpeakerXMarkIcon
-} from '@heroicons/react/24/outline';
-import { MicrophoneIcon as MicrophoneSolidIcon } from '@heroicons/react/24/solid';
+  ComputerDesktopIcon
+} from '@heroicons/react/24/solid';
 import socketService from '../../services/socket';
 
 function CallModal() {

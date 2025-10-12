@@ -1,5 +1,5 @@
 // Chat Area Component
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore';
@@ -10,8 +10,9 @@ import { HashtagIcon, PhoneIcon, VideoCameraIcon, MapPinIcon, BellIcon, UsersIco
 import toast from 'react-hot-toast';
 
 function ChatArea() {
-  const { currentChannel, messages } = useChatStore();
-  const { user } = useAuthStore();
+  const { currentChannel } = useChatStore();
+  // const { messages } = useChatStore(); // Reserved for future use
+  // const { user } = useAuthStore(); // Reserved for future use
   const { initiateCall } = useCallStore();
   const [showPinnedMessages, setShowPinnedMessages] = useState(false);
 

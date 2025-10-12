@@ -1,6 +1,6 @@
 // Channel List Component
 import React, { useEffect, useState } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, VideoCameraIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, SpeakerWaveIcon, ChevronDownIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import socketService from '../../services/socket';
 import axios from 'axios';
@@ -11,6 +11,7 @@ function ChannelList() {
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Note: loading is used to track initial load state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [channelType, setChannelType] = useState('text');
   const [newChannelName, setNewChannelName] = useState('');
@@ -21,7 +22,7 @@ function ChannelList() {
   useEffect(() => {
     // Load real channels from server
     loadChannels();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadChannels = async () => {
     try {

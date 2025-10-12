@@ -1,6 +1,6 @@
 // User List Component - Real Users Only
 import React, { useState, useEffect } from 'react';
-import { useChatStore } from '../../stores/chatStore';
+// import { useChatStore } from '../../stores/chatStore'; // Reserved for future use
 import { useAuthStore } from '../../stores/authStore';
 import socketService from '../../services/socket';
 

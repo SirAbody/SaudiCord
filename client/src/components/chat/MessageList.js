@@ -1,5 +1,5 @@
 // Message List Component
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import Message from './Message';
@@ -11,7 +11,7 @@ function MessageList() {
   const messagesEndRef = useRef(null);
   const [groupedMessages, setGroupedMessages] = useState([]);
 
-  const channelMessages = messages[currentChannel?.id] || [];
+  const channelMessages = useMemo(() => messages[currentChannel?.id] || [], [messages, currentChannel?.id]);
   const typingInChannel = typingUsers[currentChannel?.id] || [];
 
   useEffect(() => {

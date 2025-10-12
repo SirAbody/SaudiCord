@@ -31,10 +31,7 @@ function MessageInput() {
     setIsTyping(false);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    handleSend();
-  };
+  // Removed unused handleSubmit function - using handleKeyDown instead
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

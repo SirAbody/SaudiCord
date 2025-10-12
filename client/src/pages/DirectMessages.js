@@ -20,7 +20,7 @@ import socketService from '../services/socket';
 function DirectMessages() {
   const { user } = useAuthStore();
   const [friends, setFriends] = useState([]);
-  const [conversations, setConversations] = useState([]);
+  const [conversations, setConversations] = useState([]); // eslint-disable-line no-unused-vars
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
@@ -29,13 +29,13 @@ function DirectMessages() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [inCall, setInCall] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
 
   useEffect(() => {
     loadFriends();
     loadConversations();
     setupSocketListeners();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setupSocketListeners = () => {
     socketService.on('dm:receive', (message) => {

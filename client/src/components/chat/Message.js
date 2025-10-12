@@ -1,7 +1,7 @@
 // Message Component
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { PencilIcon, TrashIcon, EllipsisHorizontalIcon, FaceSmileIcon, ArrowUturnLeftIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, FaceSmileIcon, ArrowUturnLeftIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import socketService from '../../services/socket';
 import toast from 'react-hot-toast';
 
@@ -9,7 +9,7 @@ function Message({ message, isOwn, grouped }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
-  const [showMenu, setShowMenu] = useState(false);
+  // const [showMenu, setShowMenu] = useState(false); // Reserved for future menu feature
 
   const handleEdit = () => {
     if (editContent.trim() && editContent !== message.content) {

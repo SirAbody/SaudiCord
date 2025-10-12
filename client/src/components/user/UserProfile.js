@@ -17,7 +17,7 @@ function UserProfile({ onClose }) {
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [status, setStatus] = useState(user?.status || 'online');
-  const [avatarFile, setAvatarFile] = useState(null);
+  // const [avatarFile, setAvatarFile] = useState(null); // Reserved for future avatar upload
 
   const handleSave = async () => {
     const success = await updateProfile({
