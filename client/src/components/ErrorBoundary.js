@@ -7,26 +7,29 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state to show fallback UI
+    console.error('getDerivedStateFromError called with:', error);
+    
+    // Check if it's a recoverable error
+    if (error && error.message) {
+      const message = error.message.toLowerCase();
+      if (
+        message.includes('.on is not a function') ||
+        message.includes('socket') ||
+        message.includes('io is not') ||
+        message.includes('cannot read') ||
+        message.includes('undefined')
+      ) {
+        console.warn('Recoverable error detected, not showing error screen');
+        return { hasError: false, error: null };
+      }
+    }
+    
+    // Update state to show fallback UI for real errors
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-    
-    // Check if it's a Socket.io related error
-    if (error && error.message && (
-      error.message.includes('.on is not a function') ||
-      error.message.includes('Socket.io') ||
-      error.message.includes('socket') ||
-      error.message.includes('io is not') ||
-      error.message.includes('Cannot read')
-    )) {
-      console.warn('Socket.io/undefined error detected, app will work in offline mode');
-      // Don't show error screen for Socket.io issues
-      this.setState({ hasError: false });
-      return;
-    }
+    console.error('Error caught by boundary in componentDidCatch:', error, errorInfo);
     
     // Log the full error for debugging
     console.error('Full error details:', {
@@ -34,6 +37,25 @@ class ErrorBoundary extends React.Component {
       stack: error?.stack,
       componentStack: errorInfo?.componentStack
     });
+    
+    // Check if it's a Socket.io related error
+    if (error && error.message) {
+      const message = error.message.toLowerCase();
+      if (
+        message.includes('.on is not a function') ||
+        message.includes('socket') ||
+        message.includes('io is not') ||
+        message.includes('cannot read') ||
+        message.includes('undefined')
+      ) {
+        console.warn('Socket.io/undefined error detected in componentDidCatch, app will work in offline mode');
+        // Reset error state for recoverable errors
+        setTimeout(() => {
+          this.setState({ hasError: false, error: null });
+        }, 100);
+        return;
+      }
+    }
   }
 
   render() {
