@@ -1,6 +1,6 @@
 // Channel List Component
 import React, { useState, useEffect } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import EmptyState from '../common/EmptyState';
 import axios from 'axios';
