@@ -90,7 +90,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Check authentication status
+  // Check authentication status with better error handling
   checkAuth: async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -100,7 +100,16 @@ export const useAuthStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      const response = await axios.get('/auth/verify');
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await axios.get('/auth/verify', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (response.data.valid && response.data.user) {
         set({ user: response.data.user, loading: false });
       } else {
@@ -109,8 +118,24 @@ export const useAuthStore = create((set, get) => ({
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      localStorage.removeItem('token');
-      set({ user: null, loading: false });
+      
+      // If it's a network error or timeout, don't remove token immediately
+      // User might just have temporary connection issues
+      if (error.code === 'ECONNABORTED' || error.message?.includes('Network') || !error.response) {
+        console.warn('Network issue during auth check, keeping token for retry');
+        // Still set loading to false to prevent infinite loading
+        set({ loading: false });
+        // Throw the error so App.js can handle it
+        throw error;
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        // Only remove token if server explicitly says it's invalid
+        localStorage.removeItem('token');
+        set({ user: null, loading: false });
+      } else {
+        // For other errors, just stop loading but keep token
+        set({ loading: false });
+        throw error;
+      }
     }
   },
 

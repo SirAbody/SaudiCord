@@ -176,6 +176,12 @@ router.post('/logout', authenticateToken, async (req, res) => {
 // Verify token
 router.get('/verify', async (req, res) => {
   try {
+    // Prevent caching of auth verification responses
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    res.set('Surrogate-Control', 'no-store');
+
     // Get token from header
     const authHeader = req.headers.authorization;
     if (!authHeader) {

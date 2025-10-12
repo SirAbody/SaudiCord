@@ -59,18 +59,49 @@ try {
   };
 }
 
-// Create express app and server
+// Create express app and server with better error handling
 const app = express();
+app.disable('x-powered-by'); // Security: hide Express header
+
+// Add request ID for debugging
+let requestCounter = 0;
+app.use((req, res, next) => {
+  req.id = ++requestCounter;
+  const start = Date.now();
+  
+  // Log request start
+  if (process.env.NODE_ENV === 'production' && !req.path.includes('/api/health')) {
+    console.log(`[REQ-${req.id}] ${req.method} ${req.path}`);
+  }
+  
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (process.env.NODE_ENV === 'production' && !req.path.includes('/api/health')) {
+      console.log(`[RES-${req.id}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    }
+  });
+  
+  next();
+});
+
 const server = http.createServer(app);
 
-// Socket.io configuration with CORS
-// In production we serve client and server from the same origin, so no CORS needed
-const io = socketIo(server, process.env.NODE_ENV === 'production' ? {} : {
+// Socket.io configuration with proper CORS for production
+const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://saudicord.onrender.com', 'http://saudicord.onrender.com']
+      : (process.env.CLIENT_URL || "http://localhost:3000"),
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+    allowedHeaders: ["Authorization"]
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 45000,
+  allowEIO3: true
 });
 
 // Make io accessible to routes
@@ -116,12 +147,14 @@ app.use(cors({
   credentials: true
 }));
 
-// Request logging
-app.use(morgan('combined', {
-  stream: {
-    write: (message) => logger.http(message.trim())
-  }
-}));
+// Request logging - skip in production to avoid duplication
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('combined', {
+    stream: {
+      write: (message) => logger.http(message.trim())
+    }
+  }));
+}
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -156,11 +189,59 @@ app.use('/api', directMessageRoutes);
 app.use('/api/monitor', monitoringRoutes);
 app.use('/api/errors', errorRoutes);
 
-// Serve React build in production
+// Serve React build in production with proper options and error handling
 if (process.env.NODE_ENV === 'production') {
+  const fs = require('fs');
   const buildPath = path.join(__dirname, '../client/build');
-  console.log('Serving static files from:', buildPath);
-  app.use(express.static(buildPath));
+  
+  // Check if build directory exists
+  if (!fs.existsSync(buildPath)) {
+    console.error('⚠️ WARNING: Client build directory not found at:', buildPath);
+    console.error('⚠️ Make sure to run "npm run build" before starting the server');
+  } else {
+    console.log('✅ Serving static files from:', buildPath);
+    
+    // List files in build directory for debugging
+    const files = fs.readdirSync(buildPath).slice(0, 10);
+    console.log('📁 Build directory contains:', files.join(', '), files.length > 10 ? '...' : '');
+  }
+  
+  // Serve static files with simpler configuration to avoid issues
+  app.use(express.static(buildPath, {
+    index: false, // We'll handle index.html manually
+    maxAge: 0, // Disable caching temporarily to debug
+    etag: false
+  }));
+  
+  // Explicitly handle common static files
+  app.get('/manifest.json', (req, res) => {
+    const manifestPath = path.join(buildPath, 'manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      res.sendFile(manifestPath);
+    } else {
+      res.status(404).json({ error: 'Manifest not found' });
+    }
+  });
+  
+  app.get('/favicon.ico', (req, res) => {
+    const faviconPath = path.join(buildPath, 'favicon.ico');
+    if (fs.existsSync(faviconPath)) {
+      res.sendFile(faviconPath);
+    } else {
+      res.status(204).end(); // No content
+    }
+  });
+  
+  // Handle static JS and CSS files explicitly
+  app.get('/static/*', (req, res) => {
+    const filePath = path.join(buildPath, req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      console.error('Static file not found:', req.path);
+      res.status(404).send('File not found');
+    }
+  });
 }
 
 // Health check endpoint (works without database)
@@ -197,10 +278,98 @@ try {
   logger.info('Socket.io initialized with fallback handler');
 }
 
-// Catch-all route for React Router (production only)
+// Catch-all route for React Router (production only) - MUST be last route before error handlers
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build/index.html'));
+  const fs = require('fs');
+  const indexPath = path.join(__dirname, '../client/build/index.html');
+  
+  // Pre-check if index.html exists for better performance
+  const indexExists = fs.existsSync(indexPath);
+  
+  if (indexExists) {
+    console.log('✅ index.html found at:', indexPath);
+  } else {
+    console.error('⚠️ index.html NOT found at:', indexPath);
+  }
+  
+  app.get('*', (req, res, next) => {
+    // Skip API routes, socket.io, and static asset routes
+    if (req.path.startsWith('/api/') || 
+        req.path.startsWith('/socket.io/') || 
+        req.path.startsWith('/uploads/') ||
+        req.path.includes('.')) { // Skip files with extensions
+      return next();
+    }
+    
+    if (indexExists) {
+      // Send index.html for all client-side routes
+      res.sendFile(indexPath);
+    } else {
+      // Serve a simple HTML page if build is not ready
+      res.status(503).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>SaudiCord - Loading</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+            }
+            .container {
+              text-align: center;
+              padding: 2rem;
+              background: rgba(0,0,0,0.3);
+              border-radius: 10px;
+              backdrop-filter: blur(10px);
+            }
+            h1 { font-size: 3rem; margin-bottom: 1rem; }
+            p { font-size: 1.2rem; opacity: 0.9; }
+            .loader {
+              margin: 2rem auto;
+              border: 3px solid rgba(255,255,255,0.3);
+              border-radius: 50%;
+              border-top: 3px solid white;
+              width: 40px;
+              height: 40px;
+              animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>SaudiCord</h1>
+            <div class="loader"></div>
+            <p>Application is loading...</p>
+            <p style="font-size: 0.9rem; margin-top: 1rem; opacity: 0.7;">
+              If this takes too long, please refresh the page
+            </p>
+            <p style="font-size: 0.8rem; margin-top: 2rem; opacity: 0.5;">
+              Made With Love By SirAbody
+            </p>
+          </div>
+          <script>
+            // Auto-refresh after 5 seconds
+            setTimeout(() => {
+              window.location.reload();
+            }, 5000);
+          </script>
+        </body>
+        </html>
+      `);
+    }
   });
 }
 
@@ -212,22 +381,46 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 10000;
 
-// Start server immediately without waiting for database
+// Start server with better error handling
 logger.info('🚀 Starting SaudiCord Server...');
-server.listen(PORT, '0.0.0.0', () => {
-  logger.info(`✅ Server running on port ${PORT}`);
-  logger.info('💝 Made With Love By SirAbody');
-  logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🌐 URL: ${process.env.NODE_ENV === 'production' ? 'https://saudicord.onrender.com' : `http://localhost:${PORT}`}`);
-  logger.info('✨ Server is ready to accept connections');
+
+const startServer = () => {
+  server.listen(PORT, '0.0.0.0', () => {
+    logger.info(`✅ Server running on port ${PORT}`);
+    logger.info('💝 Made With Love By SirAbody');
+    logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`🌐 URL: ${process.env.NODE_ENV === 'production' ? 'https://saudicord.onrender.com' : `http://localhost:${PORT}`}`);
+    logger.info('✨ Server is ready to accept connections');
+    
+    // Log server configuration
+    if (process.env.NODE_ENV === 'production') {
+      console.log('📋 Server Configuration:');
+      console.log('  - Port:', PORT);
+      console.log('  - Node version:', process.version);
+      console.log('  - Process ID:', process.pid);
+      console.log('  - Memory usage:', Math.round(process.memoryUsage().heapUsed / 1024 / 1024), 'MB');
+    }
+    
+    // Keep the process alive with less frequent heartbeat
+    if (process.env.NODE_ENV === 'production') {
+      setInterval(() => {
+        const memUsage = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+        console.log(`[${new Date().toISOString()}] Heartbeat - Memory: ${memUsage}MB, Uptime: ${Math.round(process.uptime())}s`);
+      }, 60000); // Log every minute in production
+    }
+  });
   
-  // Keep the process alive
-  if (process.env.NODE_ENV === 'production') {
-    setInterval(() => {
-      logger.debug('Server heartbeat - still running');
-    }, 30000); // Log every 30 seconds in production
-  }
-});
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`Port ${PORT} is already in use`);
+      process.exit(1);
+    } else {
+      logger.error('Server error:', error);
+    }
+  });
+};
+
+startServer();
 
 // Try to connect to database (non-blocking)
 const shouldResetDB = process.env.RESET_DB === 'true';

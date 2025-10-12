@@ -25,41 +25,54 @@ const activeUsers = new Map();
 const userSockets = new Map();
 
 module.exports = (io) => {
-  // Middleware for socket authentication (non-blocking)
+  // Middleware for socket authentication (always non-blocking for production)
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth && socket.handshake.auth.token;
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      
       if (!token) {
-        // Allow connection; client will authenticate after connect
+        logger.debug('No token provided, allowing connection for later auth');
         return next();
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
-      
-      // Only try to fetch user if User model is available
-      if (User) {
-        const user = await User.findByPk(decoded.userId);
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
         
-        if (!user) {
-          // Proceed unauthenticated; client will re-authenticate
-          return next();
+        // Only try to fetch user if User model is available and database is connected
+        if (User) {
+          try {
+            const user = await User.findByPk(decoded.userId);
+            
+            if (user) {
+              socket.user = user;
+              socket.userId = user.id;
+              socket.username = user.username;
+              logger.debug(`Socket pre-auth successful for user: ${user.username}`);
+            } else {
+              // User from token but not in DB
+              socket.userId = decoded.userId;
+              socket.username = decoded.username || 'Unknown';
+            }
+          } catch (dbErr) {
+            // Database query failed, use token data
+            socket.userId = decoded.userId;
+            socket.username = decoded.username || 'Unknown';
+            logger.warn('Database unavailable during socket auth, using token data');
+          }
+        } else {
+          // No database models, use token data
+          socket.user = { id: decoded.userId, username: decoded.username || 'Unknown' };
+          socket.userId = decoded.userId;
+          socket.username = decoded.username || 'Unknown';
         }
-
-        socket.user = user;
-        socket.userId = user.id;
-        socket.username = user.username;
-        logger.debug(`Socket pre-auth successful for user: ${user.username}`);
-      } else {
-        // If no database, use decoded token data
-        socket.user = { id: decoded.userId, username: decoded.username || 'Unknown' };
-        socket.userId = decoded.userId;
-        socket.username = decoded.username || 'Unknown';
-        logger.debug('Socket pre-auth successful (no database)');
+      } catch (tokenErr) {
+        logger.debug('Invalid token during socket auth, allowing connection');
       }
+      
       next();
     } catch (err) {
-      logger.warn('Socket pre-auth failed', { error: err.message });
-      // Do not block connection; rely on runtime authenticate event
+      logger.error('Unexpected error in socket auth middleware', { error: err.message });
+      // Never block connection in production
       next();
     }
   });
