@@ -15,15 +15,25 @@ class ErrorBoundary extends React.Component {
     console.error('Error caught by boundary:', error, errorInfo);
     
     // Check if it's a Socket.io related error
-    if (error.message && (
+    if (error && error.message && (
       error.message.includes('.on is not a function') ||
       error.message.includes('Socket.io') ||
-      error.message.includes('socket')
+      error.message.includes('socket') ||
+      error.message.includes('io is not') ||
+      error.message.includes('Cannot read')
     )) {
-      console.warn('Socket.io error detected, app will work in offline mode');
+      console.warn('Socket.io/undefined error detected, app will work in offline mode');
       // Don't show error screen for Socket.io issues
       this.setState({ hasError: false });
+      return;
     }
+    
+    // Log the full error for debugging
+    console.error('Full error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      componentStack: errorInfo?.componentStack
+    });
   }
 
   render() {

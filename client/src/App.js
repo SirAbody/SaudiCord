@@ -1,5 +1,5 @@
 // Main App Component with Enhanced Error Handling
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
@@ -9,7 +9,24 @@ import Register from './components/auth/Register';
 import MainLayout from './components/layout/MainLayout';
 
 function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { user, checkAuth, loading } = useAuthStore();
+  const isAuthenticated = !!user;
+
+  useEffect(() => {
+    // Check authentication on mount
+    checkAuth().catch(error => {
+      console.error('Initial auth check failed:', error);
+    });
+  }, [checkAuth]);
+
+  // Show loading screen during initial auth check
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
