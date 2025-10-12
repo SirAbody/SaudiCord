@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production builds
+client/build/
+dist/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+server/.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Uploads (except .gitkeep)
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Database
+*.sqlite
+*.sqlite3
+postgres_data/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker
+.docker/data/*
+!.docker/data/.keep
+
+# Config files (if sensitive)
+private.json
+config.json

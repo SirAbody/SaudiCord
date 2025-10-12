@@ -1,0 +1,47 @@
+// Server Model
+module.exports = (sequelize, DataTypes) => {
+  const Server = sequelize.define('Server', {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        len: [2, 100]
+      }
+    },
+    icon: {
+      type: DataTypes.STRING,
+      defaultValue: null
+    },
+    ownerId: {
+      type: DataTypes.UUID,
+      allowNull: false
+    },
+    description: {
+      type: DataTypes.TEXT,
+      defaultValue: ''
+    },
+    inviteCode: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: false
+    },
+    isPublic: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    memberCount: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0
+    }
+  }, {
+    timestamps: true,
+    tableName: 'servers'
+  });
+
+  return Server;
+};

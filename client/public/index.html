@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FF0000" />
+    <meta
+      name="description"
+      content="SaudiCord - Self-hosted chat platform with voice/video calling. Made With Love By SirAbody"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <title>SaudiCord - Made With Love By SirAbody</title>
+    
+    <style>
+      /* Initial loading styles */
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #0a0a0a;
+        color: #ffffff;
+      }
+      
+      #root {
+        min-height: 100vh;
+      }
+      
+      /* Loading screen before React loads */
+      .initial-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #0a0a0a;
+      }
+      
+      .initial-loader h1 {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #FF0000;
+        margin-bottom: 0.5rem;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      
+      .initial-loader p {
+        color: #b3b3b3;
+        margin-bottom: 2rem;
+      }
+      
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: .5;
+        }
+      }
+      
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #363636;
+        border-top-color: #FF0000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run SaudiCord.</noscript>
+    <div id="root">
+      <!-- Initial loading screen -->
+      <div class="initial-loader">
+        <h1>SaudiCord</h1>
+        <p>Made With Love By SirAbody</p>
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </body>
+</html>
