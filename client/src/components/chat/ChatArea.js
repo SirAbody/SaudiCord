@@ -6,7 +6,7 @@ import { useCallStore } from '../../stores/callStore';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import socketService from '../../services/socket';
-import { HashtagIcon, PhoneIcon, VideoCameraIcon, PinIcon, BellIcon, UsersIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, PhoneIcon, VideoCameraIcon, MapPinIcon, BellIcon, UsersIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 function ChatArea() {
@@ -78,7 +78,7 @@ function ChatArea() {
             className="text-text-secondary hover:text-text-primary transition-colors"
             title="Pinned Messages"
           >
-            <PinIcon className="w-5 h-5" />
+            <MapPinIcon className="w-5 h-5" />
           </button>
           <button
             className="text-text-secondary hover:text-text-primary transition-colors"

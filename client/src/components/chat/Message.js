@@ -1,7 +1,7 @@
 // Message Component
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { PencilIcon, TrashIcon, EllipsisHorizontalIcon, FaceSmileIcon, ReplyIcon, PinIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, EllipsisHorizontalIcon, FaceSmileIcon, ReplyIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import socketService from '../../services/socket';
 import toast from 'react-hot-toast';
 
@@ -187,7 +187,7 @@ function Message({ message, isOwn, grouped }) {
                 className="p-1.5 hover:bg-dark-500 transition-colors"
                 title="Pin Message"
               >
-                <PinIcon className="w-4 h-4 text-text-tertiary hover:text-text-primary" />
+                <MapPinIcon className="w-4 h-4 text-text-tertiary hover:text-text-primary" />
               </button>
               {isOwn && (
                 <button
