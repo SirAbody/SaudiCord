@@ -1,6 +1,6 @@
 // Message Input Component
 import React, { useState, useRef, useEffect } from 'react';
-import { PlusCircleIcon, GiftIcon, GifIcon, FaceSmileIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import { PlusCircleIcon, GiftIcon, PhotoIcon, FaceSmileIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import EmojiPicker from 'emoji-picker-react';
 import socketService from '../../services/socket';
 import { useChatStore } from '../../stores/chatStore';
@@ -142,7 +142,7 @@ function MessageInput() {
             className="p-2 text-text-tertiary hover:text-text-primary transition-colors"
             title="Send GIF"
           >
-            <GifIcon className="w-5 h-5" />
+            <PhotoIcon className="w-5 h-5" />
           </button>
 
           {/* Emoji picker button */}

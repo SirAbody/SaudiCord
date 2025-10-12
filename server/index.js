@@ -5,6 +5,14 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+
+// Import utilities
+const logger = require('./utils/logger');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Ensure required directories exist
 require('./startup');
@@ -15,6 +23,8 @@ const userRoutes = require('./routes/users');
 const serverRoutes = require('./routes/servers');
 const channelRoutes = require('./routes/channels');
 const messageRoutes = require('./routes/messages');
+const errorRoutes = require('./routes/errors');
+const monitoringRoutes = require('./routes/monitoring');
 
 // Import socket handlers
 const socketHandler = require('./socket/socketHandler');
@@ -34,13 +44,48 @@ const io = socketIo(server, {
   }
 });
 
-// Middleware
+// Make io accessible to routes
+app.set('io', io);
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable for development, configure for production
+  crossOriginEmbedderPolicy: false
+}));
+app.use(compression());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  handler: (req, res) => {
+    logger.warn('Rate limit exceeded', { ip: req.ip });
+    res.status(429).json({
+      error: 'Too many requests, please try again later.'
+    });
+  }
+});
+
+// Apply rate limiting to API routes
+app.use('/api', limiter);
+
+// CORS configuration
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Request logging
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => logger.http(message.trim())
+  }
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -51,6 +96,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/servers', serverRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/errors', errorRoutes);
+app.use('/api/monitor', monitoringRoutes);
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
@@ -72,29 +119,34 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Socket.io connection handling
-socketHandler(io);
+// Socket.io connection handling with error logging
+try {
+  socketHandler(io);
+  logger.info('Socket.io initialized successfully');
+} catch (error) {
+  logger.error('Failed to initialize Socket.io', error);
+}
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    error: 'Something went wrong!',
-    message: err.message 
-  });
-});
+// 404 handler (must be before error handler)
+app.use(notFound);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 10000;
 
 // Database sync and server start
 sequelize.sync({ force: false }).then(() => {
-  console.log('✅ Database connected and synced');
+  logger.info('✅ Database connected and synced');
   server.listen(PORT, () => {
-    console.log(`🚀 SaudiCord Server running on port ${PORT}`);
-    console.log('💝 Made With Love By SirAbody');
+    logger.info(`🚀 SaudiCord Server running on port ${PORT}`);
+    logger.info('💝 Made With Love By SirAbody');
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`Client URL: ${process.env.CLIENT_URL || 'http://localhost:3000'}`);
   });
 }).catch(err => {
-  console.error('❌ Unable to connect to database:', err);
+  logger.error('❌ Unable to connect to database:', err);
+  process.exit(1);
 });
 
 module.exports = { app, io };

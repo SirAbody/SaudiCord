@@ -1,6 +1,7 @@
 // Socket.io Handler for Real-time Communication
 const jwt = require('jsonwebtoken');
 const { User, Message, Channel } = require('../models');
+const logger = require('../utils/logger');
 
 // Store active connections
 const activeUsers = new Map();
@@ -24,14 +25,19 @@ module.exports = (io) => {
 
       socket.userId = user.id;
       socket.user = user;
+      logger.debug(`Socket authentication successful for user: ${user.username}`);
       next();
     } catch (err) {
+      logger.warn('Socket authentication failed', { error: err.message });
       next(new Error('Authentication error'));
     }
   });
 
   io.on('connection', (socket) => {
-    console.log(`User ${socket.user.username} connected`);
+    logger.info(`User ${socket.user.username} connected`, { 
+      socketId: socket.id, 
+      userId: socket.userId 
+    });
     
     // Store user socket connection
     activeUsers.set(socket.userId, socket.id);
@@ -54,18 +60,23 @@ module.exports = (io) => {
 
     // Handle joining channels/servers
     socket.on('join:channel', async (channelId) => {
-      socket.join(`channel-${channelId}`);
-      console.log(`User ${socket.user.username} joined channel ${channelId}`);
-      
-      // Notify others in channel
-      socket.to(`channel-${channelId}`).emit('user:joined', {
-        channelId,
-        user: {
-          id: socket.userId,
-          username: socket.user.username,
-          avatar: socket.user.avatar
-        }
-      });
+      try {
+        socket.join(`channel-${channelId}`);
+        logger.debug(`User ${socket.user.username} joined channel ${channelId}`);
+        
+        // Notify others in channel
+        socket.to(`channel-${channelId}`).emit('user:joined', {
+          channelId,
+          user: {
+            id: socket.userId,
+            username: socket.user.username,
+            avatar: socket.user.avatar
+          }
+        });
+      } catch (error) {
+        logger.error('Error joining channel', { error, channelId, userId: socket.userId });
+        socket.emit('error', { message: 'Failed to join channel' });
+      }
     });
 
     // Handle leaving channels
@@ -103,8 +114,14 @@ module.exports = (io) => {
 
         // Emit to all users in channel
         io.to(`channel-${channelId}`).emit('message:new', fullMessage);
+        
+        logger.debug('Message sent successfully', { 
+          messageId: message.id, 
+          channelId, 
+          userId: socket.userId 
+        });
       } catch (error) {
-        console.error('Error sending message:', error);
+        logger.error('Error sending message:', { error, channelId, userId: socket.userId });
         socket.emit('error', { message: 'Failed to send message' });
       }
     });
@@ -256,7 +273,10 @@ module.exports = (io) => {
 
     // Handle disconnection
     socket.on('disconnect', async () => {
-      console.log(`User ${socket.user.username} disconnected`);
+      logger.info(`User ${socket.user.username} disconnected`, {
+        socketId: socket.id,
+        userId: socket.userId
+      });
       
       // Remove from active users
       activeUsers.delete(socket.userId);
