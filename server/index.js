@@ -12,7 +12,7 @@ const helmet = require('helmet');
 const fs = require('fs');
 
 // Import configuration
-const config = require('./config/config');
+// const config = require('./config/config'); // Not needed for now
 
 // Create Express app
 const app = express();
