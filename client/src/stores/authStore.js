@@ -3,7 +3,10 @@ import { create } from 'zustand';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:10000/api';
+// Use relative URL in production, full URL in development
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : (process.env.REACT_APP_API_URL || 'http://localhost:10000/api');
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;

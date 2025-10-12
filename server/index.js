@@ -136,8 +136,33 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 10000;
 
 // Database sync and server start
-sequelize.sync({ force: false }).then(() => {
+sequelize.sync({ force: false }).then(async () => {
   logger.info('✅ Database connected and synced');
+  
+  // Auto-create admin user if not exists
+  try {
+    const bcrypt = require('bcrypt');
+    const { User } = require('./models');
+    
+    const adminExists = await User.findOne({ where: { username: 'admin' } });
+    if (!adminExists) {
+      const hashedPassword = await bcrypt.hash('admin509', 10);
+      await User.create({
+        username: 'admin',
+        email: 'admin@saudicord.com',
+        displayName: 'Administrator',
+        password: hashedPassword,
+        status: 'offline',
+        avatar: null,
+        bio: 'System Administrator - Made With Love By SirAbody',
+        lastSeen: new Date()
+      });
+      logger.info('✅ Admin user created (username: admin, password: admin509)');
+    }
+  } catch (error) {
+    logger.warn('Could not create admin user:', error.message);
+  }
+  
   server.listen(PORT, () => {
     logger.info(`🚀 SaudiCord Server running on port ${PORT}`);
     logger.info('💝 Made With Love By SirAbody');

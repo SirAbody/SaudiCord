@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const { authenticateToken } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -19,12 +20,21 @@ const generateToken = (userId) => {
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, displayName } = req.body;
+    const { email, username, displayName, password, confirmPassword } = req.body;
+    
+    logger.info('Registration attempt:', { email, username });
 
     // Validate input
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !confirmPassword) {
       return res.status(400).json({ 
-        error: 'Username, email, and password are required' 
+        error: 'Username, email, password, and confirm password are required' 
+      });
+    }
+    
+    // Check password match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ 
+        error: 'Passwords do not match' 
       });
     }
 
@@ -44,18 +54,20 @@ router.post('/register', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user with all required fields
     const user = await User.create({
-      username,
       email,
+      username,
+      displayName: displayName || username,
       password: hashedPassword,
-      displayName: displayName || username
+      status: 'offline',
+      avatar: null,
+      bio: '',
+      lastSeen: new Date()
     });
 
     // Generate token
     const token = generateToken(user.id);
-
-    // Return user data without password
     const userData = {
       id: user.id,
       username: user.username,
@@ -69,9 +81,17 @@ router.post('/register', async (req, res) => {
       user: userData,
       token
     });
+    
+    logger.info('User registered successfully:', { 
+      userId: user.id, 
+      username: user.username 
+    });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Failed to register user' });
+    logger.error('Registration error:', error);
+    res.status(500).json({ 
+      error: 'Failed to register user',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

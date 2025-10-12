@@ -14,7 +14,10 @@ class SocketService {
       return this.socket;
     }
 
-    const serverUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:10000';
+    // Use same origin in production, full URL in development
+    const serverUrl = process.env.NODE_ENV === 'production'
+      ? window.location.origin
+      : (process.env.REACT_APP_SERVER_URL || 'http://localhost:10000');
     
     this.socket = io(serverUrl, {
       auth: { token },

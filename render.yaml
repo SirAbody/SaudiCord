@@ -48,6 +48,6 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CLIENT_URL
-        sync: false
+        value: https://saudicord.onrender.com
       - key: STUN_SERVER
         value: stun:stun.l.google.com:19302
