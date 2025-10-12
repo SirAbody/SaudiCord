@@ -123,7 +123,6 @@ app.use(morgan('combined', {
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files for uploads
@@ -154,12 +153,9 @@ app.use('/api/errors', errorRoutes);
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-  });
+  const buildPath = path.join(__dirname, '../client/build');
+  console.log('Serving static files from:', buildPath);
+  app.use(express.static(buildPath));
 }
 
 // Health check endpoint (works without database)
@@ -191,6 +187,13 @@ try {
   logger.info('Socket.io initialized successfully');
 } catch (error) {
   logger.error('Failed to initialize Socket.io', error);
+}
+
+// Catch-all route for React app (must be after API routes but before error handlers)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build/index.html'));
+  });
 }
 
 // 404 handler (must be before error handler)

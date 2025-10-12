@@ -45,8 +45,13 @@ try {
   
   // Even if main server fails, keep a basic server running for health checks
   const express = require('express');
+  const path = require('path');
   const app = express();
   const PORT = process.env.PORT || 10000;
+  
+  // Serve React build even in fallback mode
+  const buildPath = path.join(__dirname, '../client/build');
+  app.use(express.static(buildPath));
   
   app.get('/api/health', (req, res) => {
     res.json({ 
@@ -56,9 +61,15 @@ try {
     });
   });
   
+  // Catch all routes to serve React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+  
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`⚠️ Fallback server running on port ${PORT}`);
     console.log('📌 Main server failed to start, but health checks are available');
+    console.log('🌐 Static files served from:', buildPath);
   });
 }
 
