@@ -1,13 +1,10 @@
-// Main App Component with Enhanced Error Handling and Performance Optimization
-import React, { useEffect, useState, Suspense, lazy, memo } from 'react';
+// SaudiCord App - Lightweight & Fast Version
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import ErrorBoundary from './components/ErrorBoundary';
-
-// Lazy load heavy components to prevent memory issues
-const Login = lazy(() => import('./components/auth/Login'));
-const Register = lazy(() => import('./components/auth/Register'));
-const MainLayout = lazy(() => import('./components/layout/MainLayout'));
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import MainLayout from './components/layout/MainLayout';
 
 function App() {
   const authStore = useAuthStore();
@@ -18,16 +15,14 @@ function App() {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    // Faster auth check with timeout to prevent hanging
+    // Fast auth check - don't wait for server
     const token = localStorage.getItem('token');
     if (token && authStore?.checkAuth) {
-      // Set timeout to prevent indefinite waiting
-      const timeout = setTimeout(() => setInitialLoad(false), 1500);
+      // Very short timeout
+      const timeout = setTimeout(() => setInitialLoad(false), 800);
       
       authStore.checkAuth()
-        .catch(() => {
-          // Silent fail - don't block UI
-        })
+        .catch(() => {})
         .finally(() => {
           clearTimeout(timeout);
           setInitialLoad(false);
@@ -35,8 +30,7 @@ function App() {
     } else {
       setInitialLoad(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - only run once on mount
+  }, [authStore]);
 
   // Show loading screen during initial load
   if (initialLoad) {
@@ -48,38 +42,26 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <div className="App">
-        <Suspense fallback={
-          <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-            <div className="text-white text-lg">Loading...</div>
-          </div>
-        }>
-          <Routes>
-            <Route 
-              path="/" 
-              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-            />
-            <Route 
-              path="/login" 
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
-            />
-            <Route 
-              path="/register" 
-              element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
-            />
-            <Route 
-              path="/dashboard/*" 
-              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-            />
-            <Route 
-              path="*" 
-              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-            />
-          </Routes>
-        </Suspense>
-      </div>
-    </ErrorBoundary>
+    <div className="App">
+      <Routes>
+        <Route 
+          path="/" 
+          element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+        />
+        <Route 
+          path="/login" 
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+        />
+        <Route 
+          path="/register" 
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
+        />
+        <Route 
+          path="*" 
+          element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+        />
+      </Routes>
+    </div>
   );
 }
 
