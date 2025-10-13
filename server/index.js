@@ -214,31 +214,32 @@ app.use(errorHandler);
 // Lightweight database connection (no initialization)
 const sequelize = require('./config/database');
 
-// Simple database check without heavy initialization
+// Database check with connection limit
+let databaseChecked = false;
 async function checkDatabase() {
+  if (databaseChecked) {
+    console.log('[INFO] Database already checked, skipping...');
+    return true;
+  }
+
   try {
+    console.log('[INFO] Checking database connection...');
     await sequelize.authenticate();
     console.log('[INFO] ✅ Database connection established');
     
-    // Just sync without creating data
-    await sequelize.sync();
+    // Just sync models - no data operations
+    await sequelize.sync({ logging: false });
     console.log('[INFO] ✅ Database models synced');
     
-    // Count users for logging only
-    const { User } = require('./models');
-    const userCount = await User.count().catch(() => 0);
-    console.log(`[INFO] Found ${userCount} users in database`);
-    
+    databaseChecked = true;
     return true;
   } catch (error) {
-    console.error('[ERROR] Database connection failed:', error.message);
+    console.error('[ERROR] ❌ Database connection failed:', error.message);
     return false;
   }
 }
 
 // Start server
-const PORT = process.env.PORT || 10000;
-
 const startServer = () => {
   server.listen(PORT, '0.0.0.0', () => {
     console.log('[INFO] ✅ Server running on port', PORT);
@@ -251,14 +252,26 @@ const startServer = () => {
     // Check database after server starts (non-blocking)
     checkDatabase();
     
-    // Simple heartbeat (less frequent)
+    // Memory monitoring with limits
     if (process.env.NODE_ENV === 'production') {
       setInterval(() => {
         const memUsage = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
-        if (memUsage > 100) { // Only log if memory is high
-          console.log(`[MEMORY] High memory usage: ${memUsage}MB`);
+        if (memUsage > 80) { // Lower threshold
+          console.log(`[MEMORY] Memory usage: ${memUsage}MB`);
+          
+          // Force garbage collection if memory too high
+          if (memUsage > 120 && global.gc) {
+            console.log('[MEMORY] Forcing garbage collection...');
+            global.gc();
+          }
+          
+          // Restart if memory gets critical (should not happen)
+          if (memUsage > 200) {
+            console.error('[CRITICAL] Memory usage too high, restarting...');
+            process.exit(1);
+          }
         }
-      }, 300000); // Every 5 minutes
+      }, 180000); // Every 3 minutes
     }
   });
   

@@ -90,7 +90,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Check authentication status with better error handling and performance
+  // Check authentication status - FAST & NO LOOPS
   checkAuth: async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -98,15 +98,22 @@ export const useAuthStore = create((set, get) => ({
       return;
     }
 
+    // Check if already checking to prevent loops
+    const store = get();
+    if (store.loading) {
+      console.log('Auth check already in progress, skipping...');
+      return;
+    }
+
     set({ loading: true });
     try {
-      // Shorter timeout to prevent hanging
+      // Very short timeout - fail fast
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 800); // 0.8 second only
       
       const response = await axios.get('/auth/verify', {
         signal: controller.signal,
-        timeout: 1500 // Additional axios timeout
+        timeout: 800
       });
       
       clearTimeout(timeoutId);
@@ -118,10 +125,10 @@ export const useAuthStore = create((set, get) => ({
         set({ user: null, loading: false });
       }
     } catch (error) {
-      // Fast fail - don't wait for network issues
-      console.warn('Auth check failed, but continuing silently');
+      // Fail silently - don't block UI
+      console.warn('Auth check failed, continuing offline');
       set({ loading: false });
-      // Don't remove token immediately - might be network issue
+      // Keep token for later retry
     }
   },
 

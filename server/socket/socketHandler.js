@@ -80,61 +80,42 @@ module.exports = (io) => {
   io.on('connection', (socket) => {
     logger.info('New socket connection', { socketId: socket.id });
 
-    // Handle user authentication
+    // Handle user authentication - SIMPLIFIED
     socket.on('authenticate', async (token) => {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
         
-        if (!User) {
-          socket.userId = decoded.userId;
-          socket.username = decoded.username || 'Unknown';
-          activeUsers.set(socket.userId, { id: socket.userId, username: socket.username });
-          userSockets.set(socket.userId, socket);
-          socket.emit('auth:success', { user: { id: socket.userId, username: socket.username } });
-          logger.info(`User authenticated (no database): ${socket.username}`);
-          return;
-        }
+        // Use token data directly - avoid DB call in critical path
+        socket.userId = decoded.userId;
+        socket.username = decoded.username || 'Unknown';
+        socket.user = { 
+          id: decoded.userId, 
+          username: decoded.username || 'Unknown',
+          displayName: decoded.displayName || decoded.username || 'Unknown'
+        };
         
-        const user = await User.findByPk(decoded.userId);
-        
-        if (!user) {
-          socket.emit('auth:error', { message: 'User not found' });
-          return;
-        }
-
-        socket.userId = user.id;
-        socket.user = user;
-        
-        // Store user socket connection
-        activeUsers.set(socket.userId, socket.id);
+        // Store in memory maps
+        activeUsers.set(socket.userId, socket.user);
         userSockets.set(socket.userId, socket);
         
-        // Update user status to online
-        if (User) {
-          await User.update(
-            { status: 'online', lastSeen: new Date() },
-            { where: { id: socket.userId } }
-          );
-        }
-
-        // Join user to their personal room
+        // Join user room
         socket.join(`user-${socket.userId}`);
 
-        // Broadcast user online status
+        // Broadcast online (but don't update DB every time)
         socket.broadcast.emit('user:online', {
           userId: socket.userId,
-          username: socket.user.username
+          username: socket.username
         });
         
-        // Send success confirmation
+        // Success response
         socket.emit('auth:success', {
-          userId: user.id,
-          username: user.username
+          userId: decoded.userId,
+          username: socket.username
         });
         
-        logger.info(`User ${user.username} connected`, {
+        logger.info(`User ${socket.username} connected (fast auth)`, {
           socketId: socket.id,
-          userId: user.id
+          userId: socket.userId
         });
       } catch (err) {
         logger.warn('Socket authentication failed', { error: err.message });
@@ -507,7 +488,7 @@ module.exports = (io) => {
       }
     });
 
-    // Handle disconnection
+    // Handle disconnection - NO DATABASE CALLS
     socket.on('disconnect', async () => {
       if (socket.userId && socket.user) {
         logger.info(`User ${socket.user.username} disconnected`, {
@@ -515,19 +496,11 @@ module.exports = (io) => {
           userId: socket.userId
         });
         
-        // Remove from active users
+        // Remove from memory only - no DB updates
         activeUsers.delete(socket.userId);
         userSockets.delete(socket.userId);
         
-        // Update user status
-        if (User) {
-          await User.update(
-            { status: 'offline', lastSeen: new Date() },
-            { where: { id: socket.userId } }
-          );
-        }
-        
-        // Broadcast user offline status
+        // Broadcast offline status
         socket.broadcast.emit('user:offline', {
           userId: socket.userId
         });
