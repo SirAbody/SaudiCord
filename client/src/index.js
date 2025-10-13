@@ -18,14 +18,17 @@ if (loader) {
   loader.style.display = 'none';
 }
 
+// Disable React StrictMode in production for better performance
+const AppWrapper = process.env.NODE_ENV === 'development' ? React.StrictMode : React.Fragment;
+
 root.render(
-  <React.StrictMode>
+  <AppWrapper>
     <BrowserRouter>
       <App />
       <Toaster
         position="top-right"
         toastOptions={{
-          duration: 4000,
+          duration: 3000, // Shorter duration to reduce memory
           style: {
             background: '#1e1e1e',
             color: '#fff',
@@ -46,5 +49,5 @@ root.render(
         }}
       />
     </BrowserRouter>
-  </React.StrictMode>
+  </AppWrapper>
 );
