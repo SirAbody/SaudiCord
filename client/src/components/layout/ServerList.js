@@ -34,7 +34,10 @@ function ServerList() {
 
   const handleServerClick = (server) => {
     setSelectedServer(server.id);
-    // Navigate to server or trigger server selection
+    navigate('/channels/@me');
+    // Trigger server selection in chat store
+    const { setCurrentServer } = require('../../stores/chatStore').useChatStore.getState();
+    setCurrentServer(server);
   };
 
   const handleCreateServer = async () => {
@@ -65,12 +68,17 @@ function ServerList() {
   return (
     <>
       <div className="flex flex-col items-center py-3 space-y-2">
-        {/* Home/DM Button */}
+        {/* Home/DM Button - SaudiCord Logo */}
         <button 
           onClick={handleHomeClick}
-          className={`w-12 h-12 ${!selectedServer ? 'bg-accent rounded-2xl' : 'bg-dark-500 hover:bg-accent hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group`}
+          className={`w-12 h-12 ${!selectedServer ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
+          title="Direct Messages"
         >
-          <HomeIcon className="w-6 h-6 text-white" />
+          <img 
+            src="/SaudiCordLogo.png" 
+            alt="SaudiCord" 
+            className="w-8 h-8 object-contain" 
+          />
         </button>
       
       <div className="w-8 h-0.5 bg-dark-400 rounded-full mx-auto"></div>
@@ -80,7 +88,7 @@ function ServerList() {
         <button
           key={server.id}
           onClick={() => handleServerClick(server)}
-          className={`relative w-12 h-12 ${selectedServer === server.id ? 'bg-accent rounded-2xl' : 'bg-dark-500 hover:bg-accent hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group`}
+          className={`relative w-12 h-12 ${selectedServer === server.id ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group`}
         >
           {server.icon ? (
             <img src={server.icon} alt={server.name} className="w-full h-full rounded-full" />
@@ -91,23 +99,22 @@ function ServerList() {
           )}
           
           {/* Active Indicator */}
-          <span className="absolute left-0 w-1 h-8 bg-accent rounded-r-full -ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+          <span className="absolute left-0 w-1 h-8 bg-red-500 rounded-r-full -ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></span>
         </button>
       ))}
-      
         {/* Add Server Button */}
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="w-12 h-12 bg-dark-500 hover:bg-accent hover:rounded-2xl rounded-3xl transition-all duration-200 flex items-center justify-center group"
+          className="w-12 h-12 bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl transition-all duration-200 flex items-center justify-center group"
         >
-          <PlusIcon className="w-6 h-6 text-green-500 group-hover:text-white" />
+          <PlusIcon className="w-6 h-6 text-gray-400 group-hover:text-white" />
         </button>
       </div>
 
       {/* Create Server Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-dark-600 rounded-lg p-6 w-96">
+          <div className="bg-gray-800 rounded-lg p-6 w-96">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-text-primary">Create a Server</h2>
               <button
@@ -147,14 +154,14 @@ function ServerList() {
               <div className="flex space-x-3 pt-2">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-dark-400 text-text-primary rounded hover:bg-dark-500 transition"
+                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition"
                   disabled={creating}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateServer}
-                  className="flex-1 px-4 py-2 bg-accent text-white rounded hover:bg-accent-dark transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition disabled:opacity-50"
                   disabled={creating}
                 >
                   {creating ? 'Creating...' : 'Create Server'}

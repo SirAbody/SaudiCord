@@ -240,8 +240,9 @@ module.exports = (io) => {
           ]
         });
 
-        // Emit to all users in channel
-        io.to(`channel-${channelId}`).emit('message:new', fullMessage);
+        // Emit to all users in channel (including tempId for optimistic updates)
+        const messageWithTempId = { ...fullMessage.toJSON(), tempId };
+        io.to(`channel-${channelId}`).emit('message:receive', messageWithTempId);
         
         logger.debug('Message sent successfully', { 
           messageId: message.id, 
@@ -454,14 +455,26 @@ module.exports = (io) => {
       const { receiverId, content } = data;
       const receiverSocket = userSockets.get(receiverId);
       
+      // Create message object
+      const message = {
+        id: Date.now().toString(),
+        senderId: socket.userId,
+        receiverId: receiverId,
+        senderName: socket.username || socket.user?.username || 'Unknown',
+        content,
+        createdAt: new Date().toISOString(),
+        timestamp: new Date()
+      };
+      
+      // Send to receiver if online
       if (receiverSocket) {
-        receiverSocket.emit('dm:receive', {
-          senderId: socket.userId,
-          senderName: socket.user.username,
-          content,
-          timestamp: new Date()
-        });
+        receiverSocket.emit('dm:receive', message);
       }
+      
+      // Send back to sender for confirmation
+      socket.emit('dm:receive', message);
+      
+      logger.info(`DM sent from ${socket.userId} to ${receiverId}`);
     });
 
     // Screen Sharing Handlers
