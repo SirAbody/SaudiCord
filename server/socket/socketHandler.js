@@ -563,27 +563,39 @@ module.exports = (io) => {
 
     // Handle call end
     socket.on('call:end', (data) => {
-      if (!data || !data.targetUserId) {
-        console.warn('[Socket] call:end received with invalid data');
+      // Handle both targetUserId and channelId for voice calls
+      if (!data || (!data.targetUserId && !data.channelId)) {
+        // Don't log as error - this is normal when leaving voice channels
         return;
       }
       
-      const { targetUserId } = data;
-      const targetSocket = userSockets.get(targetUserId);
+      if (data.targetUserId) {
+        const targetUserId = data.targetUserId;
+        const targetSocket = userSockets.get(targetUserId);
+        
+        if (targetSocket) {
+          targetSocket.emit('call:ended', {
+            enderId: socket.userId
+          });
+        }
+      }
       
-      if (targetSocket) {
-        targetSocket.emit('call:ended', {
-          enderId: socket.userId
+      if (data.channelId) {
+        // Leave voice channel
+        socket.to(`voice:${data.channelId}`).emit('voice:user:left', {
+          userId: socket.userId,
+          username: socket.username
         });
       }
     });
 
     // Handle disconnection - NO DATABASE CALLS
-    socket.on('disconnect', async () => {
+    socket.on('disconnect', (reason) => {
       if (socket.userId && socket.user) {
         logger.info(`User ${socket.user.username} disconnected`, {
           socketId: socket.id,
-          userId: socket.userId
+          userId: socket.userId,
+          reason
         });
         
         // Remove from memory only - no DB updates

@@ -9,7 +9,8 @@ import {
   ComputerDesktopIcon,
   EllipsisHorizontalIcon,
   PaperAirplaneIcon,
-  XMarkIcon 
+  XMarkIcon,
+  ChatBubbleLeftIcon 
 } from '@heroicons/react/24/outline';
 import FriendRequests from '../components/friends/FriendRequests';
 import { useAuthStore } from '../stores/authStore';

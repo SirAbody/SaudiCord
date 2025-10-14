@@ -75,7 +75,7 @@ function ChannelList() {
       return;
     }
 
-    if (!currentServerId) {
+    if (!currentServer || !currentServer.id) {
       toast.error('No server selected');
       return;
     }
@@ -86,7 +86,7 @@ function ChannelList() {
         name: newChannelName.toLowerCase().replace(/\s+/g, '-'),
         type: channelType,
         description: newChannelDescription,
-        serverId: currentServerId
+        serverId: currentServer.id
       });
       
       toast.success(`${channelType === 'text' ? 'Text' : 'Voice'} channel created!`);
