@@ -15,6 +15,7 @@ import DirectMessages from '../../pages/DirectMessages';
 
 function MainLayout() {
   const { user } = useAuthStore();
+  const { currentChannel } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
   // const location = useLocation(); // Reserved for future use
   // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
