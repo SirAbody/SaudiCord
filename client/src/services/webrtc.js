@@ -3,17 +3,17 @@ import socketService from './socket';
 
 class WebRTCService {
   constructor() {
-    this.peerConnection = null;
     this.localStream = null;
     this.remoteStream = null;
-    this.screenStream = null;
+    this.peerConnection = null;
     this.isCallActive = false;
-    this.callType = null;
-    this.currentCallId = null;
-    this.onRemoteStream = null;
-    this.onCallEnded = null;
+    this.currentCallType = null;
+    this.currentCallPartner = null;
+    this.screenStream = null;
+    this.isScreenSharing = false;
+    this.socketListenersSetup = false;
     
-    // ICE Servers configuration
+    // ICE servers configuration
     this.iceServers = {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -24,10 +24,26 @@ class WebRTCService {
       ]
     };
     
-    this.setupSocketListeners();
+    // Don't setup listeners in constructor - wait for socket to be ready
+    // this.setupSocketListeners();
   }
 
   setupSocketListeners() {
+    // Check if socket is ready and has 'on' method
+    if (!socketService || typeof socketService.on !== 'function') {
+      console.warn('[WebRTC] Socket not ready, skipping listener setup');
+      return;
+    }
+    
+    // Prevent duplicate listeners
+    if (this.socketListenersSetup) {
+      console.log('[WebRTC] Socket listeners already setup');
+      return;
+    }
+    
+    console.log('[WebRTC] Setting up socket listeners');
+    this.socketListenersSetup = true;
+    
     // Listen for call signals
     socketService.on('call:offer', async (data) => {
       if (this.isCallActive) return;
@@ -57,9 +73,14 @@ class WebRTCService {
     });
   }
 
-  async initializeCall(receiverId, callType = 'voice') {
+  async initializeCall(channelId, callType = 'voice') {
     try {
-      this.callType = callType;
+      // Ensure socket listeners are setup
+      if (!this.socketListenersSetup) {
+        this.setupSocketListeners();
+      }
+      
+      this.currentCallType = callType;
       this.isCallActive = true;
       
       // Get user media
