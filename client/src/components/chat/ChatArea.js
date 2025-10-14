@@ -6,7 +6,7 @@ import { useCallStore } from '../../stores/callStore';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import socketService from '../../services/socket';
-import { HashtagIcon, PhoneIcon, VideoCameraIcon, MapPinIcon, BellIcon, UsersIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, PhoneIcon, VideoCameraIcon, MapPinIcon, BellIcon, UsersIcon, MagnifyingGlassIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
 function ChatArea() {
@@ -44,6 +44,20 @@ function ChatArea() {
     }
   };
 
+  const handleScreenShare = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      });
+      toast.success('Screen sharing started');
+      // TODO: Implement WebRTC screen sharing
+      stream.getTracks().forEach(track => track.stop()); // Stop for now
+    } catch (error) {
+      toast.error('Failed to share screen');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col">
       {/* Channel Header */}
@@ -61,19 +75,27 @@ function ChatArea() {
         
         <div className="flex items-center space-x-4">
           <button
-            onClick={handleVoiceCall}
             className="text-text-secondary hover:text-text-primary transition-colors"
             title="Start Voice Call"
           >
             <PhoneIcon className="w-5 h-5" />
           </button>
-          <button
-            onClick={handleVideoCall}
-            className="text-text-secondary hover:text-text-primary transition-colors"
-            title="Start Video Call"
-          >
-            <VideoCameraIcon className="w-5 h-5" />
-          </button>
+            <button
+              onClick={handleVideoCall}
+              className="p-1 text-text-tertiary hover:text-text-primary transition-colors"
+              title="Start Video Call"
+            >
+              <VideoCameraIcon className="w-5 h-5" />
+            </button>
+            
+            {/* Screen Share Button */}
+            <button
+              onClick={handleScreenShare}
+              className="p-1 text-text-tertiary hover:text-text-primary transition-colors"
+              title="Share Screen"
+            >
+              <ComputerDesktopIcon className="w-5 h-5" />
+            </button>
           <button
             onClick={() => setShowPinnedMessages(!showPinnedMessages)}
             className="text-text-secondary hover:text-text-primary transition-colors"

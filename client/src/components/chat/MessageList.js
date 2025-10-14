@@ -4,15 +4,44 @@ import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import Message from './Message';
 import { format } from 'date-fns';
+import socketService from '../../services/socket';
 
 function MessageList() {
-  const { currentChannel, messages, typingUsers } = useChatStore();
+  const { currentChannel, messages } = useChatStore();
   const { user } = useAuthStore();
   const messagesEndRef = useRef(null);
   const [groupedMessages, setGroupedMessages] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
 
   const channelMessages = useMemo(() => messages[currentChannel?.id] || [], [messages, currentChannel?.id]);
-  const typingInChannel = typingUsers[currentChannel?.id] || [];
+
+  // Listen for typing events
+  useEffect(() => {
+    const handleTypingStart = (data) => {
+      if (data.channelId === currentChannel?.id && data.userId !== user?.id) {
+        setTypingUsers(prev => {
+          if (!prev.find(u => u.id === data.userId)) {
+            return [...prev, { id: data.userId, username: data.username }];
+          }
+          return prev;
+        });
+      }
+    };
+
+    const handleTypingStop = (data) => {
+      if (data.channelId === currentChannel?.id) {
+        setTypingUsers(prev => prev.filter(u => u.id !== data.userId));
+      }
+    };
+
+    socketService.on('typing:start', handleTypingStart);
+    socketService.on('typing:stop', handleTypingStop);
+
+    return () => {
+      socketService.off('typing:start', handleTypingStart);
+      socketService.off('typing:stop', handleTypingStop);
+    };
+  }, [currentChannel?.id, user?.id]);
 
   useEffect(() => {
     // Group messages by date
@@ -111,7 +140,7 @@ function MessageList() {
         ))}
 
         {/* Typing indicators */}
-        {typingInChannel.length > 0 && (
+        {typingUsers.length > 0 && (
           <div className="px-4 py-2 text-sm text-text-secondary italic">
             <div className="flex items-center">
               <div className="flex space-x-1 mr-2">
@@ -120,9 +149,11 @@ function MessageList() {
                 <span className="w-2 h-2 bg-text-tertiary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
               <span>
-                {typingInChannel.length === 1
-                  ? `Someone is typing...`
-                  : `${typingInChannel.length} people are typing...`}
+                {typingUsers.length === 1
+                  ? `${typingUsers[0].username} is typing...`
+                  : typingUsers.length === 2
+                  ? `${typingUsers[0].username} and ${typingUsers[1].username} are typing...`
+                  : `${typingUsers.length} people are typing...`}
               </span>
             </div>
           </div>

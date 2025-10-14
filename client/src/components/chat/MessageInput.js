@@ -1,14 +1,17 @@
 // Message Input Component
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, PlusIcon, FaceSmileIcon, GifIcon } from '@heroicons/react/24/outline';
 import EmojiPicker from 'emoji-picker-react';
 import { useChatStore } from '../../stores/chatStore';
 import toast from 'react-hot-toast';
+import socketService from '../../services/socket';
 
 function MessageInput() {
   const { currentChannel, sendMessage } = useChatStore();
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -31,6 +34,36 @@ function MessageInput() {
       handleSubmit(e);
     }
   };
+
+  // Handle typing indicator
+  useEffect(() => {
+    if (message && currentChannel && !isTyping) {
+      setIsTyping(true);
+      socketService.emit('typing:start', { channelId: currentChannel.id });
+    }
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing
+    if (message) {
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        socketService.emit('typing:stop', { channelId: currentChannel.id });
+      }, 2000);
+    } else if (isTyping) {
+      setIsTyping(false);
+      socketService.emit('typing:stop', { channelId: currentChannel.id });
+    }
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [message, currentChannel, isTyping]);
 
   return (
     <form onSubmit={handleSubmit} className="relative px-4 py-4 border-t border-dark-400">
