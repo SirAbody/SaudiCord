@@ -104,7 +104,7 @@ class WebRTCService {
       
       // Send offer to remote peer
       socketService.emit('call:offer', {
-        receiverId,
+        receiverId: channelId, // Use channelId as receiverId
         offer,
         callType
       });
