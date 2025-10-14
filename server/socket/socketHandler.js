@@ -550,6 +550,11 @@ module.exports = (io) => {
 
     // Handle call end
     socket.on('call:end', (data) => {
+      if (!data || !data.targetUserId) {
+        console.warn('[Socket] call:end received with invalid data');
+        return;
+      }
+      
       const { targetUserId } = data;
       const targetSocket = userSockets.get(targetUserId);
       

@@ -219,8 +219,8 @@ router.get('/conversations', authenticateToken, async (req, res) => {
         { model: User, as: 'sender', attributes: ['id', 'username', 'displayName', 'avatar', 'status'] },
         { model: User, as: 'receiver', attributes: ['id', 'username', 'displayName', 'avatar', 'status'] }
       ],
-      order: [['createdAt', 'DESC']],
-      group: ['senderId', 'receiverId']
+      order: [['createdAt', 'DESC']]
+      // Removed GROUP BY - will handle unique conversations in code
     });
 
     // Extract unique users

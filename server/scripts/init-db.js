@@ -57,6 +57,30 @@ async function initializeDatabase() {
     });
     console.log('[INFO] ✅ SirAbody admin user created');
     
+    // Create venta user
+    const ventaPassword = await bcrypt.hash('venta509', 8);
+    const ventaUser = await User.create({
+      username: 'venta',
+      email: 'venta@saudicord.com',
+      password: ventaPassword,
+      displayName: 'Venta',
+      bio: 'SaudiCord Member',
+      isAdmin: false
+    });
+    console.log('[INFO] ✅ User venta created');
+    
+    // Create lion user
+    const lionPassword2 = await bcrypt.hash('lion509', 8);
+    const lionUser2 = await User.create({
+      username: 'lion',
+      email: 'lion@saudicord.com',
+      password: lionPassword2,
+      displayName: 'Lion',
+      bio: 'SaudiCord Member',
+      isAdmin: false
+    });
+    console.log('[INFO] ✅ User lion created');
+    
     // Create default server
     const defaultServer = await Server.create({
       name: 'SaudiCord Community',
@@ -65,7 +89,7 @@ async function initializeDatabase() {
       ownerId: adminUser.id,
       inviteCode: 'saudi2025',
       isPublic: true,
-      memberCount: 3
+      memberCount: 5 // Updated for all users
     });
     console.log('✅ Default server created');
     
@@ -113,13 +137,28 @@ async function initializeDatabase() {
       nickname: null,
       joinedAt: new Date()
     });
-    console.log('✅ Users added to default server');
+    
+    await ServerMember.create({
+      serverId: defaultServer.id,
+      userId: ventaUser.id,
+      role: 'member',
+      nickname: null,
+      joinedAt: new Date()
+    });
+    
+    await ServerMember.create({
+      serverId: defaultServer.id,
+      userId: lionUser2.id,
+      role: 'member',
+      nickname: null,
+      joinedAt: new Date()
+    });
+    console.log('✅ All users added to server as members');
     
     // Create welcome message
     await Message.create({
       content: '🎉 Welcome to SaudiCord Community! This server was made with love by SirAbody. Feel free to chat and have fun!',
       userId: adminUser.id,
-      channelId: generalChannel.id,
       serverId: defaultServer.id
     });
     console.log('✅ Welcome message created');
@@ -131,6 +170,8 @@ async function initializeDatabase() {
     console.log('   Admin: username=admin, password=admin123');
     console.log('   User:  username=liongtas, password=Lion509');
     console.log('   Admin: username=SirAbody, password=admin123');
+    console.log('   User:  username=venta, password=venta509');
+    console.log('   User:  username=lion, password=lion509');
     console.log('\n🚀 You can now start the server and login!');
     console.log('========================================\n');
     

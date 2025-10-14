@@ -26,15 +26,15 @@ router.post('/register', async (req, res) => {
     logger.info('Registration attempt:', { email, username });
 
     // Validate input
-    if (!username || !email || !password || !confirmPassword) {
+    if (!username || !email || !password) {
       console.log('[AUTH] Missing required fields');
       return res.status(400).json({ 
-        error: 'Username, email, password, and confirm password are required' 
+        error: 'Username, email, and password are required' 
       });
     }
     
-    // Check password match
-    if (password !== confirmPassword) {
+    // Check password match if confirmPassword is provided
+    if (confirmPassword && password !== confirmPassword) {
       console.log('[AUTH] Passwords do not match');
       return res.status(400).json({ 
         error: 'Passwords do not match' 
