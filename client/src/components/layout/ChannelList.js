@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, PhoneIcon, PhoneXMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
-import { useCallStore } from '../../stores/callStore';
+// import { useCallStore } from '../../stores/callStore'; // Reserved for future use
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socketService from '../../services/socket';

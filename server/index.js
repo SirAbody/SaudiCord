@@ -11,6 +11,9 @@ const compression = require('compression');
 const helmet = require('helmet');
 const fs = require('fs');
 
+// Server configuration
+const PORT = process.env.PORT || 10000;
+
 // Create Express app
 const app = express();
 const server = http.createServer(app);

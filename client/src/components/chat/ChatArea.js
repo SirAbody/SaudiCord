@@ -75,6 +75,7 @@ function ChatArea() {
         
         <div className="flex items-center space-x-4">
           <button
+            onClick={handleVoiceCall}
             className="text-text-secondary hover:text-text-primary transition-colors"
             title="Start Voice Call"
           >
