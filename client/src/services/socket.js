@@ -108,6 +108,17 @@ class SocketService {
       return this.socket;
     }
 
+    // Apply any pending handlers that were added before socket was ready
+    if (this.pendingHandlers) {
+      console.log('[Socket] Applying pending handlers...');
+      Object.entries(this.pendingHandlers).forEach(([event, handlers]) => {
+        handlers.forEach(handler => {
+          this.socket.on(event, handler);
+        });
+      });
+      this.pendingHandlers = {};
+    }
+
     try {
       const chatStore = useChatStore.getState();
       const callStore = useCallStore.getState();
@@ -334,6 +345,31 @@ class SocketService {
 
   isConnected() {
     return this.socket && this.socket.connected && this.socket !== this.mockSocket;
+  }
+
+  // Proxy methods for direct socket access (with safety checks)
+  on(event, handler) {
+    if (this.socket && typeof this.socket.on === 'function') {
+      return this.socket.on(event, handler);
+    }
+    console.warn(`[Socket] Cannot add listener for ${event} - socket not ready`);
+    // Store handlers for later if socket not ready
+    if (!this.pendingHandlers) this.pendingHandlers = {};
+    if (!this.pendingHandlers[event]) this.pendingHandlers[event] = [];
+    this.pendingHandlers[event].push(handler);
+  }
+
+  off(event, handler) {
+    if (this.socket && typeof this.socket.off === 'function') {
+      return this.socket.off(event, handler);
+    }
+  }
+
+  emit(event, ...args) {
+    if (this.socket && typeof this.socket.emit === 'function') {
+      return this.socket.emit(event, ...args);
+    }
+    console.warn(`[Socket] Cannot emit ${event} - socket not ready`);
   }
 }
 

@@ -343,5 +343,31 @@ class WebRTCService {
   }
 }
 
-const webrtcService = new WebRTCService();
+// Create a lazy-loaded singleton
+let webrtcInstance = null;
+
+const getWebRTCService = () => {
+  if (!webrtcInstance) {
+    console.log('[WebRTC] Creating WebRTC service instance');
+    webrtcInstance = new WebRTCService();
+  }
+  return webrtcInstance;
+};
+
+// Export a proxy that creates the instance on first use
+const webrtcService = new Proxy({}, {
+  get: (target, prop) => {
+    const instance = getWebRTCService();
+    if (typeof instance[prop] === 'function') {
+      return instance[prop].bind(instance);
+    }
+    return instance[prop];
+  },
+  set: (target, prop, value) => {
+    const instance = getWebRTCService();
+    instance[prop] = value;
+    return true;
+  }
+});
+
 export default webrtcService;
