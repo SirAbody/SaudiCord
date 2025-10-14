@@ -24,7 +24,7 @@ function App() {
 
   useEffect(() => {
     console.log('[App] useEffect running - checking auth...');
-    // Auth check with reasonable timeout
+    // Auth check with reasonable timeout - ONLY RUN ONCE
     const token = localStorage.getItem('token');
     console.log('[App] Token exists:', !!token);
     
@@ -52,7 +52,7 @@ function App() {
       console.log('[App] No token or authStore - setting initialLoad to false');
       setInitialLoad(false);
     }
-  }, [authStore]);
+  }, []); // Empty dependency array - run only once on mount
 
   // Show loading screen during initial load
   if (initialLoad) {

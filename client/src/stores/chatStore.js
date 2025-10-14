@@ -167,5 +167,31 @@ export const useChatStore = create((set, get) => ({
       toast.error('Failed to create DM channel');
       throw error;
     }
+  },
+
+  // Send message
+  sendMessage: (content, attachments = []) => {
+    const state = get();
+    const { currentChannel } = state;
+    
+    if (!currentChannel) {
+      toast.error('Please select a channel first');
+      return;
+    }
+
+    // Import socket at the top if not already imported
+    const socketService = require('../services/socket').default;
+    
+    // Send via Socket.io
+    if (socketService && typeof socketService.emit === 'function') {
+      socketService.emit('message:send', {
+        channelId: currentChannel.id,
+        content,
+        attachments
+      });
+    } else {
+      console.error('[ChatStore] Socket not available for sending message');
+      toast.error('Connection error. Please refresh and try again.');
+    }
   }
 }));
