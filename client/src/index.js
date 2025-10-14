@@ -1,6 +1,4 @@
 // SaudiCord Client - Made With Love By SirAbody
-console.log('[Index] Starting SaudiCord application...');
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -9,6 +7,7 @@ import App from './App';
 import './index.css';
 import './services/axiosSetup';
 
+console.log('[Index] Starting SaudiCord application...');
 console.log('[Index] All imports loaded successfully');
 
 const rootElement = document.getElementById('root');
