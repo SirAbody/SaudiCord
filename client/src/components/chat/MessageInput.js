@@ -1,59 +1,23 @@
 // Message Input Component
-import React, { useState, useRef, useEffect } from 'react';
-import { PlusCircleIcon, GiftIcon, PhotoIcon, FaceSmileIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import { PaperAirplaneIcon, PlusIcon, FaceSmileIcon, GifIcon } from '@heroicons/react/24/outline';
 import EmojiPicker from 'emoji-picker-react';
-import socketService from '../../services/socket';
 import { useChatStore } from '../../stores/chatStore';
 import toast from 'react-hot-toast';
 
 function MessageInput() {
-  const { currentChannel } = useChatStore();
+  const { currentChannel, sendMessage } = useChatStore();
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const fileInputRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
 
-  const handleSend = () => {
-    if (!message.trim() || !currentChannel) {
-      console.warn('Cannot send message: No content or channel');
-      return;
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (message.trim() && currentChannel) {
+      sendMessage(message);
+      setMessage('');
+    } else if (!currentChannel) {
+      toast.error('Please select a channel first');
     }
-
-    console.log('Sending message:', { channelId: currentChannel.id, content: message.trim() });
-
-    // Send message via socket
-    socketService.sendMessage(currentChannel.id, message.trim());
-    
-    // Clear input
-    setMessage('');
-    setIsTyping(false);
-  };
-
-  // Removed unused handleSubmit function - using handleKeyDown instead
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleTyping = () => {
-    if (!isTyping) {
-      setIsTyping(true);
-      socketService.startTyping(currentChannel.id);
-    }
-
-    // Reset typing timeout
-    clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      if (isTyping) {
-        socketService.stopTyping(currentChannel.id);
-        setIsTyping(false);
-      }
-    }, 3000);
   };
 
   const handleEmojiClick = (emojiObject) => {
@@ -61,101 +25,58 @@ function MessageInput() {
     setShowEmojiPicker(false);
   };
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      // Upload files logic here
-      toast.success(`${files.length} file(s) selected`);
-      setSelectedFiles(files);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
-  useEffect(() => {
-    // Cleanup typing indicator on unmount
-    return () => {
-      if (isTyping) {
-        socketService.stopTyping(currentChannel.id);
-      }
-      clearTimeout(typingTimeoutRef.current);
-    };
-  }, [currentChannel.id, isTyping]);
-
   return (
-    <div className="px-4 pb-6 mt-auto">
-      {/* Selected files preview */}
-      {selectedFiles.length > 0 && (
-        <div className="mb-2 p-2 bg-dark-300 rounded-lg">
-          <p className="text-sm text-text-secondary mb-1">
-            {selectedFiles.length} file(s) attached
-          </p>
-          <button
-            onClick={() => setSelectedFiles([])}
-            className="text-xs text-accent hover:text-accent-light"
-          >
-            Clear attachments
-          </button>
-        </div>
-      )}
-
-      {/* Input container */}
-      <div className="flex items-center bg-dark-400 rounded-lg">
-        {/* File upload button */}
+    <form onSubmit={handleSubmit} className="relative px-4 py-4 border-t border-dark-400">
+      <div className="flex items-center bg-background-tertiary rounded-lg px-3">
+        {/* File/Attachment button */}
         <button
-          onClick={() => fileInputRef.current?.click()}
-          className="p-3 text-text-tertiary hover:text-text-primary transition-colors"
-          title="Upload File"
+          type="button"
+          className="p-2 text-gray-400 hover:text-gray-300 transition-colors"
         >
-          <PlusCircleIcon className="w-6 h-6" />
+          <PlusIcon className="h-5 w-5" />
         </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleFileSelect}
-        />
 
-        {/* Text input */}
+        {/* Message input */}
         <input
           type="text"
           value={message}
-          onChange={(e) => {
-            setMessage(e.target.value);
-            handleTyping();
-          }}
+          onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Message #${currentChannel?.name || 'channel'}`}
+          placeholder={currentChannel ? `Message #${currentChannel.name}` : 'Select a channel'}
           className="flex-1 bg-transparent text-text-primary placeholder-text-tertiary outline-none py-3"
+          disabled={!currentChannel}
         />
 
         {/* Action buttons */}
         <div className="flex items-center pr-1">
-          {/* Gift button */}
-          <button
-            className="p-2 text-text-tertiary hover:text-text-primary transition-colors"
-            title="Send Gift"
-          >
-            <GiftIcon className="w-5 h-5" />
-          </button>
-
           {/* GIF button */}
           <button
-            className="p-2 text-text-tertiary hover:text-text-primary transition-colors"
+            type="button"
+            className="p-2 text-gray-400 hover:text-gray-300 transition-colors"
             title="Send GIF"
           >
-            <PhotoIcon className="w-5 h-5" />
+            <GifIcon className="h-5 w-5" />
           </button>
 
           {/* Emoji picker button */}
           <div className="relative">
             <button
+              type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-2 text-text-tertiary hover:text-text-primary transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-300 transition-colors"
               title="Emoji"
             >
-              <FaceSmileIcon className="w-5 h-5" />
+              <FaceSmileIcon className="h-5 w-5" />
             </button>
             
+            {/* Emoji Picker Popup */}
             {showEmojiPicker && (
               <div className="absolute bottom-12 right-0 z-50">
                 <div className="shadow-2xl rounded-lg overflow-hidden">
@@ -174,16 +95,16 @@ function MessageInput() {
 
           {/* Send button */}
           <button
-            onClick={handleSend}
+            type="submit"
             className={`p-2 transition-colors ${
-              message.trim() || selectedFiles.length > 0
+              message.trim()
                 ? 'text-accent hover:text-accent-light'
                 : 'text-text-tertiary cursor-not-allowed'
             }`}
-            disabled={!message.trim() && selectedFiles.length === 0}
+            disabled={!message.trim()}
             title="Send Message"
           >
-            <PaperAirplaneIcon className="w-5 h-5" />
+            <PaperAirplaneIcon className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -194,7 +115,7 @@ function MessageInput() {
           {message.length}/2000
         </span>
       </div>
-    </div>
+    </form>
   );
 }
 

@@ -1,11 +1,12 @@
 // Channel List Component
 import React, { useState, useEffect } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, PhoneIcon, PhoneXMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
-// import EmptyState from '../common/EmptyState'; // Reserved for future use
+import { useCallStore } from '../../stores/callStore';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
+import webrtcService from '../../services/webrtc';
 
 function ChannelList() {
   const { currentChannel, selectChannel, fetchMessages } = useChatStore();
@@ -86,32 +87,48 @@ function ChannelList() {
       setChannelType('text');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to create channel');
-    } finally {
       setCreating(false);
     }
   };
 
   const handleChannelClick = async (channel) => {
-    if (currentChannel?.id === channel.id) return;
+    if (currentChannel?.id === channel.id) {
+      return; // Already in this channel
+    }
     
-    // Leave current channel
+    // Leave current channel if exists
     if (currentChannel) {
       socketService.leaveChannel(currentChannel.id);
+      
+      // If leaving a voice channel, end the call
+      if (currentChannel.type === 'voice' && webrtcService.isInCall()) {
+        webrtcService.endCall();
+        toast.success('Left voice channel');
+      }
     }
     
     // Join new channel
     selectChannel(channel);
     socketService.joinChannel(channel.id);
     
-    // Fetch messages for text channels
+    // Handle channel type
     if (channel.type === 'text') {
+      // Fetch messages for text channels
       await fetchMessages(channel.id);
+    } else if (channel.type === 'voice') {
+      // Auto-join voice call
+      try {
+        await webrtcService.initializeCall(channel.id, 'voice');
+        toast.success(`Joined voice channel: ${channel.name}`);
+      } catch (error) {
+        toast.error('Failed to join voice channel');
+        console.error('Voice channel error:', error);
+      }
     }
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Server Name Header */}
       <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-dark-400">
         <h2 className="font-bold text-text-primary">SaudiCord Server</h2>
         <ChevronDownIcon className="w-4 h-4 text-text-secondary" />
@@ -165,18 +182,42 @@ function ChannelList() {
             </button>
           </div>
           
-          {voiceChannels.map(channel => (
-            <button
-              key={channel.id}
-              onClick={() => handleChannelClick(channel)}
-              className={`w-full px-2 py-1 flex items-center text-text-secondary hover:text-text-primary hover:bg-dark-400/50 rounded transition-colors ${
-                currentChannel?.id === channel.id ? 'bg-dark-400/50 text-text-primary' : ''
-              }`}
-            >
-              <SpeakerWaveIcon className="w-5 h-5 mr-1.5 text-text-tertiary" />
-              <span className="text-sm">{channel.name}</span>
-            </button>
-          ))}
+          {voiceChannels.map(channel => {
+            const isActive = currentChannel?.id === channel.id;
+            const isInCall = isActive && webrtcService.isInCall();
+            
+            return (
+              <div key={channel.id} className="relative group">
+                <button
+                  onClick={() => handleChannelClick(channel)}
+                  className={`w-full px-2 py-1 flex items-center text-text-secondary hover:text-text-primary hover:bg-dark-400/50 rounded transition-colors ${
+                    isActive ? 'bg-dark-400/50 text-text-primary' : ''
+                  }`}
+                >
+                  <SpeakerWaveIcon className="w-5 h-5 mr-1.5 text-text-tertiary" />
+                  <span className="text-sm flex-1 text-left">{channel.name}</span>
+                  {isInCall && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-green-500">Connected</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          webrtcService.endCall();
+                          toast.success('Left voice channel');
+                        }}
+                        className="p-1 hover:bg-red-500/20 rounded"
+                      >
+                        <PhoneXMarkIcon className="w-4 h-4 text-red-500" />
+                      </button>
+                    </div>
+                  )}
+                  {!isInCall && isActive && (
+                    <PhoneIcon className="w-4 h-4 text-green-500 animate-pulse" />
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
 

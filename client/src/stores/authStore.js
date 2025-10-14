@@ -107,13 +107,13 @@ export const useAuthStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      // Very short timeout - fail fast
+      // Reasonable timeout for slow connections
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 800); // 0.8 second only
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 seconds
       
       const response = await axios.get('/auth/verify', {
         signal: controller.signal,
-        timeout: 800
+        timeout: 3000
       });
       
       clearTimeout(timeoutId);

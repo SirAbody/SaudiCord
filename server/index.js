@@ -119,13 +119,25 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-// API Routes
+// API Routes - Fixed paths
+app.use('/auth', require('./routes/auth'));
+app.use('/servers', require('./routes/servers'));
+app.use('/channels', require('./routes/channels'));
+app.use('/messages', require('./routes/messages'));
+app.use('/users', require('./routes/users'));
+app.use('/voice', require('./routes/voice'));
+app.use('/friends', require('./routes/friends'));
+app.use('/dm', require('./routes/directMessages'));
+
+// API prefix routes (for compatibility)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/servers', require('./routes/servers'));
 app.use('/api/channels', require('./routes/channels'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/voice', require('./routes/voice'));
+app.use('/api/friends', require('./routes/friends'));
+app.use('/api/dm', require('./routes/directMessages'));
 
 // Socket.io handlers
 if (io) {

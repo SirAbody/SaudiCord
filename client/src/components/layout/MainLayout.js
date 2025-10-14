@@ -15,44 +15,32 @@ import DirectMessages from '../../pages/DirectMessages';
 
 function MainLayout() {
   const { user } = useAuthStore();
-  const { currentChannel } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
   // const location = useLocation(); // Reserved for future use
   // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 
   useEffect(() => {
-    // Connect to socket server - simpler approach
+    // Connect to socket server
     const token = localStorage.getItem('token');
-    if (token) {
-      // Single attempt after delay
-      const connectTimeout = setTimeout(() => {
-        // Check if Socket.io is available
-        if (window.io && typeof window.io === 'function') {
-          try {
-            const socket = socketService.connect(token);
-            if (socket) {
-              console.log('Socket connection established');
-            }
-          } catch (error) {
-            console.warn('Socket connection failed, continuing without real-time features');
-          }
-        } else {
-          console.warn('Socket.io not available, continuing without real-time features');
+    if (token && user) {
+      // Delay connection slightly to ensure components are mounted
+      const connectTimer = setTimeout(() => {
+        if (window.io) {
+          socketService.connect(token);
         }
       }, 500); // Small delay to ensure CDN is loaded
 
       // Cleanup
       return () => {
-        clearTimeout(connectTimeout);
+        clearTimeout(connectTimer);
         try {
           socketService.disconnect();
         } catch (error) {
-          // Silent fail
+          console.error('Error disconnecting socket:', error);
         }
       };
     }
-  }, []);
-
+  }, [user]);
   return (
     <div className="flex h-screen bg-background-primary">
       {/* Server List - Far Left */}

@@ -15,11 +15,11 @@ function App() {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    // Fast auth check - don't wait for server
+    // Auth check with reasonable timeout
     const token = localStorage.getItem('token');
     if (token && authStore?.checkAuth) {
-      // Very short timeout
-      const timeout = setTimeout(() => setInitialLoad(false), 800);
+      // Reasonable timeout for slow connections
+      const timeout = setTimeout(() => setInitialLoad(false), 3500);
       
       authStore.checkAuth()
         .catch(() => {})
