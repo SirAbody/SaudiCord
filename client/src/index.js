@@ -1,4 +1,6 @@
 // SaudiCord Client - Made With Love By SirAbody
+console.log('[Index] Starting SaudiCord application...');
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -7,25 +9,43 @@ import App from './App';
 import './index.css';
 import './services/axiosSetup';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+console.log('[Index] All imports loaded successfully');
+
+const rootElement = document.getElementById('root');
+console.log('[Index] Root element found:', !!rootElement);
+
+if (!rootElement) {
+  console.error('[Index] CRITICAL: No root element found!');
+  document.body.innerHTML = '<div style="color: white; padding: 20px;">Error: Root element not found</div>';
+} else {
+  console.log('[Index] Creating React root...');
+}
+
+const root = ReactDOM.createRoot(rootElement);
 
 // Always enable dark mode
 document.documentElement.classList.add('dark');
+console.log('[Index] Dark mode enabled');
 
 // Remove initial loader when React app mounts
 const loader = document.getElementById('initial-loader');
 if (loader) {
   loader.style.display = 'none';
+  console.log('[Index] Initial loader removed');
 }
 
 // Disable React StrictMode in production for better performance
 const AppWrapper = process.env.NODE_ENV === 'development' ? React.StrictMode : React.Fragment;
+console.log('[Index] Environment:', process.env.NODE_ENV);
 
-root.render(
-  <AppWrapper>
-    <BrowserRouter>
-      <App />
-      <Toaster
+console.log('[Index] Rendering React application...');
+
+try {
+  root.render(
+    <AppWrapper>
+      <BrowserRouter>
+        <App />
+        <Toaster
         position="top-right"
         toastOptions={{
           duration: 3000, // Shorter duration to reduce memory
@@ -47,7 +67,21 @@ root.render(
             },
           },
         }}
-      />
-    </BrowserRouter>
-  </AppWrapper>
-);
+        />
+      </BrowserRouter>
+    </AppWrapper>
+  );
+  console.log('[Index] React app rendered successfully');
+} catch (error) {
+  console.error('[Index] CRITICAL: Failed to render app:', error);
+  document.body.innerHTML = `<div style="color: white; padding: 20px;">Error: ${error.message}</div>`;
+}
+
+// Add global error handler
+window.addEventListener('error', (event) => {
+  console.error('[Index] Global error:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('[Index] Unhandled promise rejection:', event.reason);
+});

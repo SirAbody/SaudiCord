@@ -92,8 +92,12 @@ export const useAuthStore = create((set, get) => ({
 
   // Check authentication status - FAST & NO LOOPS
   checkAuth: async () => {
+    console.log('[AuthStore] checkAuth called');
     const token = localStorage.getItem('token');
+    console.log('[AuthStore] Token from localStorage:', !!token);
+    
     if (!token) {
+      console.log('[AuthStore] No token found - setting user to null');
       set({ user: null, loading: false });
       return;
     }
@@ -101,15 +105,19 @@ export const useAuthStore = create((set, get) => ({
     // Check if already checking to prevent loops
     const store = get();
     if (store.loading) {
-      console.log('Auth check already in progress, skipping...');
+      console.log('[AuthStore] Already checking auth - skipping');
       return;
     }
-
+    
     set({ loading: true });
     try {
+      console.log('[AuthStore] Verifying token with server...');
       // Reasonable timeout for slow connections
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 seconds
+      const timeoutId = setTimeout(() => {
+        console.log('[AuthStore] Auth verify timeout - aborting');
+        controller.abort();
+      }, 3000); // 3 seconds
       
       const response = await axios.get('/auth/verify', {
         signal: controller.signal,
@@ -117,18 +125,26 @@ export const useAuthStore = create((set, get) => ({
       });
       
       clearTimeout(timeoutId);
+      console.log('[AuthStore] Auth verify response:', response.data);
       
       if (response.data.valid && response.data.user) {
+        console.log('[AuthStore] Token valid - setting user:', response.data.user.username);
         set({ user: response.data.user, loading: false });
       } else {
+        console.log('[AuthStore] Token invalid - removing and setting user to null');
         localStorage.removeItem('token');
         set({ user: null, loading: false });
       }
     } catch (error) {
-      // Fail silently - don't block UI
-      console.warn('Auth check failed, continuing offline');
-      set({ loading: false });
-      // Keep token for later retry
+      console.error('[AuthStore] Auth check error:', error.message, error);
+      // Don't remove token on network errors
+      if (error.response?.status === 401) {
+        console.log('[AuthStore] Got 401 - removing token');
+        localStorage.removeItem('token');
+      }
+      set({ user: null, loading: false });
+    } finally {
+      console.log('[AuthStore] Auth check finished');
     }
   },
 

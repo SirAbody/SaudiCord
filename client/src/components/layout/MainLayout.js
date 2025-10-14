@@ -14,9 +14,12 @@ import UserProfile from '../user/UserProfile';
 import DirectMessages from '../../pages/DirectMessages';
 
 function MainLayout() {
+  console.log('[MainLayout] Component rendering');
   const { user } = useAuthStore();
   const { currentChannel } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
+  console.log('[MainLayout] User:', user);
+  console.log('[MainLayout] Current channel:', currentChannel);
   // const location = useLocation(); // Reserved for future use
   // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 

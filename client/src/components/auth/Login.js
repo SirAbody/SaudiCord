@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { LockClosedIcon, UserIcon } from '@heroicons/react/24/outline';
 
 function Login() {
+  console.log('[Login] Component rendering');
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);

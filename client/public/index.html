@@ -151,18 +151,34 @@
     <div id="root"></div>
     
     <script>
-      // Remove loader when React app mounts
+      console.log('[HTML] Page loading...');
+      
+      // Add debugging info
       window.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-          var loader = document.getElementById('initial-loader');
-          if (loader) {
-            loader.style.transition = 'opacity 0.3s';
-            loader.style.opacity = '0';
-            setTimeout(function() {
-              loader.style.display = 'none';
-            }, 300);
-          }
-        }, 100);
+        console.log('[HTML] DOMContentLoaded fired');
+        var root = document.getElementById('root');
+        console.log('[HTML] Root element exists:', !!root);
+        
+        // Don't remove loader automatically - let React handle it
+        // setTimeout(function() {
+        //   var loader = document.getElementById('initial-loader');
+        //   if (loader) {
+        //     loader.style.transition = 'opacity 0.3s';
+        //     loader.style.opacity = '0';
+        //     setTimeout(function() {
+        //       loader.style.display = 'none';
+        //     }, 300);
+        //   }
+        // }, 100);
+      });
+      
+      // Add error handler
+      window.addEventListener('error', function(e) {
+        console.error('[HTML] JavaScript error:', e.error);
+        var root = document.getElementById('root');
+        if (root && !root.innerHTML) {
+          root.innerHTML = '<div style="color: white; padding: 20px;">Error loading application: ' + e.error.message + '</div>';
+        }
       });
     </script>
   </body>
