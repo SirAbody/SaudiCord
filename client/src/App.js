@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/authStore';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import MainLayout from './components/layout/MainLayout';
+import InvitePage from './pages/InvitePage';
 
 function App() {
   console.log('[App] Component mounting...');
@@ -84,6 +85,10 @@ function App() {
         <Route 
           path="/register" 
           element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
+        />
+        <Route 
+          path="/invite/:inviteCode" 
+          element={<InvitePage />} 
         />
         <Route 
           path="*" 

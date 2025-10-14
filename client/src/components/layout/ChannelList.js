@@ -1,50 +1,68 @@
 // Channel List Component
 import React, { useState, useEffect } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, PhoneIcon, PhoneXMarkIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, PhoneIcon, PhoneXMarkIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 // import { useCallStore } from '../../stores/callStore'; // Reserved for future use
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
 import webrtcService from '../../services/webrtc';
+import InviteModal from '../modals/InviteModal';
 
 function ChannelList() {
-  const { currentChannel, selectChannel, fetchMessages } = useChatStore();
+  const { currentChannel, selectChannel, fetchMessages, currentServer, channels } = useChatStore();
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
   // const [loading, setLoading] = useState(true); // Reserved for loading state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [channelType, setChannelType] = useState('text');
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
-  const [currentServerId, setCurrentServerId] = useState(null);
 
   useEffect(() => {
-    // Load real channels from server
-    loadChannels();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Update channels when currentServer or channels change
+    if (channels) {
+      const text = channels.filter(ch => ch.type === 'text');
+      const voice = channels.filter(ch => ch.type === 'voice');
+      setTextChannels(text);
+      setVoiceChannels(voice);
+    } else {
+      // Load real channels from server
+      loadChannels();
+    }
+  }, [currentServer, channels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadChannels = async () => {
     try {
-      const response = await axios.get('/channels');
-      const channels = response.data || [];
-      
-      // Get first server ID if available
-      if (channels.length > 0 && channels[0].serverId) {
-        setCurrentServerId(channels[0].serverId);
-      }
-      
-      // Separate text and voice channels
-      const text = channels.filter(ch => ch.type === 'text');
-      const voice = channels.filter(ch => ch.type === 'voice');
-      
-      setTextChannels(text);
-      setVoiceChannels(voice);
-      
-      // Auto-select first text channel
-      if (text.length > 0 && !currentChannel) {
-        handleChannelClick(text[0]);
+      // If we have a current server, load its channels
+      if (currentServer) {
+        const response = await axios.get(`/channels/server/${currentServer.id}`);
+        const channelsData = response.data || [];
+        
+        // Separate text and voice channels
+        const text = channelsData.filter(ch => ch.type === 'text');
+        const voice = channelsData.filter(ch => ch.type === 'voice');
+        
+        setTextChannels(text);
+        setVoiceChannels(voice);
+        
+        // Auto-select first text channel
+        if (text.length > 0 && !currentChannel) {
+          handleChannelClick(text[0]);
+        }
+      } else {
+        // Load default channels
+        const response = await axios.get('/channels');
+        const channelsData = response.data || [];
+        
+        // Separate text and voice channels
+        const text = channelsData.filter(ch => ch.type === 'text');
+        const voice = channelsData.filter(ch => ch.type === 'voice');
+        
+        setTextChannels(text);
+        setVoiceChannels(voice);
       }
     } catch (error) {
       console.error('Failed to load channels:', error);
@@ -130,8 +148,21 @@ function ChannelList() {
   return (
     <div className="flex flex-col h-full">
       <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-dark-400">
-        <h2 className="font-bold text-text-primary">SaudiCord Server</h2>
-        <ChevronDownIcon className="w-4 h-4 text-text-secondary" />
+        <h2 className="font-bold text-text-primary">
+          {currentServer ? currentServer.name : 'Select a Server'}
+        </h2>
+        <div className="flex items-center gap-2">
+          {currentServer && (
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="p-1 hover:bg-gray-700 rounded transition"
+              title="Invite People"
+            >
+              <UserPlusIcon className="w-4 h-4 text-text-secondary" />
+            </button>
+          )}
+          <ChevronDownIcon className="w-4 h-4 text-text-secondary" />
+        </div>
       </div>
       
       {/* Channel Categories */}
@@ -309,6 +340,14 @@ function ChannelList() {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Invite Modal */}
+      {showInviteModal && currentServer && (
+        <InviteModal 
+          server={currentServer}
+          onClose={() => setShowInviteModal(false)}
+        />
       )}
     </div>
   );

@@ -202,6 +202,33 @@ router.post('/:id/icon', authenticateToken, upload.single('icon'), async (req, r
   }
 });
 
+// Get server info by invite code (public)
+router.get('/invite/:inviteCode/info', async (req, res) => {
+  try {
+    const { inviteCode } = req.params;
+
+    const server = await Server.findOne({ 
+      where: { inviteCode },
+      attributes: ['id', 'name', 'description', 'memberCount', 'icon']
+    });
+
+    if (!server) {
+      return res.status(404).json({ error: 'Invalid invite code' });
+    }
+
+    res.json({
+      name: server.name,
+      description: server.description,
+      memberCount: server.memberCount,
+      icon: server.icon,
+      inviteCode: inviteCode
+    });
+  } catch (error) {
+    console.error('Error getting server info:', error);
+    res.status(500).json({ error: 'Failed to get server info' });
+  }
+});
+
 // Join server by invite code
 router.post('/join/:inviteCode', authenticateToken, async (req, res) => {
   try {

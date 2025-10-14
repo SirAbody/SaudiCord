@@ -1,17 +1,17 @@
-// Direct Messages Page
+// Direct Messages Page Component
 import React, { useState, useEffect } from 'react';
 import { 
+  MagnifyingGlassIcon, 
   UserPlusIcon, 
-  MagnifyingGlassIcon,
-  PhoneIcon,
-  VideoCameraIcon,
+  UserIcon,
+  PhoneIcon, 
+  VideoCameraIcon, 
+  ComputerDesktopIcon,
   EllipsisHorizontalIcon,
   PaperAirplaneIcon,
-  XMarkIcon,
-  UserIcon,
-  ChatBubbleLeftIcon,
-  ComputerDesktopIcon
+  XMarkIcon 
 } from '@heroicons/react/24/outline';
+import FriendRequests from '../components/friends/FriendRequests';
 import { useAuthStore } from '../stores/authStore';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -271,36 +271,8 @@ function DirectMessages() {
 
         {/* Friends & Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {/* Friend Requests */}
-          {friends.filter(f => f.status === 'pending' && f.initiatedBy !== user.id).length > 0 && (
-            <div className="p-2">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Friend Requests</h3>
-              {friends.filter(f => f.friendshipStatus === 'pending' && f.initiatedBy !== user.id).map(friend => (
-                <div key={friend.id} className="flex items-center justify-between p-2 hover:bg-gray-700 rounded">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                      <UserIcon className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-text-primary">{friend.username}</span>
-                  </div>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => acceptFriendRequest(friend.id)}
-                      className="text-green-500 hover:text-green-400 text-sm"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => removeFriend(friend.id)}
-                      className="text-red-500 hover:text-red-400 text-sm"
-                    >
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Friend Requests Component */}
+          <FriendRequests friends={friends} onUpdate={loadFriends} />
 
           {/* Friends */}
           <div className="p-2">

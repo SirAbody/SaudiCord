@@ -58,7 +58,7 @@ async function initializeDatabase() {
     console.log('[INFO] ✅ SirAbody admin user created');
     
     // Create venta user
-    const ventaPassword = await bcrypt.hash('venta509', 8);
+    const ventaPassword = await bcrypt.hash('venta509', 10);
     const ventaUser = await User.create({
       username: 'venta',
       email: 'venta@saudicord.com',
@@ -70,7 +70,7 @@ async function initializeDatabase() {
     console.log('[INFO] ✅ User venta created');
     
     // Create lion user
-    const lionPassword2 = await bcrypt.hash('lion509', 8);
+    const lionPassword2 = await bcrypt.hash('lion509', 10);
     const lionUser2 = await User.create({
       username: 'lion',
       email: 'lion@saudicord.com',
@@ -81,20 +81,20 @@ async function initializeDatabase() {
     });
     console.log('[INFO] ✅ User lion created');
     
-    // Create default server
+    // Create default community server (Public server)
     const defaultServer = await Server.create({
       name: 'SaudiCord Community',
       description: 'Welcome to SaudiCord - Made With Love By SirAbody',
       icon: null,
-      ownerId: adminUser.id,
+      ownerId: sirAbodyUser.id,
       inviteCode: 'saudi2025',
       isPublic: true,
-      memberCount: 5 // Updated for all users
+      memberCount: 2
     });
-    console.log('✅ Default server created');
+    console.log('✅ Default community server created');
     
-    // Create default channels
-    const generalChannel = await Channel.create({
+    // Create default channels for community server
+    await Channel.create({
       serverId: defaultServer.id,
       name: 'general',
       type: 'text',
@@ -111,25 +111,8 @@ async function initializeDatabase() {
       position: 1,
       isPrivate: false
     });
-    console.log('✅ Default channels created');
     
-    // Add users as members to server
-    await ServerMember.create({
-      serverId: defaultServer.id,
-      userId: adminUser.id,
-      role: 'admin',
-      nickname: null,
-      joinedAt: new Date()
-    });
-    
-    await ServerMember.create({
-      serverId: defaultServer.id,
-      userId: lionUser.id,
-      role: 'member',
-      nickname: null,
-      joinedAt: new Date()
-    });
-    
+    // Only add admins to community server
     await ServerMember.create({
       serverId: defaultServer.id,
       userId: sirAbodyUser.id,
@@ -140,28 +123,84 @@ async function initializeDatabase() {
     
     await ServerMember.create({
       serverId: defaultServer.id,
-      userId: ventaUser.id,
-      role: 'member',
+      userId: adminUser.id,
+      role: 'admin',
       nickname: null,
       joinedAt: new Date()
+    });
+    
+    // Create personal servers for each user
+    const ventaServer = await Server.create({
+      name: "Venta's Server",
+      description: 'Personal server for Venta',
+      icon: null,
+      ownerId: ventaUser.id,
+      inviteCode: 'venta' + Math.random().toString(36).substring(2, 8),
+      isPublic: false,
+      memberCount: 1
+    });
+    
+    await Channel.create({
+      serverId: ventaServer.id,
+      name: 'general',
+      type: 'text',
+      description: 'General discussion',
+      position: 0,
+      isPrivate: false
     });
     
     await ServerMember.create({
-      serverId: defaultServer.id,
-      userId: lionUser2.id,
-      role: 'member',
+      serverId: ventaServer.id,
+      userId: ventaUser.id,
+      role: 'owner',
       nickname: null,
       joinedAt: new Date()
     });
-    console.log('✅ All users added to server as members');
     
-    // Create welcome message
-    await Message.create({
-      content: '🎉 Welcome to SaudiCord Community! This server was made with love by SirAbody. Feel free to chat and have fun!',
-      userId: adminUser.id,
-      serverId: defaultServer.id
+    // Create Lion's server
+    const lionServer = await Server.create({
+      name: "Lion's Server",
+      description: 'Personal server for Lion',
+      icon: null,
+      ownerId: lionUser.id,
+      inviteCode: 'lion' + Math.random().toString(36).substring(2, 8),
+      isPublic: false,
+      memberCount: 1
     });
-    console.log('✅ Welcome message created');
+    
+    await Channel.create({
+      serverId: lionServer.id,
+      name: 'general',
+      type: 'text',
+      description: 'General discussion',
+      position: 0,
+      isPrivate: false
+    });
+    
+    await ServerMember.create({
+      serverId: lionServer.id,
+      userId: lionUser.id,
+      role: 'owner',
+      nickname: null,
+      joinedAt: new Date()
+    });
+    
+    console.log('✅ Personal servers created for users');
+    
+    // Create welcome message in community server
+    const generalChannel = await Channel.findOne({
+      where: { serverId: defaultServer.id, name: 'general' }
+    });
+    
+    if (generalChannel) {
+      await Message.create({
+        content: 'Welcome to SaudiCord! 🎉 Made with Love by SirAbody',
+        channelId: generalChannel.id,
+        userId: sirAbodyUser.id,
+        serverId: defaultServer.id
+      });
+      console.log('✅ Welcome message created');
+    }
     
     console.log('\n========================================');
     console.log('✅ Database initialized successfully!');

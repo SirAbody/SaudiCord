@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 export const useChatStore = create((set, get) => ({
   servers: [],
   channels: [],
+  currentServer: null,
   currentChannel: null,
   messages: {},
   typingUsers: {},
@@ -22,12 +23,25 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Set current server
+  setCurrentServer: (server) => {
+    set({ currentServer: server, currentChannel: null });
+    // Fetch channels for the new server
+    if (server) {
+      get().fetchChannels(server.id);
+    }
+  },
+
   // Fetch channels for a server
   fetchChannels: async (serverId) => {
     set({ loading: true });
     try {
       const response = await axios.get(`/channels/server/${serverId}`);
       set({ channels: response.data, loading: false });
+      // Auto-select first channel if available
+      if (response.data.length > 0) {
+        get().selectChannel(response.data[0]);
+      }
     } catch (error) {
       console.error('Failed to fetch channels:', error);
       set({ loading: false });

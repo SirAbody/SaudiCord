@@ -92,12 +92,14 @@ router.post('/request', authenticateToken, async (req, res) => {
     
     // Emit socket event to notify the friend
     const io = req.app.get('io');
-    io.to(`user-${friend.id}`).emit('friend:request', {
-      friendshipId: friendship.id,
-      userId: user.id,
-      username: user.username,
-      displayName: user.displayName
-    });
+    if (io) {
+      io.to(`user-${friend.id}`).emit('friend:request', {
+        friendshipId: friendship.id,
+        userId: user.id,
+        username: user.username,
+        displayName: user.displayName
+      });
+    }
 
     res.json({ message: 'Friend request sent successfully', friendship });
   } catch (error) {

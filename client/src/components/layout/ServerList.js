@@ -1,18 +1,20 @@
 // Server List Component
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, HomeIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useChatStore } from '../../stores/chatStore';
 
 function ServerList() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { setCurrentServer, currentServer } = useChatStore();
   const [servers, setServers] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newServerName, setNewServerName] = useState('');
   const [newServerDescription, setNewServerDescription] = useState('');
   const [creating, setCreating] = useState(false);
-  const [selectedServer, setSelectedServer] = useState(null);
 
   useEffect(() => {
     loadServers();
@@ -28,15 +30,16 @@ function ServerList() {
   };
 
   const handleHomeClick = () => {
-    setSelectedServer(null);
+    setCurrentServer(null);
     navigate('/dashboard');
   };
 
   const handleServerClick = (server) => {
-    setSelectedServer(server.id);
-    navigate('/channels/@me');
-    // Trigger server selection in chat store
-    const { setCurrentServer } = require('../../stores/chatStore').useChatStore.getState();
+    // Check if we're already in the dashboard, navigate to channels
+    if (location.pathname === '/dashboard') {
+      navigate('/channels/@me');
+    }
+    // Update the current server
     setCurrentServer(server);
   };
 
@@ -71,7 +74,7 @@ function ServerList() {
         {/* Home/DM Button - SaudiCord Logo */}
         <button 
           onClick={handleHomeClick}
-          className={`w-12 h-12 ${!selectedServer ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
+          className={`w-12 h-12 ${location.pathname === '/dashboard' ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
           title="Direct Messages"
         >
           <img 
@@ -88,7 +91,7 @@ function ServerList() {
         <button
           key={server.id}
           onClick={() => handleServerClick(server)}
-          className={`relative w-12 h-12 ${selectedServer === server.id ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group`}
+          className={`relative w-12 h-12 ${currentServer?.id === server.id ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group`}
         >
           {server.icon ? (
             <img src={server.icon} alt={server.name} className="w-full h-full rounded-full" />
