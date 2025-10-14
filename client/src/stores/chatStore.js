@@ -173,11 +173,43 @@ export const useChatStore = create((set, get) => ({
   sendMessage: (content, attachments = []) => {
     const state = get();
     const { currentChannel } = state;
+    const authStore = require('./authStore').useAuthStore.getState();
+    const user = authStore.user;
     
     if (!currentChannel) {
       toast.error('Please select a channel first');
       return;
     }
+
+    if (!user) {
+      toast.error('You must be logged in to send messages');
+      return;
+    }
+
+    // Create optimistic message
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`, // Temporary ID
+      content,
+      attachments,
+      channelId: currentChannel.id,
+      userId: user.id,
+      author: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        avatar: user.avatar
+      },
+      createdAt: new Date().toISOString(),
+      pending: true // Mark as pending
+    };
+
+    // Add message optimistically to UI
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [currentChannel.id]: [...(state.messages[currentChannel.id] || []), optimisticMessage]
+      }
+    }));
 
     // Import socket at the top if not already imported
     const socketService = require('../services/socket').default;
@@ -187,11 +219,22 @@ export const useChatStore = create((set, get) => ({
       socketService.emit('message:send', {
         channelId: currentChannel.id,
         content,
-        attachments
+        attachments,
+        tempId: optimisticMessage.id // Send temp ID to match later
       });
     } else {
       console.error('[ChatStore] Socket not available for sending message');
       toast.error('Connection error. Please refresh and try again.');
+      
+      // Remove optimistic message on error
+      set((state) => ({
+        messages: {
+          ...state.messages,
+          [currentChannel.id]: state.messages[currentChannel.id]?.filter(
+            msg => msg.id !== optimisticMessage.id
+          ) || []
+        }
+      }));
     }
   }
 }));

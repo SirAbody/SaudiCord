@@ -22,10 +22,12 @@ router.post('/register', async (req, res) => {
   try {
     const { email, username, displayName, password, confirmPassword } = req.body;
     
+    console.log('[AUTH] Registration attempt:', { email, username, displayName });
     logger.info('Registration attempt:', { email, username });
 
     // Validate input
     if (!username || !email || !password || !confirmPassword) {
+      console.log('[AUTH] Missing required fields');
       return res.status(400).json({ 
         error: 'Username, email, password, and confirm password are required' 
       });
@@ -33,6 +35,7 @@ router.post('/register', async (req, res) => {
     
     // Check password match
     if (password !== confirmPassword) {
+      console.log('[AUTH] Passwords do not match');
       return res.status(400).json({ 
         error: 'Passwords do not match' 
       });
@@ -46,6 +49,7 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingUser) {
+      console.log('[AUTH] User already exists:', existingUser.username);
       return res.status(400).json({ 
         error: 'Username or email already exists' 
       });
@@ -173,9 +177,36 @@ router.post('/logout', authenticateToken, async (req, res) => {
   }
 });
 
+// Rate limit storage for verify endpoint
+const verifyRateLimit = new Map();
+
 // Verify token
 router.get('/verify', async (req, res) => {
   try {
+    // Rate limiting - prevent spam
+    const clientIP = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const lastCall = verifyRateLimit.get(clientIP) || 0;
+    
+    if (now - lastCall < 1000) { // Less than 1 second since last call
+      console.log('[AUTH] Rate limit hit for IP:', clientIP);
+      return res.status(429).json({ 
+        valid: false, 
+        error: 'Too many requests. Please wait.' 
+      });
+    }
+    verifyRateLimit.set(clientIP, now);
+    
+    // Clean old entries every 100 requests
+    if (verifyRateLimit.size > 100) {
+      for (const [ip, time] of verifyRateLimit.entries()) {
+        if (now - time > 60000) verifyRateLimit.delete(ip);
+      }
+    }
+    
+    // Debug logging (reduced)
+    // console.log('[AUTH] Verify endpoint called');
+    
     // Prevent caching of auth verification responses
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
@@ -185,28 +216,33 @@ router.get('/verify', async (req, res) => {
     // Get token from header
     const authHeader = req.headers.authorization;
     if (!authHeader) {
+      console.log('[AUTH] No auth header provided');
       return res.json({ valid: false, message: 'No token provided' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     if (!token) {
+      console.log('[AUTH] No token in header');
       return res.json({ valid: false, message: 'No token provided' });
     }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+    console.log('[AUTH] Token decoded for user:', decoded.userId);
     
     const user = await User.findByPk(decoded.userId, {
       attributes: { exclude: ['password'] }
     });
 
     if (!user) {
+      console.log('[AUTH] User not found in database:', decoded.userId);
       return res.json({ valid: false, error: 'User not found' });
     }
 
+    // console.log('[AUTH] User verified successfully:', user.username);
     res.json({ valid: true, user });
   } catch (error) {
-    console.error('Token verification error:', error);
+    // console.error('[AUTH] Token verification error:', error.message);
     res.json({ valid: false, error: 'Invalid token' });
   }
 });

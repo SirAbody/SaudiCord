@@ -191,7 +191,7 @@ module.exports = (io) => {
       }
       
       try {
-        const { channelId, content, attachments = [] } = data;
+        const { channelId, content, attachments = [], tempId } = data;
         
         if (!channelId || !content) {
           socket.emit('error', { message: 'Channel ID and content are required' });
@@ -206,13 +206,17 @@ module.exports = (io) => {
             content,
             channelId,
             userId: socket.userId,
+            tempId, // Include tempId for optimistic updates
             author: {
               id: socket.userId,
               username: socket.username || 'Unknown',
-              displayName: socket.username || 'Unknown'
+              displayName: socket.username || 'Unknown',
+              avatar: socket.user?.avatar || null
             },
-            createdAt: new Date()
+            createdAt: new Date().toISOString()
           };
+          
+          // Send to all in channel including sender
           io.to(`channel:${channelId}`).emit('message:receive', simpleMessage);
           logger.info(`Message sent (no database): ${content.substring(0, 50)}...`);
           return;
@@ -325,6 +329,89 @@ module.exports = (io) => {
       });
     });
 
+    // Voice Channel Management
+    socket.on('voice:join', async (data) => {
+      const { channelId } = data;
+      if (!channelId || !socket.userId) {
+        socket.emit('error', { message: 'Channel ID and authentication required' });
+        return;
+      }
+      
+      // Join voice room
+      socket.join(`voice:${channelId}`);
+      
+      // Initialize voice rooms map if needed
+      if (!global.voiceRooms) {
+        global.voiceRooms = new Map();
+      }
+      
+      // Create channel entry if not exists
+      if (!global.voiceRooms.has(channelId)) {
+        global.voiceRooms.set(channelId, new Set());
+      }
+      
+      // Add user to voice channel
+      const userInfo = {
+        userId: socket.userId,
+        username: socket.username || 'Unknown',
+        socketId: socket.id
+      };
+      
+      global.voiceRooms.get(channelId).add(JSON.stringify(userInfo));
+      
+      // Get all users in room
+      const usersInRoom = Array.from(global.voiceRooms.get(channelId))
+        .map(userStr => JSON.parse(userStr));
+      
+      // Notify all users in voice channel
+      io.to(`voice:${channelId}`).emit('voice:users', {
+        channelId,
+        users: usersInRoom
+      });
+      
+      logger.info(`User ${socket.username} joined voice channel ${channelId}`);
+    });
+    
+    socket.on('voice:leave', async (data) => {
+      const { channelId } = data;
+      if (!channelId || !socket.userId) return;
+      
+      // Leave voice room
+      socket.leave(`voice:${channelId}`);
+      
+      // Remove from voice state
+      if (global.voiceRooms && global.voiceRooms.has(channelId)) {
+        const users = global.voiceRooms.get(channelId);
+        
+        // Find and remove user
+        const userToRemove = Array.from(users)
+          .find(userStr => {
+            const user = JSON.parse(userStr);
+            return user.userId === socket.userId;
+          });
+          
+        if (userToRemove) {
+          users.delete(userToRemove);
+        }
+        
+        // Clean up empty channels
+        if (users.size === 0) {
+          global.voiceRooms.delete(channelId);
+        } else {
+          // Notify remaining users
+          const usersInRoom = Array.from(users)
+            .map(userStr => JSON.parse(userStr));
+          
+          io.to(`voice:${channelId}`).emit('voice:users', {
+            channelId,
+            users: usersInRoom
+          });
+        }
+      }
+      
+      logger.info(`User ${socket.username} left voice channel ${channelId}`);
+    });
+
     // WebRTC Signaling for Voice/Video Calls
     socket.on('call:initiate', async (data) => {
       const { targetUserId, callType, channelId } = data;
@@ -396,21 +483,6 @@ module.exports = (io) => {
       if (receiverSocket) {
         receiverSocket.emit('screenshare:stopped', {
           senderId: socket.userId
-        });
-      }
-    });
-
-    // WebRTC signaling for calls
-    socket.on('call:offer', (data) => {
-      const { receiverId, offer, callType } = data;
-      const receiverSocket = userSockets.get(receiverId);
-      
-      if (receiverSocket) {
-        receiverSocket.emit('call:offer', {
-          callerId: socket.userId,
-          callerName: socket.user.username,
-          offer,
-          callType
         });
       }
     });

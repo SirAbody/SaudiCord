@@ -8,23 +8,12 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? '/api' 
   : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
 
-// Configure axios defaults
-axios.defaults.baseURL = API_URL;
-axios.defaults.withCredentials = true;
-
-// Add token to all requests
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Axios already configured in axiosSetup.js - no need to duplicate
+// Just set the base URL if not already set
+if (!axios.defaults.baseURL) {
+  axios.defaults.baseURL = API_URL;
+  axios.defaults.withCredentials = true;
+}
 
 export const useAuthStore = create((set, get) => ({
   user: null,

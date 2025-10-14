@@ -172,7 +172,7 @@ class SocketService {
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
     });
-
+    
     // User status events
     this.socket.on('user:online', (data) => {
       if (data && data.userId) {
@@ -180,15 +180,39 @@ class SocketService {
       }
     });
 
-    this.socket.on('user:offline', (data) => {
-      if (data && data.userId) {
-        chatStore.removeOnlineUser(data.userId);
-      }
-    });
-
-    // Message events
-    this.socket.on('message:new', (message) => {
+    // Message events with store integration
+    this.socket.on('message:receive', (message) => {
+      console.log('Received message:', message);
+      
+      // Get chat store
+      const chatStore = useChatStore.getState();
+      const authStore = require('../stores/authStore').useAuthStore.getState();
+      const currentUser = authStore.user;
+      
+      // Check if this is our own message with tempId
       const channelId = message.channelId;
+      if (message.tempId && currentUser && message.userId === currentUser.id) {
+        // Replace optimistic message with real one
+        const currentMessages = chatStore.messages[channelId] || [];
+        const updatedMessages = currentMessages.map(msg => 
+          msg.id === message.tempId 
+            ? { ...message, pending: false } 
+            : msg
+        );
+        
+        // Only update if we found the temp message
+        if (currentMessages.some(msg => msg.id === message.tempId)) {
+          chatStore.set((state) => ({
+            messages: {
+              ...state.messages,
+              [channelId]: updatedMessages
+            }
+          }));
+          return; // Don't add duplicate
+        }
+      }
+      
+      // Add message to store (for messages from others or if no tempId)
       chatStore.addMessage(channelId, message);
       
       // Show notification if not in current channel

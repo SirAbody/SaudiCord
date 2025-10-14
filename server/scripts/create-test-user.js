@@ -1,13 +1,18 @@
-// Script to create a test user
+// Script to create test users and fix database
 const bcrypt = require('bcrypt');
 const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
+
+console.log('==============================================');
+console.log('🔧 SaudiCord Database Fix & User Creation Tool');
+console.log('💝 Made With Love By SirAbody');
+console.log('==============================================\n');
 
 // Database configuration
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: path.join(__dirname, '..', 'database.sqlite'),
-  logging: console.log
+  logging: false // Disable logging for cleaner output
 });
 
 // User model definition
