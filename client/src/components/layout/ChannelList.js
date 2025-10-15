@@ -26,6 +26,7 @@ function ChannelList() {
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
   const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // Track users in each voice channel
   const [showVoiceCall, setShowVoiceCall] = useState(false); // Show voice call interface
+  const [showInviteModal, setShowInviteModal] = useState(false); // Show invite modal
 
   // Debug log on mount and state changes
   useEffect(() => {
