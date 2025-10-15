@@ -249,7 +249,9 @@ async function checkDatabase() {
       // Run init-db script using child process
       const { execSync } = require('child_process');
       try {
-        execSync('node server/scripts/init-db.js', { stdio: 'inherit' });
+        // Fix path for production - we're already in server directory
+        const scriptPath = path.join(__dirname, 'scripts', 'init-db.js');
+        execSync(`node ${scriptPath}`, { stdio: 'inherit' });
         console.log('[INFO] ✅ Database reset complete');
       } catch (error) {
         console.error('[ERROR] Failed to reset database:', error.message);
