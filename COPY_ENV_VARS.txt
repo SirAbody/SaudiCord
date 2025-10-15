@@ -1,0 +1,17 @@
+# انسخ هذه المتغيرات واحدة تلو الأخرى في Render:
+
+CLIENT_URL=https://saudicord.onrender.com
+
+JWT_SECRET=saudicord-secret-key-2024
+
+MONGODB_URI=mongodb+srv://abood3alshrary_db_user:23U4pKSr6zNEnf0C@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord
+
+NODE_ENV=production
+
+PORT=10000
+
+RESET_DB=false
+
+USE_MONGODB=true
+
+# احذف أي متغير آخر غير موجود في هذه القائمة!

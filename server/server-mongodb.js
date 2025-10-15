@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose'); // Fix for mongoose not defined error
 require('dotenv').config();
 
 // MongoDB Connection

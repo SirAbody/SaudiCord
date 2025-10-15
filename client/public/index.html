@@ -45,27 +45,22 @@
       }
     </style>
     
-    <!-- Socket.io Client from CDN (optional - app works without it) -->
+    <!-- Socket.io Client from CDN - FIXED VERSION -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js" 
+            crossorigin="anonymous">
+    </script>
     <script>
-      // Try to load Socket.io async
-      (function() {
-        var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js';
-        script.async = true;
-        script.onload = function() {
-          if (typeof window.io === 'function') {
-            console.log('Socket.io loaded');
-          } else {
-            console.warn('⚠️ Socket.io loaded but not functional');
-            window.io = null; // Clear it to trigger mock socket
-          }
-        };
-        script.onerror = function() {
-          console.warn('⚠️ Socket.io CDN failed to load - app will work offline');
-          window.io = null;
-        };
-        document.head.appendChild(script);
-      })();
+      // Verify Socket.io loaded correctly
+      window.addEventListener('load', function() {
+        if (typeof window.io === 'function') {
+          console.log('✅ Socket.io loaded successfully from CDN');
+          // Prevent minification issues
+          window.IO = window.io;
+          window.Socket = window.io.Socket;
+        } else {
+          console.warn('⚠️ Socket.io not available - using fallback');
+        }
+      });
     </script>
     
     <style>

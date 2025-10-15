@@ -10,14 +10,17 @@ if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI) {
   console.warn('[MongoDB] Warning: Using default connection string. Set MONGODB_URI in production!');
 }
 
-// Connection options
+// Connection options - OPTIMIZED FOR STABILITY
 const mongoOptions = {
-  serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+  serverSelectionTimeoutMS: 15000, // 15 seconds timeout
   socketTimeoutMS: 45000, // 45 seconds
-  maxPoolSize: 50, // Maintain up to 50 socket connections
-  minPoolSize: 10, // Maintain at least 10 socket connections
+  maxPoolSize: 10, // Reduce pool size for free tier
+  minPoolSize: 2, // Minimum connections
   retryWrites: true,
-  w: 'majority'
+  w: 'majority',
+  heartbeatFrequencyMS: 30000, // Check connection every 30s
+  keepAlive: true,
+  keepAliveInitialDelay: 300000 // 5 minutes
 };
 
 // Connect to MongoDB

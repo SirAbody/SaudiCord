@@ -12,9 +12,18 @@ class SocketService {
 
   // Get the io function from either npm or CDN
   getIoFunction() {
-    if (typeof window !== 'undefined' && window.io && typeof window.io === 'function') {
-      return window.io;
+    // Try CDN first (more reliable in production)
+    if (typeof window !== 'undefined') {
+      if (window.IO && typeof window.IO === 'function') {
+        console.log('[Socket] Using global IO from CDN');
+        return window.IO;
+      }
+      if (window.io && typeof window.io === 'function') {
+        console.log('[Socket] Using global io from CDN');
+        return window.io;
+      }
     }
+    console.warn('[Socket] No Socket.io library available');
     return null;
   }
 

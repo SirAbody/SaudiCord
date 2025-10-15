@@ -92,6 +92,7 @@ router.post('/login', async (req, res) => {
     });
     
     if (!user) {
+      console.log(`[Auth] User not found: ${username}`);
       return res.status(401).json({
         error: 'Invalid username or password'
       });
@@ -101,6 +102,7 @@ router.post('/login', async (req, res) => {
     const isValidPassword = await user.comparePassword(password);
     
     if (!isValidPassword) {
+      console.log(`[Auth] Invalid password for user: ${username}`);
       return res.status(401).json({
         error: 'Invalid username or password'
       });
