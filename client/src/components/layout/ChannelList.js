@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
 import webrtcService from '../../services/webrtc';
 import InviteModal from '../modals/InviteModal';
+import VoiceChannelDisplay from '../voice/VoiceChannelDisplay';
 
 function ChannelList() {
   const { currentChannel, selectChannel, fetchMessages, currentServer, channels } = useChatStore();
@@ -20,6 +21,7 @@ function ChannelList() {
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
 
   useEffect(() => {
     // Update channels when currentServer or channels change
@@ -127,21 +129,15 @@ function ChannelList() {
     
     // Join new channel
     selectChannel(channel);
-    socketService.joinChannel(channel.id);
     
     // Handle channel type
     if (channel.type === 'text') {
       // Fetch messages for text channels
       await fetchMessages(channel.id);
     } else if (channel.type === 'voice') {
-      // Auto-join voice call
-      try {
-        await webrtcService.initializeCall(channel.id, 'voice');
-        toast.success(`Joined voice channel: ${channel.name}`);
-      } catch (error) {
-        toast.error('Failed to join voice channel');
-        console.error('Voice channel error:', error);
-      }
+      setActiveVoiceChannel(channel);
+    } else {
+      setActiveVoiceChannel(null);
     }
   };
 
@@ -347,6 +343,14 @@ function ChannelList() {
         <InviteModal 
           server={currentServer}
           onClose={() => setShowInviteModal(false)}
+        />
+      )}
+      
+      {/* Voice Channel Display */}
+      {activeVoiceChannel && (
+        <VoiceChannelDisplay
+          channelId={activeVoiceChannel.id}
+          channelName={activeVoiceChannel.name}
         />
       )}
     </div>

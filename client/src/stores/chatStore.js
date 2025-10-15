@@ -52,6 +52,13 @@ export const useChatStore = create((set, get) => ({
   selectChannel: (channel) => {
     set({ currentChannel: channel });
     
+    // Join socket channel room for real-time messages
+    const socketService = require('../services/socket').default;
+    if (channel && socketService && typeof socketService.joinChannel === 'function') {
+      socketService.joinChannel(channel.id);
+      console.log('[ChatStore] Joined channel:', channel.id);
+    }
+    
     // Fetch messages for this channel
     if (channel) {
       get().fetchMessages(channel.id);

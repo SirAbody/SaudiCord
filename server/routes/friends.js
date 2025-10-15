@@ -103,12 +103,13 @@ router.post('/request', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Friend request sent successfully', friendship });
   } catch (error) {
-    logger.error('Error sending friend request:', error);
+    console.error('Error sending friend request:', error);
     res.status(500).json({ error: 'Failed to send friend request' });
   }
 });
 
 // Accept friend request
+// Accept friend request or reject
 router.post('/accept/:friendshipId', authenticateToken, async (req, res) => {
   try {
     const friendship = await Friendship.findByPk(req.params.friendshipId);
@@ -145,6 +146,27 @@ router.post('/accept/:friendshipId', authenticateToken, async (req, res) => {
   } catch (error) {
     logger.error('Error accepting friend request:', error);
     res.status(500).json({ error: 'Failed to accept friend request' });
+  }
+});
+
+// Reject friend request
+router.post('/reject/:friendshipId', authenticateToken, async (req, res) => {
+  try {
+    const friendship = await Friendship.findByPk(req.params.friendshipId);
+    
+    if (!friendship) {
+      return res.status(404).json({ error: 'Friend request not found' });
+    }
+    
+    if (friendship.friendId !== req.userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    await friendship.destroy();
+    res.json({ message: 'Friend request rejected' });
+  } catch (error) {
+    console.error('Error rejecting friend request:', error);
+    res.status(500).json({ error: 'Failed to reject friend request' });
   }
 });
 

@@ -9,19 +9,33 @@ const logger = {
   info: (...args) => console.log('[VOICE]', new Date().toISOString(), ...args),
   error: (...args) => console.error('[VOICE ERROR]', new Date().toISOString(), ...args)
 };
-
 // Get available STUN/TURN servers
 router.get('/ice-servers', (req, res) => {
   res.json({
     iceServers: [
       {
-        urls: process.env.STUN_SERVER || 'stun:stun.l.google.com:19302'
+        urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302']
+      },
+      {
+        urls: 'stun:stun.stunprotocol.org:3478'
+      },
+      {
+        urls: 'stun:stun.services.mozilla.com:3478'
+      },
+      // Free TURN servers for better connectivity
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
       }
     ]
   });
 });
-
-// Create a voice call session
 router.post('/call/start', (req, res) => {
   try {
     const { callerId, receiverId, type } = req.body;

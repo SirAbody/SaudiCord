@@ -1,5 +1,12 @@
-// Socket.io Handler for Real-time Communication
 const jwt = require('jsonwebtoken');
+
+// Simple logger for production
+const logger = {
+  debug: (...args) => console.log('[Socket Debug]', ...args),
+  info: (...args) => console.log('[Socket]', ...args),
+  warn: (...args) => console.warn('[Socket]', ...args),
+  error: (...args) => console.error('[Socket Error]', ...args)
+};
 
 // Safely load models (might fail if database is not connected)
 let User, Message, Channel;
@@ -9,16 +16,8 @@ try {
   Message = models.Message;
   Channel = models.Channel;
 } catch (err) {
-  console.warn('Models not loaded - database might be unavailable');
+  console.warn('[Socket] Models not loaded - database might be unavailable');
 }
-
-// Simple logger for production
-const logger = {
-  info: (...args) => console.log('[INFO]', ...args),
-  error: (...args) => console.error('[ERROR]', ...args),
-  warn: (...args) => console.warn('[WARN]', ...args),
-  debug: (...args) => process.env.NODE_ENV !== 'production' && console.log('[DEBUG]', ...args)
-};
 
 // Store active connections
 const activeUsers = new Map();
@@ -131,8 +130,16 @@ module.exports = (io) => {
       }
       
       try {
+        // Leave previous channels first
+        const rooms = Array.from(socket.rooms);
+        rooms.forEach(room => {
+          if (room.startsWith('channel-') && room !== socket.id) {
+            socket.leave(room);
+          }
+        });
+        
         socket.join(`channel-${channelId}`);
-        logger.debug(`User ${socket.user.username} joined channel ${channelId}`);
+        console.log(`[Socket] User ${socket.user.username} joined channel-${channelId}`);
         
         // Notify others in channel
         socket.to(`channel-${channelId}`).emit('user:joined', {
@@ -144,7 +151,7 @@ module.exports = (io) => {
           }
         });
       } catch (error) {
-        logger.error('Error joining channel', { error, channelId, userId: socket.userId });
+        console.error('[Socket] Error joining channel:', error, { channelId, userId: socket.userId });
         socket.emit('error', { message: 'Failed to join channel' });
       }
     });
@@ -217,8 +224,8 @@ module.exports = (io) => {
           };
           
           // Send to all in channel including sender
-          io.to(`channel:${channelId}`).emit('message:receive', simpleMessage);
-          logger.info(`Message sent (no database): ${content.substring(0, 50)}...`);
+          io.to(`channel-${channelId}`).emit('message:receive', simpleMessage);
+          console.log(`[Socket] Message sent to channel-${channelId}:`, simpleMessage);
           return;
         }
         

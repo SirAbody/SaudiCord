@@ -242,9 +242,27 @@ async function checkDatabase() {
     await sequelize.authenticate();
     console.log('[INFO] ✅ Database connection established');
     
-    // Just sync models - no data operations
-    await sequelize.sync({ logging: false });
-    console.log('[INFO] ✅ Database models synced');
+    // Check if we need to reset the database
+    const shouldReset = process.env.RESET_DB === 'true';
+    if (shouldReset) {
+      console.log('[INFO] 🔄 Resetting database (RESET_DB=true)...');
+      // Run init-db script using child process
+      const { execSync } = require('child_process');
+      try {
+        execSync('node server/scripts/init-db.js', { stdio: 'inherit' });
+        console.log('[INFO] ✅ Database reset complete');
+      } catch (error) {
+        console.error('[ERROR] Failed to reset database:', error.message);
+      }
+    } else {
+      // Just sync models - no data operations
+      await sequelize.sync({ logging: false });
+      console.log('[INFO] ✅ Database models synced');
+    }
+    
+    // Run health check
+    const healthChecker = require('./utils/healthcheck');
+    await healthChecker.runAllChecks();
     
     databaseChecked = true;
     return true;
