@@ -1031,12 +1031,18 @@ function DirectMessages() {
                     >
                       Block User
                     </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Messages Container - Proper Scrolling */}
-            <div className="dm-messages-container flex-1 overflow-y-auto p-6 space-y-4" style={{ paddingBottom: '100px', height: 'calc(100vh - 200px)' }}>
+            <div className="dm-messages-container flex-1 overflow-y-auto p-6 space-y-4" style={{ paddingBottom: '100px' }}>
+              {messages.map((message, index) => {
+                const messageSenderId = (message.senderId || message.sender?._id || message.sender || '').toString();
+                const isOwnMessage = messageSenderId === user.id.toString();
                   
-                  // Get correct sender info
+                // Get correct sender info
                   const senderName = message.senderName || 
                     message.sender?.displayName || 
                     message.sender?.username || 
@@ -1126,24 +1132,24 @@ function DirectMessages() {
                     </div>
                   );
                 })}
-              </div>
-              <div ref={messagesEndRef} />
-              
-              {/* Typing Indicator */}
-              {isTyping && (
-                <div className="px-4 py-2 text-gray-400 text-sm animate-pulse">
-                  <span className="inline-flex items-center">
-                    <span className="font-semibold text-primary-400">{selectedConversation.displayName || selectedConversation.username}</span>
-                    <span className="ml-1">is typing</span>
-                    <span className="ml-1 flex space-x-1">
-                      <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                      <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                      <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                
+                <div ref={messagesEndRef} />
+                
+                {/* Typing Indicator */}
+                {isTyping && (
+                  <div className="px-4 py-2 text-gray-400 text-sm animate-pulse">
+                    <span className="inline-flex items-center">
+                      <span className="font-semibold text-primary-400">{selectedConversation.displayName || selectedConversation.username}</span>
+                      <span className="ml-1">is typing</span>
+                      <span className="ml-1 flex space-x-1">
+                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                      </span>
                     </span>
-                  </span>
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
 
             {/* Message Input - FIXED at Bottom */}
             <div className="message-input-container p-4 border-t border-gray-600 bg-gray-800" style={{ position: 'sticky', bottom: 0 }}>
