@@ -409,10 +409,6 @@ class WebRTCService {
   getRemoteStream() {
     return this.remoteStream;
   }
-
-  isInCall() {
-    return this.isCallActive;
-  }
 }
 
 // Create a lazy-loaded singleton

@@ -85,6 +85,7 @@ module.exports = (io) => {
         if (user) {
           socket.user = user;
           socket.userId = user._id.toString();
+          socket.username = user.username;
           
           user.status = 'online';
           await user.save();
@@ -94,10 +95,10 @@ module.exports = (io) => {
           userSockets.set(socket.userId.toString(), socket.id);
           console.log(`[Socket] Stored socket ID ${socket.id} for user ${socket.userId}`);
       
-      // Join user room for DMs and notifications
-      socket.join(`user-${socket.userId}`);
-      socket.join(`user-${socket.userId.toString()}`); // Join with string version too
-      console.log(`[Socket] User ${socket.username} joined rooms: user-${socket.userId}`);
+          // Join user room for DMs and notifications - MUST BE INSIDE IF BLOCK
+          socket.join(`user-${socket.userId}`);
+          socket.join(`user-${socket.userId.toString()}`); // Join with string version too
+          console.log(`[Socket] User ${socket.username} joined rooms: user-${socket.userId}`);
           
           // Broadcast online status
           socket.broadcast.emit('user:online', {
@@ -297,9 +298,14 @@ module.exports = (io) => {
           }
         });
         
+        // Check if receiver is online and in room
+        const receiverRoom = `user-${receiverId.toString()}`;
+        const roomSockets = io.sockets.adapter.rooms.get(receiverRoom);
+        console.log(`[Socket] Receiver room ${receiverRoom} has ${roomSockets ? roomSockets.size : 0} connections`);
+        
         // Send to receiver using room (all their sessions will get it once)
-        io.to(`user-${receiverId.toString()}`).emit('dm:receive', messageData);
-        console.log(`[Socket] DM sent to receiver ${receiverId}`);
+        io.to(receiverRoom).emit('dm:receive', messageData);
+        console.log(`[Socket] DM sent to receiver room: ${receiverRoom}`);
         
         // Send to sender's other sessions (not current socket)
         socket.to(`user-${socket.userId}`).emit('dm:receive', messageData);

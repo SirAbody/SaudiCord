@@ -88,20 +88,26 @@ router.post('/', auth, async (req, res) => {
     // Send real-time notification via Socket.io
     const io = req.app.get('io');
     if (io) {
-      // Notify the recipient
-      io.to(`user-${receiverId}`).emit('dm:new_message', {
-        from: {
-          id: req.userId,
-          username: req.user?.username,
-          displayName: req.user?.displayName,
-          avatar: req.user?.avatar
-        },
-        message: content,
+      // Prepare message data in same format as socket handler
+      const messageData = {
+        id: dm._id,
+        _id: dm._id,
+        content: dm.content,
+        senderId: dm.sender._id || dm.sender,
+        senderName: dm.sender.username || req.user?.username,
+        sender: dm.sender,
+        receiverId: dm.receiver,
         conversationId,
-        timestamp: dm.createdAt
-      });
+        timestamp: dm.createdAt,
+        createdAt: dm.createdAt,
+        read: false
+      };
       
-      console.log(`[Socket] DM notification sent from ${req.user?.username} to user ${receiverId}`);
+      // Notify the recipient using same event as socket handler
+      io.to(`user-${receiverId}`).emit('dm:receive', messageData);
+      io.to(`user-${receiverId.toString()}`).emit('dm:receive', messageData);
+      
+      console.log(`[Socket] DM sent via API from ${req.user?.username} to user room: user-${receiverId}`);
     }
     
     res.status(201).json(dm);

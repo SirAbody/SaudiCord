@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import {
   UserPlusIcon,
   ChatBubbleLeftIcon,
@@ -34,7 +35,7 @@ function UserProfilePopup({ user, position, onClose, onMessage }) {
 
   const fetchUserDetails = async () => {
     try {
-      const response = await axios.get(`/api/users/${user._id || user.id}`);
+      const response = await axios.get(`/users/${user._id || user.id}`);
       setUserDetails(response.data);
     } catch (error) {
       console.error('Failed to fetch user details:', error);
@@ -45,13 +46,13 @@ function UserProfilePopup({ user, position, onClose, onMessage }) {
 
   const checkFriendshipStatus = async () => {
     try {
-      const response = await axios.get('/api/friends');
+      const response = await axios.get('/friends');
       const friends = response.data.friends || [];
       const pending = response.data.pending || [];
       
       const userId = user._id || user.id;
-      setIsFriend(friends.some(f => f._id === userId));
-      setRequestSent(pending.some(p => p.receiver === userId));
+      setIsFriend(friends.some(f => (f._id || f.id) === userId));
+      setRequestSent(pending.some(p => (p.receiver?._id || p.receiver) === userId));
     } catch (error) {
       console.error('Failed to check friendship status:', error);
     }
@@ -59,12 +60,14 @@ function UserProfilePopup({ user, position, onClose, onMessage }) {
 
   const sendFriendRequest = async () => {
     try {
-      await axios.post('/api/friends/request', {
+      await axios.post('/friends/request', {
         username: user.username
       });
       setRequestSent(true);
+      toast.success('Friend request sent!');
     } catch (error) {
       console.error('Failed to send friend request:', error);
+      toast.error('Failed to send friend request');
     }
   };
 

@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import socketService from '../services/socket';
 import MessageContextMenu from '../components/chat/MessageContextMenu';
 import UserProfilePopup from '../components/user/UserProfilePopup';
-// import VoiceCallInterface from '../components/voice/VoiceCallInterface';
+import CallInterface from '../components/call/CallInterface';
 // import webrtcService from '../services/webrtc';
 
 function DirectMessages() {
@@ -31,11 +31,15 @@ function DirectMessages() {
   const [isTyping, setIsTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
+  const selectedConversationRef = useRef(null);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [friendUsername, setFriendUsername] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [callType, setCallType] = useState(null); // 'voice' or 'video'
+  const [callTarget, setCallTarget] = useState(null); // User being called
+  const [incomingCall, setIncomingCall] = useState(null); // Incoming call data
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
   const [pendingRequests, setPendingRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('online');
@@ -68,6 +72,11 @@ function DirectMessages() {
       socketService.off('call:ended');
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Update ref when selectedConversation changes
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
   
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -107,14 +116,27 @@ function DirectMessages() {
     // Handle incoming DM - ENHANCED
     const handleIncomingMessage = (message) => {
       console.log('[DM] Received message:', message);
+      console.log('[DM] Current user:', user);
+      console.log('[DM] Selected conversation (from ref):', selectedConversationRef.current);
       
-      // Parse sender and current user IDs properly
-      const msgSenderId = message.senderId?.toString() || message.sender?._id?.toString() || message.sender?.toString();
-      const msgReceiverId = message.receiverId?.toString() || message.receiver?.toString();
-      const currentUserId = user?.id?.toString() || user?._id?.toString();
-      const selectedId = selectedConversation?.id?.toString() || selectedConversation?._id?.toString();
+      // Use ref to get current selectedConversation
+      const currentSelectedConv = selectedConversationRef.current;
       
-      console.log('[DM] Message IDs:', { msgSenderId, msgReceiverId, currentUserId, selectedId });
+      // Parse sender and current user IDs properly - handle all formats
+      const msgSenderId = (message.senderId?._id || message.senderId || message.sender?._id || message.sender)?.toString();
+      const msgReceiverId = (message.receiverId?._id || message.receiverId || message.receiver?._id || message.receiver)?.toString();
+      const currentUserId = (user?.id || user?._id)?.toString();
+      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id)?.toString();
+      
+      console.log('[DM] Parsed IDs:', { 
+        msgSenderId, 
+        msgReceiverId, 
+        currentUserId, 
+        selectedId,
+        isFromSelected: msgSenderId === selectedId,
+        isToSelected: msgReceiverId === selectedId,
+        isFromMe: msgSenderId === currentUserId
+      });
       
       // Check if message is for current conversation (both sent and received)
       const isForCurrentConv = selectedId && (
@@ -249,13 +271,21 @@ function DirectMessages() {
 
     // Handle typing indicators
     socketService.on('dm:typing', (data) => {
-      if (selectedConversation?.id === data.senderId) {
+      const currentSelectedConv = selectedConversationRef.current;
+      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id)?.toString();
+      const senderId = (data.senderId || data.userId)?.toString();
+      
+      if (selectedId === senderId) {
         setIsTyping(true);
       }
     });
 
     socketService.on('dm:stop-typing', (data) => {
-      if (selectedConversation?.id === data.senderId) {
+      const currentSelectedConv = selectedConversationRef.current;
+      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id)?.toString();
+      const senderId = (data.senderId || data.userId)?.toString();
+      
+      if (selectedId === senderId) {
         setIsTyping(false);
       }
     });
@@ -263,6 +293,9 @@ function DirectMessages() {
     // Handle incoming calls
     socketService.on('call:incoming', (data) => {
       console.log('[DM] Incoming call:', data);
+      
+      // Set incoming call state
+      setIncomingCall(data);
       
       // Show incoming call notification with better UI
       const audio = new Audio('/sounds/ringtone.mp3');
@@ -332,6 +365,8 @@ function DirectMessages() {
     socketService.on('call:rejected', (data) => {
       console.log('[DM] Call rejected:', data);
       setInCall(false);
+      setCallType(null);
+      setCallTarget(null);
       toast.error('Call was rejected');
     });
     
@@ -339,6 +374,9 @@ function DirectMessages() {
     socketService.on('call:ended', (data) => {
       console.log('[DM] Call ended:', data);
       setInCall(false);
+      setCallType(null);
+      setCallTarget(null);
+      setIncomingCall(null);
       toast('Call ended');
     });
   };
@@ -512,17 +550,14 @@ function DirectMessages() {
     
     console.log('[DM] Starting voice call with:', selectedConversation);
     setInCall(true);
+    setCallType('voice');
+    setCallTarget(selectedConversation);
     
     // Emit call initiation
     socketService.emit('call:initiate', {
       targetUserId: selectedConversation.id,
       type: 'voice',
       callerName: user.displayName || user.username
-    });
-    
-    toast('Calling...', {
-      icon: '📞',
-      duration: 3000
     });
   };
 
@@ -534,17 +569,14 @@ function DirectMessages() {
     
     console.log('[DM] Starting video call with:', selectedConversation);
     setInCall(true);
+    setCallType('video');
+    setCallTarget(selectedConversation);
     
     // Emit call initiation  
     socketService.emit('call:initiate', {
       targetUserId: selectedConversation.id,
       type: 'video',
       callerName: user.displayName || user.username
-    });
-    
-    toast('Starting video call...', {
-      icon: '📹',
-      duration: 3000
     });
   };
 
@@ -583,10 +615,18 @@ function DirectMessages() {
       type: callData.type
     });
     setInCall(true);
-    setSelectedConversation(prev => ({
-      ...prev,
-      inCallWith: callData.callerId
-    }));
+    setCallType(callData.type);
+    
+    // Find the caller in friends list
+    const caller = friends.find(f => 
+      f.id === callData.callerId || 
+      f._id === callData.callerId
+    );
+    setCallTarget(caller || { 
+      id: callData.callerId, 
+      username: callData.callerName 
+    });
+    setIncomingCall(null);
   };
   
   const rejectCall = (callData) => {
@@ -594,20 +634,20 @@ function DirectMessages() {
     socketService.emit('call:reject', {
       callerId: callData.callerId
     });
+    setIncomingCall(null);
   };
 
   const endCall = () => {
     console.log('[DM] Ending call');
-    if (selectedConversation?.inCallWith) {
+    if (callTarget) {
       socketService.emit('call:end', {
-        targetUserId: selectedConversation.inCallWith || selectedConversation.id
+        targetUserId: callTarget.id || callTarget._id
       });
     }
     setInCall(false);
-    setSelectedConversation(prev => {
-      const { inCallWith, ...rest } = prev || {};
-      return rest;
-    });
+    setCallType(null);
+    setCallTarget(null);
+    setIncomingCall(null);
     toast('Call ended');
   };
   
@@ -695,7 +735,7 @@ function DirectMessages() {
         {/* Content based on active tab */}
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Friends List with Glass Effect */}
-          <div className="w-80 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
+          <div className="w-64 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
             {activeTab === 'addFriend' ? (
               // Add Friend Tab - Beautiful Design
               <div className="p-8">
@@ -843,15 +883,25 @@ function DirectMessages() {
                               : 'hover:bg-red-500/10 text-red-300'
                           }`}
                         >
-                          <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
-                            {friend.avatar ? (
-                              <img src={friend.avatar} alt={friend.displayName} className="w-full h-full rounded-full" />
-                            ) : (
-                              <UserIcon className="w-6 h-6 text-white" />
+                          <div className="relative">
+                            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
+                              {friend.avatar ? (
+                                <img src={friend.avatar} alt={friend.displayName} className="w-full h-full rounded-full" />
+                              ) : (
+                                <UserIcon className="w-6 h-6 text-white" />
+                              )}
+                            </div>
+                            {friend.status === 'online' && (
+                              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
                             )}
                           </div>
                           <div className="flex-1 text-left">
-                            <p className="font-medium">{friend.displayName || friend.username}</p>
+                            <p className="font-medium flex items-center">
+                              {friend.displayName || friend.username}
+                              {friend.status === 'online' && (
+                                <span className="ml-2 text-xs text-green-500">●</span>
+                              )}
+                            </p>
                             <p className="text-xs text-text-tertiary">
                               {friend.status === 'online' ? 'Online' : 'Offline'}
                             </p>
@@ -1198,6 +1248,22 @@ function DirectMessages() {
             setSelectedConversation(user);
             setUserProfilePopup(null);
           }}
+        />
+      )}
+
+      {/* Call Interface */}
+      {(inCall || incomingCall) && (
+        <CallInterface
+          callType={callType || incomingCall?.type}
+          targetUser={callTarget || (incomingCall && {
+            id: incomingCall.callerId,
+            username: incomingCall.callerName,
+            displayName: incomingCall.callerName
+          })}
+          onEndCall={endCall}
+          isIncoming={!!incomingCall}
+          onAccept={() => acceptCall(incomingCall)}
+          onReject={() => rejectCall(incomingCall)}
         />
       )}
     </div>
