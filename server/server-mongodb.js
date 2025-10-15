@@ -240,7 +240,14 @@ async function initializeDefaultData() {
 process.on('SIGTERM', async () => {
   console.log('[Server] SIGTERM received, shutting down gracefully...');
   server.close(async () => {
-    await mongoose.connection.close();
+    try {
+      if (mongoose && mongoose.connection && mongoose.connection.readyState === 1) {
+        await mongoose.connection.close();
+        console.log('[MongoDB] Connection closed');
+      }
+    } catch (error) {
+      console.error('[MongoDB] Error closing connection:', error.message);
+    }
     console.log('[Server] Server closed');
     process.exit(0);
   });
@@ -249,7 +256,14 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('[Server] SIGINT received, shutting down gracefully...');
   server.close(async () => {
-    await mongoose.connection.close();
+    try {
+      if (mongoose && mongoose.connection && mongoose.connection.readyState === 1) {
+        await mongoose.connection.close();
+        console.log('[MongoDB] Connection closed');
+      }
+    } catch (error) {
+      console.error('[MongoDB] Error closing connection:', error.message);
+    }
     console.log('[Server] Server closed');
     process.exit(0);
   });
