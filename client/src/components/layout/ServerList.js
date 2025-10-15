@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 import ContextMenu from '../ui/ContextMenu';
 import InviteModal from '../modals/InviteModal';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { Cog6ToothIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 function ServerList() {
   const navigate = useNavigate();

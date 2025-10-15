@@ -139,8 +139,8 @@ function DirectMessages() {
       toast.success(`Friend request sent to ${friendUsername}`);
       
       // Send socket notification
-      if (socket && socket.connected) {
-        socket.emit('friend:request:send', {
+      if (socketService.socket && socketService.socket.connected) {
+        socketService.emit('friend:request:send', {
           targetUsername: friendUsername,
           friendshipId: response.data.id
         });
