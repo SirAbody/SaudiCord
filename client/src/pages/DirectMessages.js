@@ -68,27 +68,40 @@ function DirectMessages() {
     socketService.on('dm:receive', (message) => {
       console.log('[DM] Received message:', message);
       
-      // Check if this is our own message (sent confirmation)
-      const isOwnMessage = message.senderId === user.id || message.sender?._id === user.id;
+      // Normalize IDs for comparison
+      const msgSenderId = message.senderId?.toString() || message.sender?._id?.toString();
+      const msgReceiverId = message.receiverId?.toString();
+      const currentUserId = user.id?.toString() || user._id?.toString();
+      const conversationUserId = selectedConversation?.id?.toString() || selectedConversation?._id?.toString();
       
-      // Check if this message is for the current conversation
-      const isCurrentConversation = 
-        (selectedConversation?.id === message.senderId) ||
-        (selectedConversation?.id === message.receiverId && isOwnMessage);
+      // Check if this message belongs to current conversation
+      const isRelevantMessage = 
+        (msgSenderId === conversationUserId) || // Message from current conversation partner
+        (msgReceiverId === conversationUserId) || // Message to current conversation partner
+        (msgSenderId === currentUserId && msgReceiverId === conversationUserId) || // Our message to them
+        (msgReceiverId === currentUserId && msgSenderId === conversationUserId); // Their message to us
         
-      if (isCurrentConversation) {
+      if (isRelevantMessage) {
         setMessages(prev => {
-          // Don't add duplicate messages
-          const exists = prev.some(m => 
-            (m.id === message.id) || 
-            (m.tempId && message.tempId && m.tempId === message.tempId)
-          );
-          if (exists) return prev;
+          // Check for duplicates
+          const messageId = message.id?.toString() || message._id?.toString();
+          const exists = prev.some(m => {
+            const existingId = m.id?.toString() || m._id?.toString();
+            return existingId === messageId || (m.tempId && message.tempId && m.tempId === message.tempId);
+          });
+          if (exists) {
+            // If it's a temp message being confirmed, replace it
+            if (message.tempId) {
+              return prev.map(m => m.tempId === message.tempId ? message : m);
+            }
+            return prev;
+          }
           return [...prev, message];
         });
       } 
       
       // Show notification for messages from others
+      const isOwnMessage = msgSenderId === currentUserId;
       if (!isOwnMessage) {
         // Play notification sound
         const audio = new Audio('/sounds/notification.mp3');
@@ -112,10 +125,15 @@ function DirectMessages() {
     // Handle message sent confirmation
     socketService.on('dm:sent', (data) => {
       console.log('[DM] Message sent confirmation:', data);
-      // Remove temp message and add confirmed one
+      // Replace temp message with confirmed one
       setMessages(prev => {
-        const filtered = prev.filter(m => m.tempId !== data.tempId);
-        return [...filtered, data];
+        return prev.map(m => {
+          if (m.tempId === data.tempId) {
+            // Replace temp message with confirmed version
+            return { ...data, confirmed: true };
+          }
+          return m;
+        });
       });
     });
 
