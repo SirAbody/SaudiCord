@@ -332,13 +332,13 @@ module.exports = (io) => {
         return;
       }
       socket.to(`channel-${data.channelId}`).emit('typing:user:stop', {
-        channelId: data.channelId,
         userId: socket.userId
       });
     });
 
-    // Voice Channel Management
+    // Handle voice channel operations
     socket.on('voice:join', async (data) => {
+      console.log('[Socket] Voice join request:', data);
       const { channelId } = data;
       if (!channelId || !socket.userId) {
         socket.emit('error', { message: 'Channel ID and authentication required' });
@@ -371,10 +371,18 @@ module.exports = (io) => {
       const usersInRoom = Array.from(global.voiceRooms.get(channelId))
         .map(userStr => JSON.parse(userStr));
       
-      // Notify all users in voice channel
+      // Notify all users in voice channel about the list
       io.to(`voice:${channelId}`).emit('voice:users', {
         channelId,
         users: usersInRoom
+      });
+      
+      // Also emit specific user joined event for WebRTC setup
+      socket.to(`voice:${channelId}`).emit('voice:user:joined', {
+        userId: socket.userId,
+        username: socket.user?.username || socket.username,
+        displayName: socket.user?.displayName || socket.username,
+        avatar: socket.user?.avatar || null
       });
       
       logger.info(`User ${socket.username} joined voice channel ${channelId}`);

@@ -24,6 +24,19 @@ function ChannelList() {
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
 
   useEffect(() => {
+    // Listen for voice channel left event
+    const handleVoiceChannelLeft = () => {
+      setActiveVoiceChannel(null);
+    };
+    
+    window.addEventListener('voiceChannelLeft', handleVoiceChannelLeft);
+    
+    return () => {
+      window.removeEventListener('voiceChannelLeft', handleVoiceChannelLeft);
+    };
+  }, []);
+
+  useEffect(() => {
     // Update channels when currentServer or channels change
     if (channels) {
       const text = channels.filter(ch => ch.type === 'text');

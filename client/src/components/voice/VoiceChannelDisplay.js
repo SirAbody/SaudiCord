@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MicrophoneIcon, SpeakerWaveIcon, VideoCameraIcon } from '@heroicons/react/24/solid';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import socketService from '../../services/socket';
+import voiceService from '../../services/voiceService';
 import { useAuthStore } from '../../stores/authStore';
 import { useChatStore } from '../../stores/chatStore';
 import toast from 'react-hot-toast';
@@ -23,20 +24,9 @@ function VoiceChannelDisplay({ channelId, channelName }) {
     // Join voice channel
     const joinVoice = async () => {
       try {
-        // Get user media
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: true, 
-          video: false 
-        });
+        // Use voice service to join channel
+        const stream = await voiceService.joinVoiceChannel(channelId);
         setLocalStream(stream);
-        
-        // Notify server that we joined
-        socketService.emit('voice:join', { 
-          channelId, 
-          userId: user.id,
-          username: user.username,
-          avatar: user.avatar
-        });
         
         // Add ourselves to the list
         setUsersInChannel([{
@@ -53,7 +43,7 @@ function VoiceChannelDisplay({ channelId, channelName }) {
         toast.success(`Joined voice channel: ${channelName}`);
       } catch (error) {
         console.error('Failed to join voice channel:', error);
-        toast.error('Failed to access microphone');
+        toast.error('Failed to access microphone. Please check your microphone permissions.');
       }
     };
 
@@ -102,11 +92,8 @@ function VoiceChannelDisplay({ channelId, channelName }) {
 
     return () => {
       // Leave voice channel
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
+      voiceService.leaveVoiceChannel();
       
-      socketService.emit('voice:leave', { channelId });
       socketService.off('voice:user:joined');
       socketService.off('voice:user:left');
       socketService.off('voice:user:update');
@@ -117,19 +104,15 @@ function VoiceChannelDisplay({ channelId, channelName }) {
   }, [channelId, channelName, user]);
 
   const toggleMute = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = isMuted;
-        setIsMuted(!isMuted);
-        
-        socketService.emit('voice:user:update', {
-          channelId,
-          userId: user.id,
-          updates: { isMuted: !isMuted }
-        });
-      }
-    }
+    const newMutedState = !isMuted;
+    const enabled = voiceService.toggleMute(newMutedState);
+    setIsMuted(newMutedState);
+    
+    socketService.emit('voice:user:update', {
+      channelId,
+      userId: user.id,
+      updates: { isMuted: newMutedState }
+    });
   };
 
   const toggleDeafen = () => {
@@ -192,11 +175,10 @@ function VoiceChannelDisplay({ channelId, channelName }) {
   };
 
   const leaveChannel = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
-    socketService.emit('voice:leave', { channelId });
-    window.location.reload(); // Temporary - should use proper state management
+    voiceService.leaveVoiceChannel();
+    // Trigger re-render by updating parent component state
+    // This will unmount this component
+    window.dispatchEvent(new CustomEvent('voiceChannelLeft'));
   };
 
   if (!channelId || usersInChannel.length === 0) {
