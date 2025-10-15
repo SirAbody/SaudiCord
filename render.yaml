@@ -16,7 +16,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        value: mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord
+        value: mongodb+srv://abood3alshrary_db_user:23U4pKSr6zNEnf0C@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord
       - key: JWT_SECRET
         value: saudicord-secret-key-2024
       - key: CLIENT_URL

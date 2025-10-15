@@ -1,9 +1,9 @@
 // MongoDB Atlas Configuration
 const mongoose = require('mongoose');
 
-// MongoDB Atlas connection string - CORRECT CLUSTER!
+// MongoDB Atlas connection string - WITH CORRECT PASSWORD!
 const MONGODB_URI = process.env.MONGODB_URI || 
-  'mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord';
+  'mongodb+srv://abood3alshrary_db_user:23U4pKSr6zNEnf0C@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord';
 
 // For production, should be set in environment variables
 if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI) {

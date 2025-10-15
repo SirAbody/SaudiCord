@@ -2,8 +2,8 @@
 const mongoose = require('mongoose');
 
 async function testConnection() {
-  // Direct connection string from MongoDB Atlas
-  const uri = 'mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord';
+  // Direct connection string from MongoDB Atlas - WITH CORRECT PASSWORD
+  const uri = 'mongodb+srv://abood3alshrary_db_user:23U4pKSr6zNEnf0C@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord';
   
   console.log('Testing MongoDB Atlas connection...');
   console.log('Cluster: saudicord.sfzfre8.mongodb.net');
