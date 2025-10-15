@@ -20,21 +20,23 @@ import socketService from '../services/socket';
 import MessageContextMenu from '../components/chat/MessageContextMenu';
 import UserProfilePopup from '../components/user/UserProfilePopup';
 import CallInterface from '../components/call/CallInterface';
-import messageCache from '../services/messageCache';
 import notificationService from '../services/notificationService';
 // import webrtcService from '../services/webrtc';
 
 function DirectMessages() {
   const { user } = useAuthStore();
-  const [friends, setFriends] = useState([]);
-  const [conversations, setConversations] = useState([]); // eslint-disable-line no-unused-vars
+  const navigate = useNavigate();
+  const location = useLocation();
+  const selectedConversationRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
-  const selectedConversationRef = useRef(null);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [friendUsername, setFriendUsername] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,17 +46,20 @@ function DirectMessages() {
   const [callTarget, setCallTarget] = useState(null); // User being called
   const [incomingCall, setIncomingCall] = useState(null); // Incoming call data
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
-  const [pendingRequests, setPendingRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('online');
   const [contextMenu, setContextMenu] = useState(null);
   const [userProfilePopup, setUserProfilePopup] = useState(null);
 
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
     loadFriends();
     loadConversations();
-    
-    // Setup socket listeners immediately - no delay needed
     setupSocketListeners();
+    setupWebRTCListeners();
     
     // Listen for friends update event
     const handleFriendsUpdate = () => {
@@ -65,7 +70,21 @@ function DirectMessages() {
     
     return () => {
       window.removeEventListener('friendsUpdate', handleFriendsUpdate);
+      
+      // Clean up WebRTC
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+      
       // Clean up socket listeners
+      socketService.off('webrtc:offer');
+      socketService.off('webrtc:answer');
+      socketService.off('webrtc:ice-candidate');
       socketService.off('dm:receive');
       socketService.off('dm:sent');
       socketService.off('friend:request');
@@ -73,8 +92,12 @@ function DirectMessages() {
       socketService.off('call:incoming');
       socketService.off('call:rejected');
       socketService.off('call:ended');
+      socketService.off('user:online');
+      socketService.off('user:offline');
+      socketService.off('dm:typing');
+      socketService.off('dm:stop-typing');
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Update ref when selectedConversation changes
   useEffect(() => {
@@ -86,6 +109,69 @@ function DirectMessages() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // WebRTC Socket Event Handlers
+  const setupWebRTCListeners = () => {
+    // Handle WebRTC offer
+    socketService.on('webrtc:offer', async (data) => {
+      console.log('[WebRTC] Received offer from:', data.senderId);
+      
+      if (!peerConnectionRef.current) {
+        // Initialize WebRTC if not already done
+        await initializeWebRTC({ callerId: data.senderId, type: callType || 'voice' });
+      }
+      
+      try {
+        const pc = peerConnectionRef.current;
+        await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        
+        console.log('[WebRTC] Sending answer to:', data.senderId);
+        socketService.emit('webrtc:answer', {
+          targetUserId: data.senderId,
+          answer: answer
+        });
+      } catch (error) {
+        console.error('[WebRTC] Error handling offer:', error);
+      }
+    });
+    
+    // Handle WebRTC answer
+    socketService.on('webrtc:answer', async (data) => {
+      console.log('[WebRTC] Received answer from:', data.senderId);
+      
+      try {
+        if (peerConnectionRef.current) {
+          await peerConnectionRef.current.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+          console.log('[WebRTC] Remote description set successfully');
+        }
+      } catch (error) {
+        console.error('[WebRTC] Error handling answer:', error);
+      }
+    });
+    
+    // Handle ICE candidates
+    socketService.on('webrtc:ice-candidate', async (data) => {
+      console.log('[WebRTC] Received ICE candidate from:', data.senderId);
+      
+      try {
+        if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
+          await peerConnectionRef.current.addIceCandidate(
+            new RTCIceCandidate(data.candidate)
+          );
+          console.log('[WebRTC] ICE candidate added successfully');
+        } else {
+          console.warn('[WebRTC] Cannot add ICE candidate - no remote description');
+        }
+      } catch (error) {
+        console.error('[WebRTC] Error adding ICE candidate:', error);
+      }
+    });
+  };
+  
   const setupSocketListeners = () => {
     // First, remove any existing listeners to prevent duplicates
     socketService.off('friend:request:received');
@@ -667,11 +753,41 @@ function DirectMessages() {
 
   const endCall = () => {
     console.log('[DM] Ending call');
+    
+    // Clean up WebRTC connections
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    
+    // Stop local stream tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('[WebRTC] Stopped local track:', track.kind);
+      });
+      localStreamRef.current = null;
+    }
+    
+    // Clear remote stream
+    if (remoteStreamRef.current) {
+      remoteStreamRef.current = null;
+    }
+    
+    // Clear audio/video elements
+    const remoteAudio = document.getElementById('remote-audio');
+    const remoteVideo = document.getElementById('remote-video');
+    if (remoteAudio) remoteAudio.srcObject = null;
+    if (remoteVideo) remoteVideo.srcObject = null;
+    
+    // Notify other user
     if (callTarget) {
       socketService.emit('call:end', {
         targetUserId: callTarget.id || callTarget._id
       });
     }
+    
+    // Reset call state
     setInCall(false);
     setCallType(null);
     setCallTarget(null);
@@ -681,20 +797,111 @@ function DirectMessages() {
   
   const initializeWebRTC = async (data) => {
     try {
+      console.log('[WebRTC] Initializing WebRTC for call:', data);
+      
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: data.type === 'video'
+        video: data.type === 'video' || callType === 'video'
       });
       
-      // Initialize WebRTC connection
-      // This would connect to your WebRTC service
-      console.log('[DM] WebRTC initialized with stream:', stream);
+      localStreamRef.current = stream;
+      console.log('[WebRTC] Got local stream:', stream);
       
-      // Store stream for later cleanup
-      window.localStream = stream;
+      // Create peer connection with ICE servers
+      const configuration = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun.stunprotocol.org:3478' },
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          }
+        ],
+        iceCandidatePoolSize: 10
+      };
+      
+      const pc = new RTCPeerConnection(configuration);
+      peerConnectionRef.current = pc;
+      
+      // Add local stream tracks to peer connection
+      stream.getTracks().forEach(track => {
+        console.log('[WebRTC] Adding track to peer connection:', track.kind);
+        pc.addTrack(track, stream);
+      });
+      
+      // Handle incoming remote stream
+      pc.ontrack = (event) => {
+        console.log('[WebRTC] Received remote track:', event.track.kind);
+        if (event.streams && event.streams[0]) {
+          remoteStreamRef.current = event.streams[0];
+          
+          // Play remote audio/video
+          const remoteAudio = document.getElementById('remote-audio');
+          const remoteVideo = document.getElementById('remote-video');
+          
+          if (remoteAudio) {
+            remoteAudio.srcObject = event.streams[0];
+            remoteAudio.play().catch(e => console.error('[WebRTC] Error playing audio:', e));
+          }
+          
+          if (remoteVideo && callType === 'video') {
+            remoteVideo.srcObject = event.streams[0];
+            remoteVideo.play().catch(e => console.error('[WebRTC] Error playing video:', e));
+          }
+          
+          console.log('[WebRTC] Remote stream connected successfully');
+        }
+      };
+      
+      // Handle ICE candidates
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log('[WebRTC] Sending ICE candidate');
+          const targetId = callTarget?.id || callTarget?._id || data.callerId;
+          socketService.emit('webrtc:ice-candidate', {
+            targetUserId: targetId,
+            candidate: event.candidate
+          });
+        }
+      };
+      
+      // Monitor connection state
+      pc.onconnectionstatechange = () => {
+        console.log('[WebRTC] Connection state:', pc.connectionState);
+        if (pc.connectionState === 'connected') {
+          toast.success('Call connected!');
+        } else if (pc.connectionState === 'failed') {
+          toast.error('Call connection failed');
+          endCall();
+        }
+      };
+      
+      // If we initiated the call, create and send offer
+      if (!data.callerId || data.initiator === user?.id) {
+        console.log('[WebRTC] Creating offer...');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        const targetId = callTarget?.id || callTarget?._id;
+        console.log('[WebRTC] Sending offer to:', targetId);
+        
+        socketService.emit('webrtc:offer', {
+          targetUserId: targetId,
+          offer: offer
+        });
+      }
+      
     } catch (error) {
-      console.error('[DM] Failed to initialize WebRTC:', error);
+      console.error('[WebRTC] Failed to initialize:', error);
       toast.error('Failed to access camera/microphone');
       endCall();
     }
@@ -1329,18 +1536,25 @@ function DirectMessages() {
 
       {/* Call Interface */}
       {(inCall || incomingCall) && (
-        <CallInterface
-          callType={callType || incomingCall?.type}
-          targetUser={callTarget || (incomingCall && {
-            id: incomingCall.callerId,
-            username: incomingCall.callerName,
-            displayName: incomingCall.callerName
-          })}
-          onEndCall={endCall}
-          isIncoming={!!incomingCall}
-          onAccept={() => acceptCall(incomingCall)}
-          onReject={() => rejectCall(incomingCall)}
-        />
+        <>
+          <CallInterface
+            callType={callType || incomingCall?.type}
+            targetUser={callTarget || (incomingCall && {
+              id: incomingCall.callerId,
+              username: incomingCall.callerName,
+              displayName: incomingCall.callerName
+            })}
+            onEndCall={endCall}
+            isIncoming={!!incomingCall}
+            onAccept={() => acceptCall(incomingCall)}
+            onReject={() => rejectCall(incomingCall)}
+          />
+          {/* Hidden audio/video elements for WebRTC */}
+          <audio id="remote-audio" autoPlay style={{ display: 'none' }} />
+          {callType === 'video' && (
+            <video id="remote-video" autoPlay style={{ display: 'none' }} />
+          )}
+        </>
       )}
     </div>
   );
