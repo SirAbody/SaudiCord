@@ -186,97 +186,120 @@ function VoiceChannelDisplay({ channelId, channelName }) {
   }
 
   return (
-    <div className="fixed bottom-20 left-64 right-0 bg-dark-800 border-t border-dark-600 p-4 z-40">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+    <div className="fixed bottom-0 left-72 w-60 bg-dark-800 border-r border-dark-600 h-full pt-14 z-30">
+      <div className="p-3">
+        {/* Channel Header */}
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <SpeakerWaveIcon className="w-5 h-5 text-green-500" />
-            <span className="text-white font-semibold">{channelName}</span>
+            <SpeakerWaveIcon className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-semibold text-gray-300">{channelName}</span>
           </div>
-          
-          {/* Users in channel */}
-          <div className="flex items-center space-x-2">
-            {usersInChannel.map(user => (
-              <div 
-                key={user.id}
-                className={`relative flex items-center space-x-2 px-3 py-1 rounded-full ${
-                  user.isSpeaking ? 'bg-green-500/20 ring-2 ring-green-500' : 'bg-dark-700'
-                }`}
-              >
+          <button
+            onClick={leaveChannel}
+            className="p-1 rounded hover:bg-dark-700 transition-colors"
+            title="Leave Channel"
+          >
+            <XMarkIcon className="w-4 h-4 text-gray-400 hover:text-white" />
+          </button>
+        </div>
+        
+        {/* Users in channel - Discord Style */}
+        <div className="space-y-1">
+          {usersInChannel.map(user => (
+            <div 
+              key={user.id}
+              className={`flex items-center space-x-3 p-2 rounded ${
+                user.isSpeaking ? 'bg-green-500/10 border border-green-500/50' : 'hover:bg-dark-700'
+              } transition-all cursor-pointer group`}
+            >
+              {/* Avatar with speaking indicator */}
+              <div className={`relative flex-shrink-0 ${user.isSpeaking ? 'animate-pulse' : ''}`}>
                 {user.avatar ? (
                   <img 
                     src={user.avatar} 
                     alt={user.username}
-                    className="w-6 h-6 rounded-full"
+                    className={`w-8 h-8 rounded-full ${user.isSpeaking ? 'ring-2 ring-green-500' : ''}`}
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
-                    <span className="text-xs text-white">
+                  <div className={`w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center ${user.isSpeaking ? 'ring-2 ring-green-500' : ''}`}>
+                    <span className="text-xs text-white font-bold">
                       {user.username?.[0]?.toUpperCase()}
                     </span>
                   </div>
                 )}
-                
-                <span className="text-sm text-white">
-                  {user.displayName || user.username}
-                </span>
-                
-                {/* Status indicators */}
-                <div className="flex items-center space-x-1">
-                  {user.isMuted && (
-                    <MicrophoneIcon className="w-3 h-3 text-red-500" />
-                  )}
-                  {user.isDeafened && (
-                    <SpeakerWaveIcon className="w-3 h-3 text-red-500" />
-                  )}
-                  {user.isVideo && (
-                    <VideoCameraIcon className="w-3 h-3 text-blue-500" />
+                {user.isVideo && (
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                    <VideoCameraIcon className="w-2.5 h-2.5 text-white" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Username and status */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className={`text-sm font-medium truncate ${
+                    user.isSpeaking ? 'text-green-400' : 'text-gray-300'
+                  }`}>
+                    {user.displayName || user.username}
+                  </span>
+                  {user.id === 509 && (
+                    <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded">
+                      LIVE
+                    </span>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+              
+              {/* Status icons */}
+              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {user.isMuted && (
+                  <div className="text-red-500" title="Muted">
+                    <MicrophoneIcon className="w-3.5 h-3.5" />
+                  </div>
+                )}
+                {user.isDeafened && (
+                  <div className="text-red-500" title="Deafened">
+                    <SpeakerWaveIcon className="w-3.5 h-3.5" />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
         
-        {/* Controls */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={toggleMute}
-            className={`p-2 rounded ${
-              isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-dark-700 hover:bg-dark-600'
-            } transition-colors`}
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            <MicrophoneIcon className="w-5 h-5 text-white" />
-          </button>
-          
-          <button
-            onClick={toggleDeafen}
-            className={`p-2 rounded ${
-              isDeafened ? 'bg-red-500 hover:bg-red-600' : 'bg-dark-700 hover:bg-dark-600'
-            } transition-colors`}
-            title={isDeafened ? 'Undeafen' : 'Deafen'}
-          >
-            <SpeakerWaveIcon className="w-5 h-5 text-white" />
-          </button>
-          
-          <button
-            onClick={toggleVideo}
-            className={`p-2 rounded ${
-              isVideo ? 'bg-blue-500 hover:bg-blue-600' : 'bg-dark-700 hover:bg-dark-600'
-            } transition-colors`}
-            title={isVideo ? 'Stop Video' : 'Start Video'}
-          >
-            <VideoCameraIcon className="w-5 h-5 text-white" />
-          </button>
-          
-          <button
-            onClick={leaveChannel}
-            className="p-2 rounded bg-red-500 hover:bg-red-600 transition-colors ml-4"
-            title="Leave Channel"
-          >
-            <XMarkIcon className="w-5 h-5 text-white" />
-          </button>
+        {/* Voice Controls at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 bg-dark-900 border-t border-dark-600">
+          <div className="flex items-center justify-around">
+            <button
+              onClick={toggleMute}
+              className={`p-2 rounded-full ${
+                isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-dark-700 hover:bg-dark-600'
+              } transition-colors`}
+              title={isMuted ? 'Unmute' : 'Mute'}
+            >
+              <MicrophoneIcon className="w-4 h-4 text-white" />
+            </button>
+            
+            <button
+              onClick={toggleDeafen}
+              className={`p-2 rounded-full ${
+                isDeafened ? 'bg-red-500 hover:bg-red-600' : 'bg-dark-700 hover:bg-dark-600'
+              } transition-colors`}
+              title={isDeafened ? 'Undeafen' : 'Deafen'}
+            >
+              <SpeakerWaveIcon className="w-4 h-4 text-white" />
+            </button>
+            
+            <button
+              onClick={toggleVideo}
+              className={`p-2 rounded-full ${
+                isVideo ? 'bg-blue-500 hover:bg-blue-600' : 'bg-dark-700 hover:bg-dark-600'
+              } transition-colors`}
+              title={isVideo ? 'Stop Video' : 'Start Video'}
+            >
+              <VideoCameraIcon className="w-4 h-4 text-white" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

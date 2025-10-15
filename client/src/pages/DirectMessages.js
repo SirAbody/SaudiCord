@@ -31,6 +31,8 @@ function DirectMessages() {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [inCall, setInCall] = useState(false);
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
+  const [activeTab, setActiveTab] = useState('online'); // online, all, pending, addFriend
+  const [pendingRequests, setPendingRequests] = useState([]);
 
   useEffect(() => {
     loadFriends();
@@ -75,6 +77,9 @@ function DirectMessages() {
     try {
       const response = await axios.get('/friends');
       setFriends(response.data);
+      // Filter pending requests
+      const pending = response.data.filter(f => f.friendshipStatus === 'pending');
+      setPendingRequests(pending);
     } catch (error) {
       console.error('Failed to load friends:', error);
     }
@@ -243,72 +248,200 @@ function DirectMessages() {
 
   return (
     <div className="flex h-full bg-background-primary">
-      {/* Sidebar - Friends List */}
-      <div className="w-80 bg-background-secondary flex flex-col border-r border-gray-800">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">Direct Messages</h2>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Discord-style Tabs Header */}
+        <div className="h-12 bg-dark-800 border-b border-dark-600 flex items-center px-4">
+          <UserIcon className="w-5 h-5 text-gray-400 mr-2" />
+          <span className="text-white font-semibold mr-6">Friends</span>
+          
+          <div className="flex items-center space-x-4">
             <button
-              onClick={() => setShowAddFriend(true)}
-              className="p-2 hover:bg-gray-700 rounded transition"
+              onClick={() => setActiveTab('online')}
+              className={`px-3 py-1 rounded ${
+                activeTab === 'online' ? 'bg-dark-700 text-white' : 'text-gray-400 hover:text-white'
+              }`}
             >
-              <UserPlusIcon className="w-5 h-5 text-text-secondary" />
+              Online
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-3 py-1 rounded ${
+                activeTab === 'all' ? 'bg-dark-700 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setActiveTab('pending')}
+              className={`px-3 py-1 rounded relative ${
+                activeTab === 'pending' ? 'bg-dark-700 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Pending
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('addFriend')}
+              className={`px-3 py-1 rounded text-green-400 hover:bg-green-500/20 ${
+                activeTab === 'addFriend' ? 'bg-green-500/20' : ''
+              }`}
+            >
+              Add Friend
             </button>
           </div>
-          
-          {/* Search */}
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search friends..."
-              className="w-full bg-gray-700 text-white pl-10 pr-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
         </div>
 
-        {/* Friends & Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Friend Requests Component */}
-          <FriendRequests friends={friends} onUpdate={loadFriends} />
+        {/* Content based on active tab */}
+        <div className="flex-1 flex">
+          {/* Sidebar - Friends List */}
+          <div className="w-80 bg-background-secondary flex flex-col border-r border-gray-800">
+            {activeTab === 'addFriend' ? (
+              // Add Friend Tab
+              <div className="p-4">
+                <h2 className="text-xl font-bold text-white mb-2">ADD FRIEND</h2>
+                <p className="text-gray-400 text-sm mb-4">
+                  You can add friends with their username.
+                </p>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={friendUsername}
+                    onChange={(e) => setFriendUsername(e.target.value)}
+                    placeholder="Enter a Username#0000"
+                    className="flex-1 bg-dark-900 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                    onKeyPress={(e) => e.key === 'Enter' && sendFriendRequest()}
+                  />
+                  <button
+                    onClick={sendFriendRequest}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+                  >
+                    Send Friend Request
+                  </button>
+                </div>
+              </div>
+            ) : activeTab === 'pending' ? (
+              // Pending Requests Tab
+              <div className="p-4">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase mb-4">
+                  Pending — {pendingRequests.length}
+                </h3>
+                {pendingRequests.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">There are no pending friend requests.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {pendingRequests.map(request => (
+                      <div key={request.id} className="flex items-center justify-between p-3 bg-dark-700 rounded hover:bg-dark-600 transition">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
+                            {request.avatar ? (
+                              <img src={request.avatar} alt={request.username} className="w-full h-full rounded-full" />
+                            ) : (
+                              <span className="text-white font-bold">
+                                {request.username?.[0]?.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">{request.displayName || request.username}</p>
+                            <p className="text-gray-400 text-sm">
+                              {request.isReceiver ? 'Incoming Friend Request' : 'Outgoing Friend Request'}
+                            </p>
+                          </div>
+                        </div>
+                        {request.isReceiver && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => acceptFriendRequest(request.friendshipId)}
+                              className="p-2 bg-green-500 hover:bg-green-600 rounded transition"
+                            >
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                            <button
+                              className="p-2 bg-red-500 hover:bg-red-600 rounded transition"
+                            >
+                              <XMarkIcon className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Friends List (Online/All tabs)
+              <>
+                {/* Search */}
+                <div className="p-4 border-b border-gray-800">
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search friends..."
+                      className="w-full bg-gray-700 text-white pl-10 pr-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
 
-          {/* Friends */}
-          <div className="p-2">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Friends</h3>
-            {filteredFriends.filter(f => f.friendshipStatus === 'accepted').map(friend => (
-              <button
-                key={friend.id}
-                onClick={() => selectConversation(friend)}
-                className={`w-full flex items-center space-x-3 p-2 rounded transition ${
-                  selectedConversation?.id === friend.id 
-                    ? 'bg-gray-700 text-white' 
-                    : 'hover:bg-gray-700/50 text-gray-300'
-                }`}
-              >
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                  {friend.avatar ? (
-                    <img src={friend.avatar} alt={friend.displayName} className="w-full h-full rounded-full" />
-                  ) : (
-                    <UserIcon className="w-6 h-6 text-white" />
-                  )}
+                {/* Friends & Conversations List */}
+                <div className="flex-1 overflow-y-auto">
+                  {/* Show different friend lists based on activeTab */}
+                  <div className="p-2">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">
+                      {activeTab === 'online' ? 'Online Friends' : 'All Friends'}
+                    </h3>
+                    {filteredFriends
+                      .filter(f => {
+                        const isAccepted = f.friendshipStatus === 'accepted';
+                        if (activeTab === 'online') {
+                          return isAccepted && f.status === 'online';
+                        }
+                        return isAccepted;
+                      })
+                      .map(friend => (
+                        <button
+                          key={friend.id}
+                          onClick={() => selectConversation(friend)}
+                          className={`w-full flex items-center space-x-3 p-2 rounded transition ${
+                            selectedConversation?.id === friend.id 
+                              ? 'bg-gray-700 text-white' 
+                              : 'hover:bg-gray-700/50 text-gray-300'
+                          }`}
+                        >
+                          <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                            {friend.avatar ? (
+                              <img src={friend.avatar} alt={friend.displayName} className="w-full h-full rounded-full" />
+                            ) : (
+                              <UserIcon className="w-6 h-6 text-white" />
+                            )}
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="font-medium">{friend.displayName || friend.username}</p>
+                            <p className="text-xs text-text-tertiary">
+                              {friend.status === 'online' ? 'Online' : 'Offline'}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
                 </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium">{friend.displayName || friend.username}</p>
-                  <p className="text-xs text-text-tertiary">
-                    {friend.status === 'online' ? 'Online' : 'Offline'}
-                  </p>
-                </div>
-              </button>
-            ))}
+              </>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+          {/* Chat Area */}
+          <div className="flex-1 flex flex-col">
         {selectedConversation ? (
           <>
             {/* Chat Header */}
@@ -431,8 +564,10 @@ function DirectMessages() {
                 Select a friend to start chatting
               </p>
             </div>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
+        </div>
       </div>
 
       {/* Add Friend Modal */}
