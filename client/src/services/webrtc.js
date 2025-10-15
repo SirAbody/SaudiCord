@@ -13,6 +13,9 @@ class WebRTCService {
     this.isScreenSharing = false;
     this.socketListenersSetup = false;
     
+    // Event emitter functionality
+    this.events = {};
+    
     // ICE servers configuration (will be fetched from server)
     this.iceServers = {
       iceServers: [
@@ -39,6 +42,31 @@ class WebRTCService {
     
     // Don't setup listeners in constructor - wait for socket to be ready
     // this.setupSocketListeners();
+  }
+  
+  // Event emitter methods
+  on(event, handler) {
+    if (!this.events[event]) {
+      this.events[event] = [];
+    }
+    this.events[event].push(handler);
+    return () => this.off(event, handler); // Return unsubscribe function
+  }
+  
+  off(event, handler) {
+    if (!this.events[event]) return;
+    this.events[event] = this.events[event].filter(h => h !== handler);
+  }
+  
+  emit(event, data) {
+    if (!this.events[event]) return;
+    this.events[event].forEach(handler => {
+      try {
+        handler(data);
+      } catch (error) {
+        console.error(`[WebRTC] Error in event handler for ${event}:`, error);
+      }
+    });
   }
 
   setupSocketListeners() {
@@ -116,6 +144,9 @@ class WebRTCService {
       
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
       
+      // Emit local stream event
+      this.emit('localStream', this.localStream);
+      
       // Create peer connection
       this.createPeerConnection();
       
@@ -158,16 +189,22 @@ class WebRTCService {
     // Handle remote stream
     this.peerConnection.ontrack = (event) => {
       this.remoteStream = event.streams[0];
-      if (this.onRemoteStream) {
-        this.onRemoteStream(this.remoteStream);
-      }
+      // Emit remote stream event
+      this.emit('remoteStream', this.remoteStream);
+      this.emit('participantJoined', { stream: this.remoteStream });
     };
     
     // Handle connection state changes
     this.peerConnection.onconnectionstatechange = () => {
       console.log('Connection state:', this.peerConnection.connectionState);
+      // Emit connection state change
+      this.emit('connectionStateChange', { 
+        state: this.peerConnection.connectionState 
+      });
+      
       if (this.peerConnection.connectionState === 'disconnected' || 
           this.peerConnection.connectionState === 'failed') {
+        this.emit('participantLeft', {});
         this.endCall();
       }
     };
@@ -268,6 +305,8 @@ class WebRTCService {
         
         // Notify remote peer
         socketService.emit('screenshare:started');
+        // Emit local event
+        this.emit('screenShareStarted', { stream: this.screenStream });
       }
       
       return this.screenStream;
@@ -297,6 +336,8 @@ class WebRTCService {
         
         // Notify remote peer
         socketService.emit('screenshare:stopped');
+        // Emit local event
+        this.emit('screenShareStopped', {});
         this.screenStream = null;
       }
     } catch (error) {
@@ -320,6 +361,11 @@ class WebRTCService {
     }
   }
 
+  // Check if currently in a call
+  isInCall() {
+    return this.isCallActive && this.peerConnection !== null;
+  }
+  
   endCall() {
     // Stop all streams
     if (this.localStream) {
