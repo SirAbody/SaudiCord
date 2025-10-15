@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, UserPlusIcon, PhoneXMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useCallStore } from '../../stores/callStore'; // Reserved for future use
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -12,6 +13,7 @@ import UserPresence from '../user/UserPresence';
 
 function ChannelList() {
   const { currentChannel, selectChannel, fetchMessages, currentServer, channels } = useChatStore();
+  const { user } = useAuthStore();
   const [textChannels, setTextChannels] = useState([]);
   const [voiceChannels, setVoiceChannels] = useState([]);
   // const [loading, setLoading] = useState(true); // Reserved for loading state
@@ -147,6 +149,58 @@ function ChannelList() {
   };
 
   const handleChannelClick = async (channel) => {
+    console.log('[ChannelList] Clicking channel:', channel);
+    
+    // Handle voice channels differently
+    if (channel.type === 'voice') {
+      // If already in this voice channel
+      if (activeVoiceChannel?.id === channel.id) {
+        // Leave the voice channel
+        if (webrtcService.isInCall()) {
+          webrtcService.endCall();
+          socketService.emit('voice:leave', { channelId: channel.id });
+          toast.success('Left voice channel');
+          setActiveVoiceChannel(null);
+          
+          // Update users list
+          setVoiceChannelUsers(prev => ({
+            ...prev,
+            [channel.id]: prev[channel.id]?.filter(u => u.id !== user.id) || []
+          }));
+        }
+        return;
+      }
+      
+      // Join voice channel
+      setActiveVoiceChannel(channel);
+      socketService.emit('voice:join', { channelId: channel.id });
+      
+      // Add ourselves to users list
+      setVoiceChannelUsers(prev => ({
+        ...prev,
+        [channel.id]: [...(prev[channel.id] || []), {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          avatar: user.avatar,
+          isSpeaking: false
+        }]
+      }));
+      
+      // Start WebRTC connection
+      try {
+        await webrtcService.startCall(channel.id, true); // isVideo = false for voice
+        toast.success(`Joined voice channel: ${channel.name}`);
+      } catch (error) {
+        console.error('[ChannelList] Failed to join voice channel:', error);
+        toast.error('Failed to join voice channel');
+        setActiveVoiceChannel(null);
+      }
+      
+      return; // Don't handle as text channel
+    }
+    
+    // Handle text channels
     if (currentChannel?.id === channel.id) {
       return; // Already in this channel
     }
@@ -154,26 +208,11 @@ function ChannelList() {
     // Leave current channel if exists
     if (currentChannel) {
       socketService.leaveChannel(currentChannel.id);
-      
-      // If leaving a voice channel, end the call
-      if (currentChannel.type === 'voice' && webrtcService.isInCall()) {
-        webrtcService.endCall();
-        toast.success('Left voice channel');
-      }
     }
     
-    // Join new channel
+    // Join new text channel
     selectChannel(channel);
-    
-    // Handle channel type
-    if (channel.type === 'text') {
-      // Fetch messages for text channels
-      await fetchMessages(channel.id);
-    } else if (channel.type === 'voice') {
-      setActiveVoiceChannel(channel);
-    } else {
-      setActiveVoiceChannel(null);
-    }
+    await fetchMessages(channel.id);
   };
 
   return (

@@ -51,27 +51,59 @@ function DirectMessages() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setupSocketListeners = () => {
+    // Handle receiving messages
     socketService.on('dm:receive', (message) => {
+      console.log('[DM] Received message:', message);
+      
+      // Check if this is our own message (sent confirmation)
+      const isOwnMessage = message.senderId === user.id || message.sender?._id === user.id;
+      
       // Check if this message is for the current conversation
       const isCurrentConversation = 
-        (selectedConversation?.id === message.senderId && message.receiverId === user.id) ||
-        (selectedConversation?.id === message.receiverId && message.senderId === user.id);
+        (selectedConversation?.id === message.senderId) ||
+        (selectedConversation?.id === message.receiverId && isOwnMessage);
         
       if (isCurrentConversation) {
         setMessages(prev => {
           // Don't add duplicate messages
-          const exists = prev.some(m => m.id === message.id);
+          const exists = prev.some(m => 
+            (m.id === message.id) || 
+            (m.tempId && message.tempId && m.tempId === message.tempId)
+          );
           if (exists) return prev;
           return [...prev, message];
         });
-      } else if (message.senderId !== user.id) {
-        // Show notification for messages in other conversations
-        toast(`New message from ${message.senderName}`, {
-          icon: '💬'
+      } 
+      
+      // Show notification for messages from others
+      if (!isOwnMessage) {
+        // Play notification sound
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.play().catch(e => console.log('Could not play sound:', e));
+        
+        // Show toast notification
+        toast(`💬 ${message.senderName || 'Someone'} sent you a message`, {
+          duration: 4000,
+          style: {
+            background: '#1a1a1a',
+            color: '#fff',
+            border: '1px solid #ff0000'
+          }
         });
       }
+      
       // Update conversation list
       loadConversations();
+    });
+    
+    // Handle message sent confirmation
+    socketService.on('dm:sent', (data) => {
+      console.log('[DM] Message sent confirmation:', data);
+      // Remove temp message and add confirmed one
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.tempId !== data.tempId);
+        return [...filtered, data];
+      });
     });
 
     socketService.on('friend:request', (data) => {
@@ -84,10 +116,86 @@ function DirectMessages() {
       loadFriends();
     });
 
+    // Handle incoming calls
     socketService.on('call:incoming', (data) => {
-      if (window.confirm(`${data.callerName} is calling you. Accept?`)) {
-        acceptCall(data);
-      }
+      console.log('[DM] Incoming call:', data);
+      
+      // Show incoming call notification with better UI
+      const audio = new Audio('/sounds/ringtone.mp3');
+      audio.loop = true;
+      audio.play().catch(e => console.log('Could not play ringtone:', e));
+      
+      // Create notification with accept/reject buttons
+      const notification = toast.custom(
+        (t) => (
+          <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-black border border-red-500 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5">
+                  <div className="h-10 w-10 bg-red-500 rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-white">
+                    {data.callerName || 'Someone'} is calling...
+                  </p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    {data.type === 'video' ? 'Video Call' : 'Voice Call'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-gray-700">
+              <button
+                onClick={() => {
+                  audio.pause();
+                  acceptCall(data);
+                  toast.dismiss(t.id);
+                }}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-green-500 hover:bg-green-500/20 focus:outline-none"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => {
+                  audio.pause();
+                  rejectCall(data);
+                  toast.dismiss(t.id);
+                }}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-red-500 hover:bg-red-500/20 focus:outline-none"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: 30000 } // 30 seconds to answer
+      );
+    });
+    
+    // Handle call accepted
+    socketService.on('call:accepted', (data) => {
+      console.log('[DM] Call accepted:', data);
+      toast.success('Call connected!');
+      // Initialize WebRTC connection
+      initializeWebRTC(data);
+    });
+    
+    // Handle call rejected
+    socketService.on('call:rejected', (data) => {
+      console.log('[DM] Call rejected:', data);
+      setInCall(false);
+      toast.error('Call was rejected');
+    });
+    
+    // Handle call ended
+    socketService.on('call:ended', (data) => {
+      console.log('[DM] Call ended:', data);
+      setInCall(false);
+      toast('Call ended');
     });
 
     return () => {
@@ -95,6 +203,9 @@ function DirectMessages() {
       socketService.off('friend:request');
       socketService.off('friend:accepted');
       socketService.off('call:incoming');
+      socketService.off('call:accepted');
+      socketService.off('call:rejected');
+      socketService.off('call:ended');
     };
   };
 
@@ -213,9 +324,12 @@ function DirectMessages() {
   const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
+    const tempId = `temp-${Date.now()}`;
+    
     // Create optimistic message
     const tempMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
+      tempId: tempId,
       senderId: user.id,
       receiverId: selectedConversation.id,
       senderName: user.username || user.displayName,
@@ -232,35 +346,58 @@ function DirectMessages() {
       // Send via socket directly for real-time
       socketService.emit('dm:send', {
         receiverId: selectedConversation.id,
-        content: tempMessage.content
+        content: tempMessage.content,
+        tempId: tempId
       });
     } catch (error) {
       toast.error('Failed to send message');
       // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
+      setMessages(prev => prev.filter(m => m.tempId !== tempId));
     }
   };
 
   const startVoiceCall = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation) {
+      toast.error('Please select a friend first');
+      return;
+    }
     
+    console.log('[DM] Starting voice call with:', selectedConversation);
     setInCall(true);
-    socketService.emit('call:start', {
-      receiverId: selectedConversation.id,
-      type: 'voice'
+    
+    // Emit call initiation
+    socketService.emit('call:initiate', {
+      targetUserId: selectedConversation.id,
+      type: 'voice',
+      callerName: user.displayName || user.username
     });
-    toast.success('Starting voice call...');
+    
+    toast('Calling...', {
+      icon: '📞',
+      duration: 3000
+    });
   };
 
   const startVideoCall = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation) {
+      toast.error('Please select a friend first');
+      return;
+    }
     
+    console.log('[DM] Starting video call with:', selectedConversation);
     setInCall(true);
-    socketService.emit('call:start', {
-      receiverId: selectedConversation.id,
-      type: 'video'
+    
+    // Emit call initiation  
+    socketService.emit('call:initiate', {
+      targetUserId: selectedConversation.id,
+      type: 'video',
+      callerName: user.displayName || user.username
     });
-    toast.success('Starting video call...');
+    
+    toast('Starting video call...', {
+      icon: '📹',
+      duration: 3000
+    });
   };
 
   const startScreenShare = async () => {
@@ -292,14 +429,59 @@ function DirectMessages() {
   };
 
   const acceptCall = (callData) => {
-    socketService.emit('call:accept', callData);
+    console.log('[DM] Accepting call:', callData);
+    socketService.emit('call:accept', {
+      callerId: callData.callerId,
+      type: callData.type
+    });
     setInCall(true);
+    setSelectedConversation(prev => ({
+      ...prev,
+      inCallWith: callData.callerId
+    }));
+  };
+  
+  const rejectCall = (callData) => {
+    console.log('[DM] Rejecting call:', callData);
+    socketService.emit('call:reject', {
+      callerId: callData.callerId
+    });
   };
 
   const endCall = () => {
-    socketService.emit('call:end');
+    console.log('[DM] Ending call');
+    if (selectedConversation?.inCallWith) {
+      socketService.emit('call:end', {
+        targetUserId: selectedConversation.inCallWith || selectedConversation.id
+      });
+    }
     setInCall(false);
+    setSelectedConversation(prev => {
+      const { inCallWith, ...rest } = prev || {};
+      return rest;
+    });
     toast('Call ended');
+  };
+  
+  const initializeWebRTC = async (data) => {
+    try {
+      // Get user media
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: data.type === 'video'
+      });
+      
+      // Initialize WebRTC connection
+      // This would connect to your WebRTC service
+      console.log('[DM] WebRTC initialized with stream:', stream);
+      
+      // Store stream for later cleanup
+      window.localStream = stream;
+    } catch (error) {
+      console.error('[DM] Failed to initialize WebRTC:', error);
+      toast.error('Failed to access camera/microphone');
+      endCall();
+    }
   };
 
   const selectConversation = (friend) => {
@@ -363,9 +545,9 @@ function DirectMessages() {
         </div>
 
         {/* Content based on active tab */}
-        <div className="flex-1 flex">
+        <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Friends List with Glass Effect */}
-          <div className="w-96 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20">
+          <div className="w-80 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
             {activeTab === 'addFriend' ? (
               // Add Friend Tab - Beautiful Design
               <div className="p-8">
@@ -534,8 +716,8 @@ function DirectMessages() {
             )}
           </div>
 
-          {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
+          {/* Chat Area - Full Remaining Width */}
+          <div className="flex-1 flex flex-col min-w-0">
             {selectedConversation ? (
           <>
             {/* Chat Header - Modern Design */}
@@ -616,24 +798,45 @@ function DirectMessages() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message, index) => (
-                <div
-                  key={message.id || index}
-                  className={`flex ${message.senderId === user.id ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-2xl px-4 py-2 rounded-lg ${
-                    message.senderId === user.id 
-                      ? 'bg-red-500 text-white' 
-                      : 'bg-black/50 border border-red-900/20 text-white'
-                  }`}>
-                    <p>{message.content}</p>
-                    <span className="text-xs opacity-70">
-                      {new Date(message.createdAt).toLocaleTimeString()}
-                    </span>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {messages.map((message, index) => {
+                const isOwnMessage = message.senderId === user.id || message.sender?._id === user.id;
+                const senderName = isOwnMessage 
+                  ? (user.displayName || user.username) 
+                  : (message.senderName || message.sender?.displayName || message.sender?.username || selectedConversation?.displayName || selectedConversation?.username);
+                
+                return (
+                  <div
+                    key={message.id || message._id || index}
+                    className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
+                  >
+                    <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-start space-x-3 max-w-[70%]`}>
+                      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-sm font-bold">
+                          {senderName?.[0]?.toUpperCase() || '?'}
+                        </span>
+                      </div>
+                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                        <div className="flex items-baseline space-x-2 mb-1 px-1">
+                          <span className={`text-sm font-semibold ${isOwnMessage ? 'text-red-300' : 'text-red-400'}`}>
+                            {senderName}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(message.createdAt || message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className={`px-4 py-2 rounded-2xl ${
+                          isOwnMessage 
+                            ? 'bg-red-500 text-white rounded-tr-md' 
+                            : 'bg-gray-900 text-white rounded-tl-md border border-gray-800'
+                        }`}>
+                          <p className="break-words">{message.content || message.message}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Message Input */}

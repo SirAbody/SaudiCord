@@ -71,11 +71,13 @@ module.exports = (io) => {
           user.status = 'online';
           await user.save();
           
-          // Store in active users
+          // Store in active users and sockets map
           activeUsers.set(socket.userId, user.toSafeObject());
+          userSockets.set(socket.userId, socket);
           
           // Join user room for direct messages
           socket.join(`user-${socket.userId}`);
+          console.log(`[Socket] User ${socket.username} joined room: user-${socket.userId}`);
           
           // Broadcast online status
           socket.broadcast.emit('user:online', {
@@ -254,14 +256,21 @@ module.exports = (io) => {
           createdAt: dm.createdAt
         };
 
-        // Send to receiver if online
+        // Send to receiver via room (more reliable)
+        io.to(`user-${receiverId}`).emit('dm:receive', messageData);
+        
+        // Also try direct socket for immediate delivery
         const receiverSocket = userSockets.get(receiverId.toString());
         if (receiverSocket) {
           receiverSocket.emit('dm:receive', messageData);
+          console.log(`[Socket] DM sent directly to socket ${receiverSocket.id}`);
         }
         
         // Send confirmation to sender
-        socket.emit('dm:receive', messageData);
+        socket.emit('dm:sent', {
+          ...messageData,
+          tempId: data.tempId
+        });
         
         console.log(`[Socket] DM sent from ${socket.userId} to ${receiverId}`);
       } catch (error) {
@@ -485,6 +494,76 @@ module.exports = (io) => {
       } catch (error) {
         console.error('[Socket] Error sending DM notification:', error);
       }
+    });
+    
+    // Call initiation
+    socket.on('call:initiate', async (data) => {
+      if (!socket.userId) return;
+      
+      const { targetUserId, type, callerName } = data;
+      console.log(`[Socket] ${socket.username} initiating ${type} call to user ${targetUserId}`);
+      
+      // Send call notification to target user
+      io.to(`user-${targetUserId}`).emit('call:incoming', {
+        callerId: socket.userId,
+        callerName: callerName || socket.username,
+        type: type || 'voice',
+        timestamp: new Date()
+      });
+      
+      // Also try direct socket
+      const targetSocket = userSockets.get(targetUserId);
+      if (targetSocket) {
+        targetSocket.emit('call:incoming', {
+          callerId: socket.userId,
+          callerName: callerName || socket.username,
+          type: type || 'voice',
+          timestamp: new Date()
+        });
+      }
+    });
+    
+    // Call accepted
+    socket.on('call:accept', async (data) => {
+      if (!socket.userId) return;
+      
+      const { callerId, type } = data;
+      console.log(`[Socket] ${socket.username} accepted call from ${callerId}`);
+      
+      // Notify the caller that call was accepted
+      io.to(`user-${callerId}`).emit('call:accepted', {
+        acceptedBy: socket.userId,
+        acceptedByName: socket.username,
+        type: type
+      });
+    });
+    
+    // Call rejected
+    socket.on('call:reject', async (data) => {
+      if (!socket.userId) return;
+      
+      const { callerId } = data;
+      console.log(`[Socket] ${socket.username} rejected call from ${callerId}`);
+      
+      // Notify the caller that call was rejected
+      io.to(`user-${callerId}`).emit('call:rejected', {
+        rejectedBy: socket.userId,
+        rejectedByName: socket.username
+      });
+    });
+    
+    // Call ended
+    socket.on('call:end', async (data) => {
+      if (!socket.userId) return;
+      
+      const { targetUserId } = data;
+      console.log(`[Socket] ${socket.username} ended call with ${targetUserId}`);
+      
+      // Notify the other user that call ended
+      io.to(`user-${targetUserId}`).emit('call:ended', {
+        endedBy: socket.userId,
+        endedByName: socket.username
+      });
     });
 
     // Handle disconnection

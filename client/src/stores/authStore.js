@@ -116,12 +116,51 @@ export const useAuthStore = create((set, get) => ({
       }
     } catch (error) {
       console.error('[AuthStore] Auth check error:', error.message, error);
-      // Don't remove token on network errors
+      clearTimeout(timeoutId);
+      
+      // Only remove token and logout on 401 (invalid token)
       if (error.response?.status === 401) {
-        console.log('[AuthStore] Got 401 - removing token');
+        console.log('[AuthStore] Got 401 - invalid token, logging out');
         localStorage.removeItem('token');
+        set({ user: null, loading: false });
+      } else if (token) {
+        // For network errors, timeouts, etc - try to decode token locally
+        console.log('[AuthStore] Network error but token exists, trying local decode');
+        try {
+          // Decode JWT token without verification (for display purposes)
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
+            '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          ).join(''));
+          const decoded = JSON.parse(jsonPayload);
+          
+          // Check if token is expired
+          if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+            console.log('[AuthStore] Token expired locally');
+            localStorage.removeItem('token');
+            set({ user: null, loading: false });
+          } else {
+            // Token seems valid, keep user logged in
+            console.log('[AuthStore] Token valid locally, keeping user logged in');
+            set({ 
+              user: decoded.user || { 
+                id: decoded.userId || decoded.id, 
+                username: decoded.username,
+                displayName: decoded.displayName,
+                email: decoded.email
+              }, 
+              loading: false 
+            });
+          }
+        } catch (decodeError) {
+          console.error('[AuthStore] Failed to decode token locally:', decodeError);
+          // If we can't decode, keep the token and assume logged in
+          set({ user: { id: 'temp', username: 'User' }, loading: false });
+        }
+      } else {
+        set({ user: null, loading: false });
       }
-      set({ user: null, loading: false });
     } finally {
       console.log('[AuthStore] Auth check finished');
     }
