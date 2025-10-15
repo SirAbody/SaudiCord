@@ -34,7 +34,7 @@ router.get('/server/:serverId', authenticateToken, async (req, res) => {
 });
 
 // Create channel
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { name, type, serverId, description } = req.body;
     
@@ -70,15 +70,14 @@ router.post('/', auth, async (req, res) => {
     
     res.status(201).json(channel);
   } catch (error) {
-    console.error('[Channels] Error creating channel:', error);
     res.status(500).json({ error: 'Failed to create channel' });
   }
 });
 
 // Update channel
-router.patch('/:channelId', auth, async (req, res) => {
+router.patch('/:id', authenticateToken, async (req, res) => {
   try {
-    const channel = await Channel.findById(req.params.channelId);
+    const channel = await Channel.findById(req.params.id);
     
     if (!channel) {
       return res.status(404).json({ error: 'Channel not found' });
@@ -91,19 +90,12 @@ router.patch('/:channelId', auth, async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
     
-    // Update allowed fields
-    const allowedUpdates = ['name', 'description', 'topic', 'nsfw', 'rateLimitPerUser', 'userLimit', 'bitrate'];
-    const updates = {};
+    // Update channel fields
+    if (req.body.name) channel.name = req.body.name;
+    if (req.body.description !== undefined) channel.description = req.body.description;
+    if (req.body.position !== undefined) channel.position = req.body.position;
     
-    for (const field of allowedUpdates) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
-    }
-    
-    Object.assign(channel, updates);
     await channel.save();
-    
     res.json(channel);
   } catch (error) {
     console.error('[Channels] Error updating channel:', error);
@@ -112,9 +104,9 @@ router.patch('/:channelId', auth, async (req, res) => {
 });
 
 // Delete channel
-router.delete('/:channelId', auth, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const channel = await Channel.findById(req.params.channelId);
+    const channel = await Channel.findById(req.params.id);
     
     if (!channel) {
       return res.status(404).json({ error: 'Channel not found' });
