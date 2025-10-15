@@ -50,8 +50,14 @@ axios.interceptors.response.use(
     
     // Handle 401 (Unauthorized) - token expired or invalid
     if (error.response?.status === 401) {
-      // Only redirect to login if we're not already there
-      if (!window.location.pathname.includes('/login')) {
+      // Don't redirect for certain API calls that might fail gracefully
+      const skipRedirectUrls = ['/voice/ice-servers', '/servers/', '/members'];
+      const shouldSkipRedirect = skipRedirectUrls.some(url => 
+        error.config?.url?.includes(url)
+      );
+      
+      // Only redirect to login if we're not already there and not a skippable URL
+      if (!window.location.pathname.includes('/login') && !shouldSkipRedirect) {
         localStorage.removeItem('token');
         window.location.href = '/login';
       }

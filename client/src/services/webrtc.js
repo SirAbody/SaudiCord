@@ -360,19 +360,69 @@ class WebRTCService {
       });
     }
   }
-
-  // Check if currently in a call
-  isInCall() {
-    return this.isCallActive && this.peerConnection !== null;
+  
+  // Voice channel methods
+  async joinVoiceChannel(channelId, constraints = { audio: true, video: false }) {
+    try {
+      console.log('[WebRTC] Joining voice channel:', channelId);
+      
+      // Get user media
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Create peer connection if needed
+      if (!this.peerConnection) {
+        this.createPeerConnection();
+      }
+      
+      // Add local stream tracks to peer connection
+      this.localStream.getTracks().forEach(track => {
+        this.peerConnection.addTrack(track, this.localStream);
+      });
+      
+      this.isCallActive = true;
+      this.channelId = channelId;
+      
+      return this.localStream;
+    } catch (error) {
+      console.error('[WebRTC] Failed to join voice channel:', error);
+      throw error;
+    }
+  }
+  
+  async leaveVoiceChannel() {
+    try {
+      console.log('[WebRTC] Leaving voice channel');
+      
+      // Stop all local tracks
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(track => track.stop());
+        this.localStream = null;
+      }
+      
+      // Close peer connection
+      if (this.peerConnection) {
+        this.peerConnection.close();
+        this.peerConnection = null;
+      }
+      
+      this.isCallActive = false;
+      this.channelId = null;
+      
+      // Emit leave event
+      this.emit('leftChannel', {});
+    } catch (error) {
+      console.error('[WebRTC] Failed to leave voice channel:', error);
+    }
   }
   
   endCall() {
-    // Stop all streams
+    // Clean up local stream
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => track.stop());
       this.localStream = null;
     }
     
+    // Clean up remote stream
     if (this.remoteStream) {
       this.remoteStream.getTracks().forEach(track => track.stop());
       this.remoteStream = null;

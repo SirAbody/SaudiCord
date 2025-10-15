@@ -52,7 +52,8 @@ function MembersList({ serverId, channelId }) {
   const loadServerMembers = async () => {
     try {
       const response = await axios.get(`/api/servers/${serverId}/members`);
-      const membersData = response.data || [];
+      // Ensure membersData is an array
+      const membersData = Array.isArray(response.data) ? response.data : [];
       
       // Sort members by role and status
       const sortedMembers = membersData.sort((a, b) => {

@@ -22,11 +22,16 @@ class VoiceService {
   
   async fetchIceServers() {
     try {
-      const response = await axios.get('/api/voice/ice-servers');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('/api/voice/ice-servers', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       this.iceServers = response.data;
       console.log('[Voice] ICE servers loaded:', this.iceServers);
     } catch (error) {
-      console.error('[Voice] Failed to fetch ICE servers:', error);
+      console.log('[Voice] Failed to fetch ICE servers, using defaults');
       // Use default servers as fallback
       this.iceServers = {
         iceServers: [
