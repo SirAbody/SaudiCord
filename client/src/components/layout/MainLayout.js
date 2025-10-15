@@ -9,7 +9,7 @@ import ChatArea from '../chat/ChatArea';
 import DirectMessages from '../../pages/DirectMessages';
 import InvitePage from '../../pages/InvitePage';
 import UserProfile from '../user/UserProfile';
-import CallModal from '../modals/CallModal';
+import CallModal from '../call/CallModal';
 import IncomingCallModal from '../call/IncomingCallModal';
 import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts';
 import toast from 'react-hot-toast';
