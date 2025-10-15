@@ -4,7 +4,7 @@ import NotificationToast from './NotificationToast';
 import { useAuthStore } from '../../stores/authStore';
 
 const NotificationManager = () => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const { user } = useAuthStore();
   const [notifications, setNotifications] = useState([]);
   

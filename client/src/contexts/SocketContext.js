@@ -8,6 +8,13 @@ export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {
     console.warn('useSocket must be used within SocketProvider');
+    // Return empty object to prevent errors
+    return {
+      socket: null,
+      connected: false,
+      connectSocket: () => {},
+      disconnectSocket: () => {}
+    };
   }
   return context;
 };
