@@ -1,41 +1,29 @@
-// Socket.io Service - Safe Implementation
+// Socket.io Service - CDN Version (Fixed)
 import { useChatStore } from '../stores/chatStore';
 import { useCallStore } from '../stores/callStore';
 import toast from 'react-hot-toast';
-
-// Dynamic import for Socket.io to avoid build issues
-let io = null;
-try {
-  io = require('socket.io-client').io || require('socket.io-client').default || require('socket.io-client');
-} catch (e) {
-  console.warn('[Socket] Failed to load socket.io-client from NPM:', e);
-}
 
 class SocketService {
   constructor() {
     this.socket = null;
     this.connectionAttempts = 0;
     this.pendingHandlers = {};
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
   }
 
   connect(token) {
     console.log('[Socket] Attempting to connect...');
     
-    try {
-      // Check if Socket.io is available
-      if (!io) {
-        console.error('[Socket] Socket.io not available, trying CDN fallback...');
-        // Try to use global io from CDN if available
-        if (typeof window !== 'undefined' && window.io) {
-          io = window.io;
-          console.log('[Socket] Using Socket.io from CDN');
-        } else {
-          console.error('[Socket] Socket.io library not available at all');
-          return;
-        }
-      }
+    // Wait for Socket.io CDN to load
+    if (typeof window.io === 'undefined') {
+      console.warn('[Socket] Waiting for Socket.io CDN...');
+      setTimeout(() => this.connect(token), 500);
+      return null;
+    }
 
-      // Disconnect any existing connection first
+    try {
+      // Disconnect existing connection
       if (this.socket) {
         this.socket.removeAllListeners();
         this.socket.disconnect();
@@ -43,52 +31,66 @@ class SocketService {
       }
 
       const serverUrl = process.env.NODE_ENV === 'production' 
-        ? window.location.origin 
-        : 'http://localhost:5000';
+        ? 'https://saudicord.onrender.com'
+        : 'http://localhost:10000';
 
-      this.socket = io(serverUrl, {
-        auth: { token },
+      // Create new connection
+      this.socket = window.io(serverUrl, {
         transports: ['websocket', 'polling'],
+        auth: { token },
         reconnection: true,
-        reconnectionAttempts: 10,
         reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 20000,
-        forceNew: true
+        reconnectionAttempts: 5,
+        timeout: 20000
       });
 
-      this.setupEventListeners();
-      
       // Connection events
       this.socket.on('connect', () => {
         console.log('[Socket] Connected successfully');
-        toast.success('Connected to server');
+        this.connectionAttempts = 0;
+        this.reconnectAttempts = 0;
         
-        // Apply any pending handlers
-        if (this.pendingHandlers) {
-          Object.entries(this.pendingHandlers).forEach(([event, handlers]) => {
-            handlers.forEach(handler => {
-              this.socket.on(event, handler);
-            });
-          });
-          this.pendingHandlers = {};
+        // Send authentication
+        if (token) {
+          this.socket.emit('auth', { token });
         }
+        
+        // Apply pending handlers
+        this.applyPendingHandlers();
+      });
+
+      this.socket.on('auth:success', (data) => {
+        console.log('[Socket] Authentication successful:', data);
+      });
+
+      this.socket.on('auth:error', (error) => {
+        console.error('[Socket] Authentication failed:', error);
+        toast.error('Authentication failed');
       });
 
       this.socket.on('disconnect', (reason) => {
         console.log('[Socket] Disconnected:', reason);
         if (reason === 'io server disconnect') {
-          toast.error('Server disconnected');
+          // Server initiated disconnect, try to reconnect
+          setTimeout(() => this.connect(token), 1000);
         }
       });
 
       this.socket.on('connect_error', (error) => {
         console.error('[Socket] Connection error:', error);
-        if (this.connectionAttempts < 3) {
-          this.connectionAttempts++;
-          setTimeout(() => this.connect(token), 2000);
+        this.reconnectAttempts++;
+        
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          console.error('[Socket] Max reconnection attempts reached');
         }
       });
+
+      this.socket.on('error', (error) => {
+        console.error('[Socket] Socket error:', error);
+      });
+
+      // Setup event listeners
+      this.setupEventListeners();
 
       return this.socket;
     } catch (error) {
@@ -118,329 +120,180 @@ class SocketService {
     });
 
     // Message events
-    this.socket.on('message:receive', (message) => {
-      console.log('[Socket] Message received:', message);
+    this.socket.on('message:new', (message) => {
+      console.log('[Socket] New message received:', message);
       const chatStore = useChatStore.getState();
-      const currentChannel = chatStore.currentChannel;
-      
-      // Handle both channel ID formats
-      const channelId = message.channelId || message.channel_id;
-      
-      // Check if message already exists
-      if (message.tempId) {
-        const existingMessages = chatStore.messages[channelId] || [];
-        const exists = existingMessages.some(m => 
-          m.tempId === message.tempId || m.id === message.id
-        );
-        if (exists) {
-          chatStore.updateMessage(channelId, message.tempId, message);
-          return;
-        }
-      }
-      
-      // Add the message
-      chatStore.addMessage(channelId, message);
-      
-      // Force update
-      if (chatStore.setLastMessageTime) {
-        chatStore.setLastMessageTime(Date.now());
-      }
-      
-      // Play notification sound if not in current channel
-      if (!currentChannel || currentChannel.id !== channelId) {
-        import('./soundService').then(module => {
-          module.default.playMessage();
-        }).catch(console.error);
-        
-        toast(`New message from ${message.author?.username || 'Unknown'}`, {
-          icon: '💬'
-        });
+      if (chatStore.addMessage) {
+        chatStore.addMessage(message);
       }
     });
 
-    // Message sent confirmation
     this.socket.on('message:sent', (data) => {
       console.log('[Socket] Message sent confirmation:', data);
       const chatStore = useChatStore.getState();
-      if (data.tempId && data.message) {
-        // Replace the temporary message with the real one
-        const channelId = data.message.channelId;
-        chatStore.updateMessage(channelId, data.tempId, {
-          ...data.message,
-          pending: false
-        });
-      } else if (data.tempId && data.messageId) {
-        // Fallback for simple ID update
-        chatStore.updateMessage(null, data.tempId, {
-          id: data.messageId,
-          pending: false
-        });
+      if (chatStore.confirmMessage) {
+        chatStore.confirmMessage(data.tempId, data.message);
       }
-    });
-
-    // Friend events
-    this.socket.on('friend:request', (data) => {
-      console.log('[Socket] Friend request received:', data);
-      toast(`${data.username} sent you a friend request!`, {
-        icon: '👥',
-        duration: 5000
-      });
-      // Force refresh friends list
-      window.dispatchEvent(new CustomEvent('friendsUpdate'));
-    });
-
-    this.socket.on('friend:accepted', (data) => {
-      console.log('[Socket] Friend request accepted:', data);
-      toast(`${data.username} accepted your friend request!`, {
-        icon: '✅',
-        duration: 5000
-      });
-      // Force refresh friends list
-      window.dispatchEvent(new CustomEvent('friendsUpdate'));
-    });
-
-    // Voice channel events
-    this.socket.on('voice:users:update', (data) => {
-      console.log('[Socket] Voice users update:', data);
-      // Dispatch event for components to listen
-      window.dispatchEvent(new CustomEvent('voiceUsersUpdate', { detail: data }));
-    });
-
-    this.socket.on('voice:user:joined', (data) => {
-      console.log('[Socket] User joined voice:', data);
-      toast(`${data.username} joined the voice channel`);
-    });
-
-    this.socket.on('voice:user:left', (data) => {
-      console.log('[Socket] User left voice:', data);
-      toast(`${data.username} left the voice channel`);
-    });
-
-    // Call events
-    this.socket.on('call:incoming', (data) => {
-      console.log('[Socket] Incoming call:', data);
-      const callStore = useCallStore.getState();
-      callStore.setIncomingCall(data);
-    });
-
-    this.socket.on('call:accepted', (data) => {
-      console.log('[Socket] Call accepted:', data);
-      const callStore = useCallStore.getState();
-      callStore.setCallAccepted(true);
-    });
-
-    this.socket.on('call:rejected', (data) => {
-      console.log('[Socket] Call rejected:', data);
-      const callStore = useCallStore.getState();
-      callStore.endCall();
-      toast('Call was rejected');
-    });
-
-    this.socket.on('call:ended', (data) => {
-      console.log('[Socket] Call ended:', data);
-      const callStore = useCallStore.getState();
-      callStore.endCall();
-    });
-
-    // WebRTC signaling
-    this.socket.on('webrtc:offer', (data) => {
-      console.log('[Socket] WebRTC offer received');
-      window.dispatchEvent(new CustomEvent('webrtc:offer', { detail: data }));
-    });
-
-    this.socket.on('webrtc:answer', (data) => {
-      console.log('[Socket] WebRTC answer received');
-      window.dispatchEvent(new CustomEvent('webrtc:answer', { detail: data }));
-    });
-
-    this.socket.on('webrtc:ice-candidate', (data) => {
-      console.log('[Socket] ICE candidate received');
-      window.dispatchEvent(new CustomEvent('webrtc:ice-candidate', { detail: data }));
     });
 
     // Typing indicators
     this.socket.on('typing:start', (data) => {
       const chatStore = useChatStore.getState();
-      if (chatStore.addTypingUser) {
-        chatStore.addTypingUser(data.channelId, data.userId, data.username);
+      if (chatStore.setTypingUser) {
+        chatStore.setTypingUser(data.userId, true);
       }
     });
 
     this.socket.on('typing:stop', (data) => {
       const chatStore = useChatStore.getState();
-      if (chatStore.removeTypingUser) {
-        chatStore.removeTypingUser(data.channelId, data.userId);
+      if (chatStore.setTypingUser) {
+        chatStore.setTypingUser(data.userId, false);
       }
     });
+
+    // Voice/Call events
+    this.socket.on('voice:user:joined', (data) => {
+      console.log('[Socket] User joined voice channel:', data);
+      const callStore = useCallStore.getState();
+      if (callStore.addUserToChannel) {
+        callStore.addUserToChannel(data.channelId, data.user);
+      }
+    });
+
+    this.socket.on('voice:user:left', (data) => {
+      console.log('[Socket] User left voice channel:', data);
+      const callStore = useCallStore.getState();
+      if (callStore.removeUserFromChannel) {
+        callStore.removeUserFromChannel(data.channelId, data.userId);
+      }
+    });
+
+    // WebRTC signaling
+    this.socket.on('webrtc:offer', (data) => {
+      console.log('[Socket] WebRTC offer received:', data);
+      if (window.webrtcService) {
+        window.webrtcService.handleOffer(data);
+      }
+    });
+
+    this.socket.on('webrtc:answer', (data) => {
+      console.log('[Socket] WebRTC answer received:', data);
+      if (window.webrtcService) {
+        window.webrtcService.handleAnswer(data);
+      }
+    });
+
+    this.socket.on('webrtc:ice-candidate', (data) => {
+      console.log('[Socket] ICE candidate received:', data);
+      if (window.webrtcService) {
+        window.webrtcService.handleIceCandidate(data);
+      }
+    });
+  }
+
+  applyPendingHandlers() {
+    if (!this.socket || !this.pendingHandlers) return;
+    
+    Object.entries(this.pendingHandlers).forEach(([event, handlers]) => {
+      handlers.forEach(handler => {
+        this.socket.on(event, handler);
+      });
+    });
+    
+    this.pendingHandlers = {};
   }
 
   disconnect() {
     if (this.socket) {
       console.log('[Socket] Disconnecting...');
-      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
     }
   }
 
-  // Safe proxy methods for socket operations
-  on(event, handler) {
-    if (this.socket && this.socket.on) {
-      try {
-        return this.socket.on(event, handler);
-      } catch (e) {
-        console.error('[Socket] Error calling on:', e);
-      }
-    }
-    if (!this.pendingHandlers) this.pendingHandlers = {};
-    if (!this.pendingHandlers[event]) {
-      this.pendingHandlers[event] = [];
-    }
-    this.pendingHandlers[event].push(handler);
-  }
-
-  off(event, handler) {
-    if (this.socket && this.socket.off) {
-      try {
-        return this.socket.off(event, handler);
-      } catch (e) {
-        console.error('[Socket] Error calling off:', e);
-      }
-    }
-  }
-
-  emit(event, ...args) {
-    if (this.socket && this.socket.emit) {
-      try {
-        return this.socket.emit(event, ...args);
-      } catch (e) {
-        console.error('[Socket] Error calling emit:', e);
-      }
-    }
-    console.warn(`[Socket] Cannot emit '${event}' - socket not connected`);
-  }
-
-  // Channel methods
-  joinChannel(channelId) {
+  emit(event, data) {
     if (this.socket && this.socket.connected) {
-      this.socket.emit('join:channel', channelId);
-    }
-  }
-
-  leaveChannel(channelId) {
-    if (this.socket && this.socket.connected) {
-      console.log('[Socket] Leaving channel:', channelId);
-      this.socket.emit('leave:channel', channelId);
-    }
-  }
-
-  // Connection status method
-  isConnected() {
-    try {
-      return this.socket && this.socket.connected === true;
-    } catch (e) {
-      console.error('[Socket] Error checking connection:', e);
+      this.socket.emit(event, data);
+      return true;
+    } else {
+      console.warn(`[Socket] Cannot emit ${event}, not connected`);
       return false;
     }
   }
 
-  // Messaging methods
-  sendMessage(channelId, content, tempId) {
+  on(event, handler) {
     if (this.socket && this.socket.connected) {
-      console.log('[Socket] Sending message to channel:', channelId);
-      this.socket.emit('message:send', {
-        channelId,
-        content,
-        tempId,
-        timestamp: new Date().toISOString()
-      });
-      return true;
+      this.socket.on(event, handler);
+    } else {
+      // Store for later
+      if (!this.pendingHandlers[event]) {
+        this.pendingHandlers[event] = [];
+      }
+      this.pendingHandlers[event].push(handler);
     }
-    console.error('[Socket] Cannot send message - not connected');
-    return false;
+  }
+
+  off(event, handler) {
+    if (this.socket) {
+      if (handler) {
+        this.socket.off(event, handler);
+      } else {
+        this.socket.off(event);
+      }
+    }
+    
+    // Remove from pending
+    if (this.pendingHandlers[event]) {
+      if (handler) {
+        this.pendingHandlers[event] = this.pendingHandlers[event].filter(h => h !== handler);
+      } else {
+        delete this.pendingHandlers[event];
+      }
+    }
+  }
+
+  // Channel methods
+  joinChannel(channelId) {
+    this.emit('channel:join', { channelId });
+  }
+
+  leaveChannel(channelId) {
+    this.emit('channel:leave', { channelId });
+  }
+
+  // Message methods
+  sendMessage(channelId, content, tempId) {
+    this.emit('message:send', { channelId, content, tempId });
   }
 
   // Voice methods
   joinVoiceChannel(channelId) {
-    if (this.socket && this.socket.connected) {
-      console.log('[Socket] Joining voice channel:', channelId);
-      this.socket.emit('voice:join', { channelId });
-    }
+    this.emit('voice:join', { channelId });
   }
 
   leaveVoiceChannel(channelId) {
-    if (this.socket && this.socket.connected) {
-      console.log('[Socket] Leaving voice channel:', channelId);
-      this.socket.emit('voice:leave', { channelId });
-    }
+    this.emit('voice:leave', { channelId });
   }
 
-  // Status methods
-  updateStatus(status) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('user:status', status);
-    }
-  }
-
-  // Typing indicators
-  startTyping(channelId, userId, username) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('typing:start', { channelId, userId, username });
-    }
-  }
-
-  stopTyping(channelId, userId) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('typing:stop', { channelId, userId });
-    }
-  }
-
-  // Call methods
-  initiateCall(targetUserId, isVideo = false) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('call:initiate', { targetUserId, isVideo });
-      return true;
-    }
-    return false;
-  }
-
-  acceptCall(callerId) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('call:accept', { callerId });
-    }
-  }
-
-  rejectCall(callerId) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('call:reject', { callerId });
-    }
-  }
-
-  endCall(targetUserId) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('call:end', { targetUserId });
-    }
-  }
-
-  // WebRTC signaling
+  // WebRTC methods
   sendOffer(targetUserId, offer) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('webrtc:offer', { targetUserId, offer });
-    }
+    this.emit('webrtc:offer', { targetUserId, offer });
   }
 
   sendAnswer(targetUserId, answer) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('webrtc:answer', { targetUserId, answer });
-    }
+    this.emit('webrtc:answer', { targetUserId, answer });
   }
 
   sendIceCandidate(targetUserId, candidate) {
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('webrtc:ice-candidate', { targetUserId, candidate });
-    }
+    this.emit('webrtc:ice-candidate', { targetUserId, candidate });
   }
 }
 
 const socketService = new SocketService();
+
+// Make it globally accessible for debugging
+if (typeof window !== 'undefined') {
+  window.socketService = socketService;
+}
+
 export default socketService;

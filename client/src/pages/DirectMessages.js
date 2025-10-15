@@ -30,14 +30,17 @@ function DirectMessages() {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [inCall, setInCall] = useState(false);
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
-  const [activeTab, setActiveTab] = useState('online'); // online, all, pending, addFriend
   const [pendingRequests, setPendingRequests] = useState([]);
 
   useEffect(() => {
     loadFriends();
     loadConversations();
-    setupSocketListeners();
-
+    
+    // Setup socket listeners after a brief delay to ensure socket is connected
+    const timer = setTimeout(() => {
+      setupSocketListeners();
+    }, 500);
+    
     // Listen for friends update event
     const handleFriendsUpdate = () => {
       loadFriends();
@@ -46,12 +49,21 @@ function DirectMessages() {
     window.addEventListener('friendsUpdate', handleFriendsUpdate);
     
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('friendsUpdate', handleFriendsUpdate);
+      // Clean up socket listeners
+      socketService.off('dm:receive');
+      socketService.off('dm:sent');
+      socketService.off('friend:request');
+      socketService.off('friend:accepted');
+      socketService.off('call:incoming');
+      socketService.off('call:accepted');
+      socketService.off('call:rejected');
+      socketService.off('call:ended');
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setupSocketListeners = () => {
-    // Handle receiving messages
     socketService.on('dm:receive', (message) => {
       console.log('[DM] Received message:', message);
       
@@ -198,14 +210,6 @@ function DirectMessages() {
       toast('Call ended');
     });
 
-    return () => {
-      socketService.off('dm:receive');
-      socketService.off('friend:request');
-      socketService.off('friend:accepted');
-      socketService.off('call:incoming');
-      socketService.off('call:accepted');
-      socketService.off('call:rejected');
-      socketService.off('call:ended');
     };
   };
 
@@ -343,12 +347,26 @@ function DirectMessages() {
     setMessageInput('');
 
     try {
-      // Send via socket directly for real-time
-      socketService.emit('dm:send', {
+      // Send via socket directly for real-time  
+      const sent = socketService.emit('dm:send', {
         receiverId: selectedConversation.id,
         content: tempMessage.content,
         tempId: tempId
       });
+      
+      if (!sent) {
+        // Socket not connected, try API fallback
+        const response = await axios.post(`/dm/send`, {
+          receiverId: selectedConversation.id,
+          content: tempMessage.content
+        });
+        
+        // Replace temp message with real one
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.tempId !== tempId);
+          return [...filtered, response.data];
+        });
+      }
     } catch (error) {
       toast.error('Failed to send message');
       // Remove optimistic message on error
@@ -547,7 +565,7 @@ function DirectMessages() {
         {/* Content based on active tab */}
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Friends List with Glass Effect */}
-          <div className="w-80 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
+          <div className="w-64 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
             {activeTab === 'addFriend' ? (
               // Add Friend Tab - Beautiful Design
               <div className="p-8">
