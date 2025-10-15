@@ -25,8 +25,8 @@ function ChannelList() {
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
-  const [voiceParticipants, setVoiceParticipants] = useState({}); // channelId -> [users]
-  const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // For compatibility
+  // const [voiceParticipants, setVoiceParticipants] = useState({}); // Unused - removed
+  const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // For voice channel users
   const [showVoiceCall, setShowVoiceCall] = useState(false);
 
   useEffect(() => {

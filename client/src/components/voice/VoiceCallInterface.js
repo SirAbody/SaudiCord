@@ -18,7 +18,7 @@ import webrtcService from '../../services/webrtc';
 
 function VoiceCallInterface({ channel, onClose }) {
   const { user } = useAuthStore();
-  const { currentCall, endCall } = useCallStore();
+  const { endCall } = useCallStore(); // currentCall removed as unused
   
   // Media states
   const [isMuted, setIsMuted] = useState(false);
@@ -64,11 +64,13 @@ function VoiceCallInterface({ channel, onClose }) {
       webrtcService.off('screenShareStopped', handleScreenShareStopped);
       webrtcService.off('connectionStateChange', handleConnectionStateChange);
       
-      // Stop all tracks
-      if (localVideoRef.current && localVideoRef.current.srcObject) {
-        localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      // Stop all tracks - store ref value to avoid stale closure
+      const videoElement = localVideoRef.current;
+      if (videoElement && videoElement.srcObject) {
+        videoElement.srcObject.getTracks().forEach(track => track.stop());
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   const initializeCall = async () => {

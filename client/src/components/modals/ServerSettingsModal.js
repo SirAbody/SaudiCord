@@ -394,7 +394,19 @@ function ServerSettingsModal({ show, onClose, server }) {
 
             {activeTab === 'roles' && isAdmin && (
               <div>
-                <p className="text-gray-400">Role management coming soon...</p>
+                <p className="text-gray-400 mb-4">Role management coming soon...</p>
+                <div className="space-y-2">
+                  {roles.length > 0 ? (
+                    roles.map(role => (
+                      <div key={role._id || role.id} className="p-3 bg-dark-700 rounded">
+                        <span className="text-white">{role.name}</span>
+                        <span className="text-gray-400 text-sm ml-2">({role.permissions?.length || 0} permissions)</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 text-sm">No custom roles created yet.</p>
+                  )}
+                </div>
               </div>
             )}
 
