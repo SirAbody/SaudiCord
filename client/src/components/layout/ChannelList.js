@@ -40,7 +40,9 @@ function ChannelList() {
     participants,
     speakingUsers,
     joinVoiceChannel,
-    leaveVoiceChannel
+    leaveVoiceChannel,
+    isMuted,
+    isDeafened
   } = useVoice();
   
   const [textChannels, setTextChannels] = useState([]);
