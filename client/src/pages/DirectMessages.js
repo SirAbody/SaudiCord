@@ -210,8 +210,6 @@ function DirectMessages() {
       setInCall(false);
       toast('Call ended');
     });
-
-    };
   };
 
   const loadFriends = async () => {
