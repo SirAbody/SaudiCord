@@ -58,45 +58,65 @@ function DirectMessages() {
       socketService.off('friend:request');
       socketService.off('friend:accepted');
       socketService.off('call:incoming');
-      socketService.off('call:accepted');
       socketService.off('call:rejected');
       socketService.off('call:ended');
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setupSocketListeners = () => {
+    // Handle incoming DM - ENHANCED
     socketService.on('dm:receive', (message) => {
       console.log('[DM] Received message:', message);
       
-      // Normalize IDs for comparison
+      // Parse sender and current user IDs properly
       const msgSenderId = message.senderId?.toString() || message.sender?._id?.toString();
       const msgReceiverId = message.receiverId?.toString();
-      const currentUserId = user.id?.toString() || user._id?.toString();
-      const conversationUserId = selectedConversation?.id?.toString() || selectedConversation?._id?.toString();
+      const currentUserId = user?.id?.toString() || user?._id?.toString();
+      const currentConvId = selectedConversation?.id?.toString() || selectedConversation?._id?.toString();
       
-      // Check if this message belongs to current conversation
-      const isRelevantMessage = 
-        (msgSenderId === conversationUserId) || // Message from current conversation partner
-        (msgReceiverId === conversationUserId) || // Message to current conversation partner
-        (msgSenderId === currentUserId && msgReceiverId === conversationUserId) || // Our message to them
-        (msgReceiverId === currentUserId && msgSenderId === conversationUserId); // Their message to us
-        
-      if (isRelevantMessage) {
+      console.log('[DM] Message IDs:', { msgSenderId, msgReceiverId, currentUserId, currentConvId });
+      
+      // Check if message is for current conversation
+      const isForCurrentConv = 
+        (msgSenderId === currentConvId && msgReceiverId === currentUserId) ||
+        (msgSenderId === currentUserId && msgReceiverId === currentConvId) ||
+        (currentConvId && (msgSenderId === currentConvId || msgReceiverId === currentConvId));
+      
+      if (isForCurrentConv) {
+        console.log('[DM] Adding message to current conversation');
         setMessages(prev => {
-          // Check for duplicates
-          const messageId = message.id?.toString() || message._id?.toString();
-          const exists = prev.some(m => {
-            const existingId = m.id?.toString() || m._id?.toString();
-            return existingId === messageId || (m.tempId && message.tempId && m.tempId === message.tempId);
-          });
-          if (exists) {
-            // If it's a temp message being confirmed, replace it
-            if (message.tempId) {
-              return prev.map(m => m.tempId === message.tempId ? message : m);
-            }
-            return prev;
+          // Check if message already exists (prevent duplicates)
+          const exists = prev.some(m => 
+            (m.id && message.id && m.id.toString() === message.id.toString()) || 
+            (m._id && message._id && m._id.toString() === message._id.toString()) || 
+            (m.tempId && message.tempId && m.tempId === message.tempId)
+          );
+          
+          if (!exists) {
+            // Format message properly
+            const formattedMessage = {
+              ...message,
+              id: message.id || message._id,
+              _id: message._id || message.id,
+              timestamp: message.timestamp || message.createdAt || new Date(),
+              confirmed: true
+            };
+            return [...prev, formattedMessage].sort((a, b) => 
+              new Date(a.timestamp || a.createdAt) - new Date(b.timestamp || b.createdAt)
+            );
           }
-          return [...prev, message];
+          
+          // If message exists with tempId, replace with confirmed version
+          if (message.tempId) {
+            return prev.map(m => {
+              if (m.tempId === message.tempId) {
+                return { ...message, confirmed: true };
+              }
+              return m;
+            });
+          }
+          
+          return prev;
         });
       } 
       
@@ -130,11 +150,27 @@ function DirectMessages() {
         return prev.map(m => {
           if (m.tempId === data.tempId) {
             // Replace temp message with confirmed version
-            return { ...data, confirmed: true };
+            return { 
+              ...data, 
+              confirmed: true,
+              id: data.id || data._id,
+              _id: data._id || data.id,
+              timestamp: data.timestamp || data.createdAt || new Date()
+            };
           }
           return m;
         });
       });
+    });
+    
+    // Handle message error
+    socketService.on('dm:error', (data) => {
+      console.error('[DM] Message error:', data);
+      if (data.tempId) {
+        // Remove failed message
+        setMessages(prev => prev.filter(m => m.tempId !== data.tempId));
+        toast.error(data.message || 'Failed to send message');
+      }
     });
 
     socketService.on('friend:request', (data) => {

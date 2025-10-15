@@ -54,6 +54,25 @@ module.exports = (io) => {
 
   io.on('connection', (socket) => {
     console.log('[Socket] New connection:', socket.id);
+    
+    // Immediate auth if token exists in handshake
+    if (socket.userId && socket.username) {
+      // Already authenticated via middleware
+      activeUsers.set(socket.userId, socket.user || { username: socket.username });
+      userSockets.set(socket.userId.toString(), socket.id);
+      
+      // Join user room
+      socket.join(`user-${socket.userId}`);
+      socket.join(`user-${socket.userId.toString()}`);
+      
+      // Emit auth success
+      socket.emit('auth:success', {
+        userId: socket.userId,
+        username: socket.username
+      });
+      
+      console.log(`[Socket] User ${socket.username} auto-authenticated`);
+    }
 
     // Handle authentication
     socket.on('authenticate', async (token) => {
@@ -210,7 +229,7 @@ module.exports = (io) => {
       }
     });
 
-    // Send direct message
+    // Send direct message - ENHANCED FOR REAL-TIME
     socket.on('dm:send', async (data) => {
       if (!socket.userId || !socket.user) {
         socket.emit('error', { message: 'Not authenticated' });
@@ -218,7 +237,7 @@ module.exports = (io) => {
       }
 
       try {
-        const { receiverId, content } = data;
+        const { receiverId, content, tempId } = data;
         
         if (!receiverId || !content) {
           socket.emit('error', { message: 'Receiver and content are required' });
@@ -265,32 +284,49 @@ module.exports = (io) => {
           timestamp: dm.createdAt
         };
 
-        // Send to both receiver and sender for instant update
-        const receiverSocketId = userSockets.get(receiverId.toString());
-        const senderSocketId = socket.id;
+        // Find all receiver's sockets (they might have multiple sessions)
+        const receiverSocketIds = [];
+        activeUsers.forEach((userData, userId) => {
+          if (userId === receiverId.toString()) {
+            // Find all sockets for this user
+            io.sockets.sockets.forEach((sock, sockId) => {
+              if (sock.userId === receiverId.toString()) {
+                receiverSocketIds.push(sockId);
+              }
+            });
+          }
+        });
         
-        // Send to receiver
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit('dm:receive', messageData);
-          console.log(`[Socket] DM sent to receiver socket: ${receiverSocketId}`);
+        // Send to receiver's all sessions
+        if (receiverSocketIds.length > 0) {
+          receiverSocketIds.forEach(socketId => {
+            io.to(socketId).emit('dm:receive', messageData);
+            console.log(`[Socket] DM sent to receiver socket: ${socketId}`);
+          });
         }
         
         // Also send via user room for redundancy
         io.to(`user-${receiverId}`).emit('dm:receive', messageData);
+        io.to(`user-${receiverId.toString()}`).emit('dm:receive', messageData);
         
-        // Send to sender's other sessions
-        io.to(`user-${socket.userId}`).except(senderSocketId).emit('dm:receive', messageData);
+        // Send to sender's other sessions (not current socket)
+        socket.to(`user-${socket.userId}`).emit('dm:receive', messageData);
         
-        // Send confirmation to sender
+        // Send confirmation to sender with tempId
         socket.emit('dm:sent', {
           ...messageData,
-          tempId: data.tempId
+          tempId: tempId || data.tempId,
+          confirmed: true
         });
         
         console.log(`[Socket] DM sent from ${socket.userId} to ${receiverId}`);
       } catch (error) {
         console.error('[Socket] Error sending DM:', error);
-        socket.emit('error', { message: 'Failed to send message' });
+        socket.emit('dm:error', { 
+          message: 'Failed to send message',
+          tempId: data.tempId,
+          error: error.message
+        });
       }
     });
 
@@ -478,6 +514,100 @@ module.exports = (io) => {
       socket.to(`channel-${data.channelId}`).emit('typing:stop', {
         channelId: data.channelId,
         userId: socket.userId
+      });
+    });
+
+    // ============ CALL SYSTEM HANDLERS ============
+    // Initiate call
+    socket.on('call:initiate', async (data) => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      try {
+        const { targetUserId, type, callerName } = data;
+        console.log(`[Socket] ${socket.username} initiating ${type} call to user ${targetUserId}`);
+        
+        // Find target user's socket(s)
+        const targetSocketIds = [];
+        io.sockets.sockets.forEach((sock, sockId) => {
+          if (sock.userId === targetUserId || sock.userId === targetUserId.toString()) {
+            targetSocketIds.push(sockId);
+          }
+        });
+        
+        if (targetSocketIds.length > 0) {
+          // Send to all target user's sessions
+          targetSocketIds.forEach(socketId => {
+            io.to(socketId).emit('call:incoming', {
+              callerId: socket.userId,
+              callerName: callerName || socket.username,
+              type: type,
+              timestamp: new Date()
+            });
+          });
+          
+          // Also send to user room
+          io.to(`user-${targetUserId}`).emit('call:incoming', {
+            callerId: socket.userId,
+            callerName: callerName || socket.username,
+            type: type,
+            timestamp: new Date()
+          });
+          
+          console.log(`[Socket] Call notification sent to ${targetSocketIds.length} sessions`);
+        } else {
+          socket.emit('call:user-offline', {
+            message: 'User is offline',
+            targetUserId
+          });
+        }
+      } catch (error) {
+        console.error('[Socket] Error initiating call:', error);
+        socket.emit('error', { message: 'Failed to initiate call' });
+      }
+    });
+
+    // Accept call
+    socket.on('call:accept', async (data) => {
+      if (!socket.userId) return;
+      
+      const { callerId } = data;
+      console.log(`[Socket] ${socket.username} accepted call from ${callerId}`);
+      
+      // Notify caller
+      io.to(`user-${callerId}`).emit('call:accepted', {
+        acceptedBy: socket.userId,
+        acceptedByName: socket.username
+      });
+    });
+
+    // Reject call
+    socket.on('call:reject', async (data) => {
+      if (!socket.userId) return;
+      
+      const { callerId } = data;
+      console.log(`[Socket] ${socket.username} rejected call from ${callerId}`);
+      
+      // Notify caller
+      io.to(`user-${callerId}`).emit('call:rejected', {
+        rejectedBy: socket.userId,
+        rejectedByName: socket.username
+      });
+    });
+
+    // End call
+    socket.on('call:end', async (data) => {
+      if (!socket.userId) return;
+      
+      const { targetUserId } = data;
+      console.log(`[Socket] ${socket.username} ended call with ${targetUserId}`);
+      
+      // Notify other party
+      io.to(`user-${targetUserId}`).emit('call:ended', {
+        endedBy: socket.userId,
+        endedByName: socket.username
       });
     });
 

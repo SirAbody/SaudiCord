@@ -50,8 +50,11 @@ class SocketService {
         this.connectionAttempts = 0;
         this.reconnectAttempts = 0;
         
-        // Send authentication
+        // Send authentication - using 'authenticate' event as backend expects
         if (token) {
+          console.log('[Socket] Sending authentication token');
+          this.socket.emit('authenticate', token);
+          // Also emit old 'auth' for compatibility
           this.socket.emit('auth', { token });
         }
         

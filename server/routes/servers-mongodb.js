@@ -155,6 +155,36 @@ router.patch('/:serverId', auth, async (req, res) => {
   }
 });
 
+// Generate invite code for server
+router.post('/:serverId/invite', auth, async (req, res) => {
+  try {
+    const server = await Server.findById(req.params.serverId);
+    
+    if (!server) {
+      return res.status(404).json({ error: 'Server not found' });
+    }
+    
+    // Check if user is member
+    if (!server.isMember(req.userId)) {
+      return res.status(403).json({ error: 'You must be a member to create invites' });
+    }
+    
+    // Generate new invite code if doesn't exist or requested
+    if (!server.inviteCode || req.body.regenerate) {
+      server.generateInviteCode();
+      await server.save();
+    }
+    
+    res.json({ 
+      code: server.inviteCode,
+      url: `${process.env.CLIENT_URL || 'http://localhost:3000'}/invite/${server.inviteCode}`
+    });
+  } catch (error) {
+    console.error('[Servers] Error generating invite:', error);
+    res.status(500).json({ error: 'Failed to generate invite' });
+  }
+});
+
 // Delete server
 router.delete('/:serverId', auth, async (req, res) => {
   try {
@@ -199,6 +229,11 @@ router.delete('/:serverId', auth, async (req, res) => {
 // Get server members
 router.get('/:serverId/members', auth, async (req, res) => {
   try {
+    // Validate serverId
+    if (!req.params.serverId || req.params.serverId === 'undefined' || req.params.serverId === 'null') {
+      return res.status(400).json({ error: 'Invalid server ID' });
+    }
+    
     const server = await Server.findById(req.params.serverId)
       .populate('members.user', 'username displayName avatar status lastSeen bio');
     
@@ -229,6 +264,11 @@ router.get('/:serverId/members', auth, async (req, res) => {
 // Kick member
 router.delete('/:serverId/members/:memberId', auth, async (req, res) => {
   try {
+    // Validate serverId
+    if (!req.params.serverId || req.params.serverId === 'undefined' || req.params.serverId === 'null') {
+      return res.status(400).json({ error: 'Invalid server ID' });
+    }
+    
     const server = await Server.findById(req.params.serverId);
     
     if (!server) {
@@ -320,8 +360,13 @@ router.get('/invite/:inviteCode/info', async (req, res) => {
 // Get server roles
 router.get('/:serverId/roles', auth, async (req, res) => {
   try {
+    // Validate serverId
+    if (!req.params.serverId || req.params.serverId === 'undefined' || req.params.serverId === 'null') {
+      return res.status(400).json({ error: 'Invalid server ID' });
+    }
+    
     const roles = await Role.find({ server: req.params.serverId })
-      .sort({ position: -1 });
+      .sort({ position: 1 });
     
     res.json(roles);
   } catch (error) {
