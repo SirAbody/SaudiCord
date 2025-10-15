@@ -6,7 +6,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import CreateServerModal from '../modals/CreateServerModal';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
-import UserPresence from '../user/UserPresence';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
@@ -31,10 +30,12 @@ function ServerList() {
 
   // Auto-select first server if no server is selected
   useEffect(() => {
-    if (servers && servers.length > 0 && !currentServer) {
+    // Only auto-select if we have servers and no current server
+    // Don't auto-select if user manually deselected (went to dashboard)
+    if (servers && servers.length > 0 && !currentServer && location.pathname !== '/dashboard') {
       setCurrentServer(servers[0]);
     }
-  }, [servers, currentServer, setCurrentServer]);
+  }, [servers, location.pathname, currentServer, setCurrentServer]); // Added proper dependencies
 
 
   const handleHomeClick = () => {
@@ -65,9 +66,15 @@ function ServerList() {
       });
       
       toast.success('Server created successfully!');
+      
+      // IMPORTANT: Fetch servers first, then set current server
       await fetchServers(); // Reload servers list
-      // Set the new server as current server
-      setCurrentServer(response.data);
+      
+      // Wait a bit for state to update
+      setTimeout(() => {
+        setCurrentServer(response.data);
+      }, 100);
+      
       setShowCreateModal(false);
       setNewServerName('');
       setNewServerDescription('');
@@ -218,9 +225,6 @@ function ServerList() {
         }}
         server={selectedServerForSettings}
       />
-      
-      {/* User Presence at bottom */}
-      <UserPresence />
     </div>
   );
 }

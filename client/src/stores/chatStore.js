@@ -18,9 +18,15 @@ export const useChatStore = create((set, get) => ({
   fetchServers: async () => {
     try {
       const response = await axios.get('/servers/me');
-      set({ servers: response.data });
+      // Ensure we have an array
+      const serversData = Array.isArray(response.data) ? response.data : [];
+      console.log('[ChatStore] Fetched servers:', serversData.length);
+      set({ servers: serversData });
+      return serversData;
     } catch (error) {
       console.error('Failed to fetch servers:', error);
+      set({ servers: [] });
+      return [];
     }
   },
 
