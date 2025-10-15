@@ -1,5 +1,6 @@
 // Direct Messages Page Component
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   MagnifyingGlassIcon, 
   UserPlusIcon, 
@@ -21,6 +22,7 @@ import MessageContextMenu from '../components/chat/MessageContextMenu';
 import UserProfilePopup from '../components/user/UserProfilePopup';
 import CallInterface from '../components/call/CallInterface';
 import notificationService from '../services/notificationService';
+import messageCache from '../services/messageCache';
 // import webrtcService from '../services/webrtc';
 
 function DirectMessages() {
@@ -49,6 +51,9 @@ function DirectMessages() {
   const [activeTab, setActiveTab] = useState('online');
   const [contextMenu, setContextMenu] = useState(null);
   const [userProfilePopup, setUserProfilePopup] = useState(null);
+  const [friends, setFriends] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [conversations, setConversations] = useState([]);
 
   useEffect(() => {
     if (!user) {
