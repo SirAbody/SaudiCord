@@ -1,0 +1,205 @@
+/* Discord-like Custom Styles */
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(32, 34, 37, 0.6);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(32, 34, 37, 0.8);
+}
+
+/* Thin Scrollbar for Chat */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 7px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #202225;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 7px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #1a1b1e;
+}
+
+/* Discord Colors */
+:root {
+  --discord-dark: #36393f;
+  --discord-darker: #2f3136;
+  --discord-darkest: #202225;
+  --discord-light: #dcddde;
+  --discord-border: #202225;
+  --discord-hover: #34373c;
+  --discord-active: #393c43;
+  --discord-green: #3ba55d;
+  --discord-red: #ed4245;
+  --discord-blue: #5865f2;
+  --discord-yellow: #faa61a;
+}
+
+/* Discord Background Colors */
+.bg-discord-dark {
+  background-color: var(--discord-dark);
+}
+
+.bg-discord-darker {
+  background-color: var(--discord-darker);
+}
+
+.bg-discord-darkest {
+  background-color: var(--discord-darkest);
+}
+
+/* Role Pills */
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Message Hover Effects */
+.message-hover {
+  transition: background-color 50ms ease-out;
+}
+
+.message-hover:hover {
+  background-color: rgba(4, 4, 5, 0.07);
+}
+
+/* Discord Buttons */
+.discord-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.discord-button:hover {
+  filter: brightness(1.1);
+}
+
+.discord-button:active {
+  transform: translateY(1px);
+}
+
+/* Discord Input */
+.discord-input {
+  background-color: var(--discord-darkest);
+  border: 1px solid var(--discord-border);
+  border-radius: 8px;
+  color: var(--discord-light);
+  padding: 10px;
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.discord-input:focus {
+  border-color: var(--discord-blue);
+  outline: none;
+}
+
+/* Discord Modal Background */
+.discord-modal {
+  background-color: var(--discord-dark);
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(4, 4, 5, 0.15), 0 8px 16px rgba(0, 0, 0, 0.24);
+}
+
+/* Tooltip */
+.discord-tooltip {
+  background-color: #18191c;
+  color: #dcddde;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+  white-space: nowrap;
+}
+
+/* Status Indicators */
+.status-online {
+  background-color: var(--discord-green);
+}
+
+.status-idle {
+  background-color: var(--discord-yellow);
+}
+
+.status-dnd {
+  background-color: var(--discord-red);
+}
+
+.status-offline {
+  background-color: #747f8d;
+}
+
+/* Discord Mention */
+.discord-mention {
+  background-color: rgba(88, 101, 242, 0.3);
+  color: #949cf7;
+  padding: 0 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 50ms, color 50ms;
+}
+
+.discord-mention:hover {
+  background-color: #5865f2;
+  color: white;
+}
+
+/* Code Block */
+.discord-code {
+  background-color: #2f3136;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+}
+
+/* Inline Code */
+.discord-code-inline {
+  background-color: #2f3136;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.875rem;
+}

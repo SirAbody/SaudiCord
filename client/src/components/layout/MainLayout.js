@@ -11,11 +11,12 @@ import UserProfile from '../user/UserProfile';
 import CallModal from '../call/CallModal';
 import IncomingCallModal from '../call/IncomingCallModal';
 import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts';
+import MembersList from '../channel/MembersList';
 
 function MainLayout() {
   console.log('[MainLayout] Component rendering');
   const { user } = useAuthStore();
-  const { currentChannel } = useChatStore();
+  const { currentChannel, currentServer } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
   
   // Enable keyboard shortcuts
@@ -67,11 +68,17 @@ function MainLayout() {
             <div className="flex-1 flex">
               {currentChannel ? (
                 <>
-                  <ChatArea />
-                  {/* User List for current channel - TODO: Create UserList component */}
-                  {/* <div className="w-60 bg-background-secondary flex-shrink-0">
-                    <UserList />
-                  </div> */}
+                  {/* Chat Area - Takes remaining space */}
+                  <div className="flex-1">
+                    <ChatArea />
+                  </div>
+                  {/* Members List - Right Sidebar */}
+                  <div className="w-60 bg-gray-900 flex-shrink-0 border-l border-gray-800">
+                    <MembersList 
+                      serverId={currentServer?._id || currentServer?.id} 
+                      channelId={currentChannel?._id || currentChannel?.id}
+                    />
+                  </div>
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">

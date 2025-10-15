@@ -19,6 +19,8 @@ import socketService from '../services/socket';
 import MessageContextMenu from '../components/chat/MessageContextMenu';
 import UserProfilePopup from '../components/user/UserProfilePopup';
 import CallInterface from '../components/call/CallInterface';
+import messageCache from '../services/messageCache';
+import notificationService from '../services/notificationService';
 // import webrtcService from '../services/webrtc';
 
 function DirectMessages() {
@@ -404,10 +406,35 @@ function DirectMessages() {
 
   const loadMessages = async (userId) => {
     try {
-      const response = await axios.get(`/dm/${userId}`);
-      setMessages(response.data);
+      // Check cache first
+      const cachedMessages = messageCache.getMessages(userId, user?.id);
+      if (cachedMessages) {
+        console.log('[DM] Loading messages from cache');
+        setMessages(cachedMessages);
+        
+        // Still fetch fresh data in background
+        axios.get(`/dm/${userId}`).then(response => {
+          const freshMessages = response.data;
+          setMessages(freshMessages);
+          messageCache.setMessages(userId, user?.id, freshMessages);
+        }).catch(error => {
+          console.error('Failed to refresh messages:', error);
+        });
+      } else {
+        // No cache, fetch from server
+        const response = await axios.get(`/dm/${userId}`);
+        const freshMessages = response.data;
+        setMessages(freshMessages);
+        messageCache.setMessages(userId, user?.id, freshMessages);
+      }
     } catch (error) {
       console.error('Failed to load messages:', error);
+      // Try to use cache if available
+      const cachedMessages = messageCache.getMessages(userId, user?.id);
+      if (cachedMessages) {
+        setMessages(cachedMessages);
+        toast.error('Using cached messages - connection issue');
+      }
     }
   };
   
@@ -671,15 +698,27 @@ function DirectMessages() {
       endCall();
     }
   };
-
+  
   const selectConversation = (friend) => {
     setSelectedConversation(friend);
-    loadMessages(friend.id);
+    
+    // Show cached messages immediately for instant loading
+    const cachedMessages = messageCache.getMessages(friend.id || friend._id, user?.id);
+    if (cachedMessages) {
+      setMessages(cachedMessages);
+    } else {
+      setMessages([]); // Clear messages while loading
+    }
+    
+    // Load fresh messages
+    loadMessages(friend.id || friend._id);
   };
 
   const filteredFriends = friends.filter(friend => 
-    friend.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    friend.displayName?.toLowerCase().includes(searchQuery.toLowerCase())
+    (friend.username?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    friend.displayName?.toLowerCase().includes(searchQuery.toLowerCase())) && 
+    friend.friendshipStatus === 'accepted' && 
+    (activeTab === 'online' ? friend.status === 'online' : true)
   );
 
   return (
@@ -734,8 +773,8 @@ function DirectMessages() {
 
         {/* Content based on active tab */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Sidebar - Friends List with Glass Effect */}
-          <div className="w-64 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
+          {/* Sidebar - Friends List (Discord Style: 240px) */}
+          <div className="w-60 bg-gray-900 flex flex-col border-r border-gray-800 flex-shrink-0">
             {activeTab === 'addFriend' ? (
               // Add Friend Tab - Beautiful Design
               <div className="p-8">
@@ -914,8 +953,8 @@ function DirectMessages() {
             )}
           </div>
 
-          {/* Chat Area - Full Remaining Width */}
-          <div className="flex-1 flex flex-col min-w-0 bg-black/40">
+          {/* Chat Area - Full Remaining Width (Discord Style) */}
+          <div className="flex-1 flex flex-col min-w-0 bg-gray-700">
             {selectedConversation ? (
           <>
             {/* Chat Header - Modern Design */}

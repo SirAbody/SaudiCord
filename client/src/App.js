@@ -8,6 +8,8 @@ import MainLayout from './components/layout/MainLayout';
 import InvitePage from './pages/InvitePage';
 import { SocketProvider } from './contexts/SocketContext';
 import NotificationManager from './components/notifications/NotificationManager';
+import notificationService from './services/notificationService';
+import socketService from './services/socket';
 
 function App() {
   console.log('[App] Component mounting...');
@@ -36,6 +38,53 @@ function App() {
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - run only once on mount
+
+  // Setup global notification listeners
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const handleGlobalMessage = (data) => {
+      console.log('[App] Global message notification:', data);
+      notificationService.showMessageNotification({
+        senderName: data.senderName || data.from?.username || 'Someone',
+        message: data.content || data.message,
+        avatar: data.avatar || data.from?.avatar,
+        conversationId: data.conversationId
+      });
+    };
+
+    const handleFriendRequest = (data) => {
+      console.log('[App] Friend request notification:', data);
+      notificationService.showFriendRequestNotification({
+        username: data.from?.username || data.username,
+        avatar: data.from?.avatar || data.avatar
+      });
+    };
+
+    const handleServerMessage = (data) => {
+      console.log('[App] Server message notification:', data);
+      notificationService.showServerMessageNotification({
+        serverName: data.serverName,
+        channelName: data.channelName,
+        senderName: data.senderName,
+        message: data.content || data.message,
+        avatar: data.avatar,
+        channelId: data.channelId,
+        isMention: data.isMention || false
+      });
+    };
+
+    // Listen for global socket events
+    socketService.on('dm:receive', handleGlobalMessage);
+    socketService.on('friend:request:received', handleFriendRequest);
+    socketService.on('channel:message', handleServerMessage);
+
+    return () => {
+      socketService.off('dm:receive', handleGlobalMessage);
+      socketService.off('friend:request:received', handleFriendRequest);
+      socketService.off('channel:message', handleServerMessage);
+    };
+  }, [isAuthenticated]);
 
   // Show loading screen during initial load
   if (initialLoad) {
