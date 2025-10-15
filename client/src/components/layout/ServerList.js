@@ -1,7 +1,7 @@
 // Server List Component
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from '../../utils/axios';
+import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useChatStore } from '../../stores/chatStore';
 import { PlusIcon, HomeIcon } from '@heroicons/react/24/solid';
