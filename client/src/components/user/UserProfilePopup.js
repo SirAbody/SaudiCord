@@ -103,7 +103,7 @@ function UserProfilePopup({ user, position, onClose, onMessage }) {
       }}
     >
       {/* Banner Section */}
-      <div className="h-24 bg-gradient-to-br from-red-500 to-red-700 relative">
+      <div className="h-24 bg-gradient-to-br from-primary-500 to-primary-700 relative">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -124,7 +124,7 @@ function UserProfilePopup({ user, position, onClose, onMessage }) {
           <div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-gray-900 ${
             displayUser.status === 'online' ? 'bg-green-500' :
             displayUser.status === 'idle' ? 'bg-yellow-500' :
-            displayUser.status === 'dnd' ? 'bg-red-500' :
+            displayUser.status === 'dnd' ? 'bg-primary-500' :
             'bg-gray-500'
           }`} />
         </div>

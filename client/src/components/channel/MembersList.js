@@ -125,7 +125,7 @@ function MembersList({ serverId, channelId }) {
   if (loading) {
     return (
       <div className="w-60 bg-gray-900 p-4 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-red-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
       </div>
     );
   }
@@ -201,7 +201,7 @@ function MemberItem({ member, role }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full bg-red-500 flex items-center justify-center">
+            <div className="w-full h-full bg-primary-500 flex items-center justify-center">
               <span className="text-white text-sm font-semibold">
                 {displayName[0]?.toUpperCase()}
               </span>
@@ -257,12 +257,12 @@ function MemberItem({ member, role }) {
       {/* Icons (mic mute, etc) */}
       <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {member.isMuted && (
-          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L16.586 7l-1.929-1.929a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         )}
         {member.isDeafened && (
-          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
           </svg>
         )}

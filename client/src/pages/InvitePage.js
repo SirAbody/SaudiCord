@@ -77,7 +77,7 @@ function InvitePage() {
 
         {loading ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
             <p className="text-gray-400 mt-4">Loading server info...</p>
           </div>
         ) : (
@@ -88,7 +88,7 @@ function InvitePage() {
               </h1>
               {serverInfo?.name && (
                 <div className="bg-gray-900 rounded-lg p-4 mt-4">
-                  <h2 className="text-xl font-semibold text-red-400">
+                  <h2 className="text-xl font-semibold text-primary-400">
                     {serverInfo.name}
                   </h2>
                   {serverInfo.description && (
@@ -103,7 +103,7 @@ function InvitePage() {
               )}
               <div className="mt-4">
                 <p className="text-gray-500 text-sm">Invite Code:</p>
-                <code className="text-red-400 bg-gray-900 px-3 py-1 rounded inline-block mt-1">
+                <code className="text-primary-400 bg-gray-900 px-3 py-1 rounded inline-block mt-1">
                   {inviteCode}
                 </code>
               </div>
@@ -114,7 +114,7 @@ function InvitePage() {
               <button
                 onClick={handleJoin}
                 disabled={joining}
-                className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {joining ? (
                   <span className="flex items-center justify-center">

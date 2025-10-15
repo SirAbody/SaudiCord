@@ -51,7 +51,7 @@ function IncomingCallModal() {
         <div className="text-center mb-6">
           <div className="relative inline-block">
             <img
-              src={`https://ui-avatars.com/api/?name=${incomingCall.callerName}&background=FF0000&color=fff`}
+              src={`https://ui-avatars.com/api/?name=${incomingCall.callerName}&background=53FC18&color=fff`}
               alt={incomingCall.callerName}
               className="w-24 h-24 rounded-full mx-auto call-pulse"
             />
@@ -80,7 +80,7 @@ function IncomingCallModal() {
           {/* Reject Button */}
           <button
             onClick={handleReject}
-            className="p-4 bg-red-600 hover:bg-red-700 rounded-full transition-colors group"
+            className="p-4 bg-primary-600 hover:bg-primary-700 rounded-full transition-colors group"
             title="Reject call"
           >
             <XMarkIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />

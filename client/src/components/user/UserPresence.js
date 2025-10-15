@@ -15,7 +15,7 @@ function UserPresence() {
   const statusOptions = [
     { value: 'online', label: 'Online', color: 'bg-green-500' },
     { value: 'idle', label: 'Idle', color: 'bg-yellow-500' },
-    { value: 'dnd', label: 'Do Not Disturb', color: 'bg-red-500' },
+    { value: 'dnd', label: 'Do Not Disturb', color: 'bg-primary-500' },
     { value: 'invisible', label: 'Invisible', color: 'bg-gray-500' }
   ];
   
@@ -73,10 +73,10 @@ function UserPresence() {
   
   return (
     <>
-      <div className="p-2 bg-black border-t border-red-900/30">
+      <div className="p-2 bg-black border-t border-primary-900/30">
         <div className="flex items-center justify-between">
           <div 
-            className="flex items-center space-x-3 cursor-pointer hover:bg-red-900/10 rounded p-1 -m-1"
+            className="flex items-center space-x-3 cursor-pointer hover:bg-primary-900/10 rounded p-1 -m-1"
             onClick={() => setShowUserProfile(true)}
           >
             <div className="relative">
@@ -87,7 +87,7 @@ function UserPresence() {
                   className="w-8 h-8 rounded-full"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
                   <span className="text-sm text-white font-semibold">
                     {user.username?.[0]?.toUpperCase()}
                   </span>
@@ -110,7 +110,7 @@ function UserPresence() {
           </div>
         
         {/* Settings button */}
-        <button className="p-1 hover:bg-red-900/20 rounded">
+        <button className="p-1 hover:bg-primary-900/20 rounded">
           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -120,25 +120,25 @@ function UserPresence() {
       
       {/* Status menu */}
       {showStatusMenu && (
-        <div className="absolute bottom-16 left-2 bg-black/90 border border-red-900/30 rounded-lg shadow-lg py-2 z-50">
+        <div className="absolute bottom-16 left-2 bg-black/90 border border-primary-900/30 rounded-lg shadow-lg py-2 z-50">
           {statusOptions.map(option => (
             <button
               key={option.value}
               onClick={() => handleStatusChange(option.value)}
-              className="w-full px-4 py-2 flex items-center space-x-3 hover:bg-red-900/20 transition"
+              className="w-full px-4 py-2 flex items-center space-x-3 hover:bg-primary-900/20 transition"
             >
               <div className={`w-3 h-3 ${option.color} rounded-full`} />
               <span className="text-white text-sm">{option.label}</span>
             </button>
           ))}
           
-          <div className="border-t border-red-900/30 mt-2 pt-2 px-4">
+          <div className="border-t border-primary-900/30 mt-2 pt-2 px-4">
             <input
               type="text"
               placeholder="Set custom status..."
               value={customStatus}
               onChange={(e) => setCustomStatus(e.target.value)}
-              className="w-full bg-black/50 border border-red-900/30 text-white text-sm px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
+              className="w-full bg-black/50 border border-primary-900/30 text-white text-sm px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
         </div>

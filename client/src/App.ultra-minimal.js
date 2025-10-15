@@ -72,7 +72,7 @@ function Login({ onLogin }) {
         borderRadius: '8px',
         width: '300px'
       }}>
-        <h1 style={{ color: '#FF0000', marginBottom: '1rem', textAlign: 'center' }}>
+        <h1 style={{ color: '#53FC18', marginBottom: '1rem', textAlign: 'center' }}>
           SaudiCord
         </h1>
         <form onSubmit={handleSubmit}>
@@ -123,7 +123,7 @@ function Login({ onLogin }) {
             style={{
               width: '100%',
               padding: '0.5rem',
-              backgroundColor: loading ? '#666' : '#FF0000',
+              backgroundColor: loading ? '#666' : '#53FC18',
               color: 'white',
               border: 'none',
               borderRadius: '4px',

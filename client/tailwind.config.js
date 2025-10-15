@@ -20,12 +20,26 @@ module.exports = {
           800: '#727272',
           900: '#7e7e7e',
         },
-        // Red accent colors
+        // Kick Green accent colors
         accent: {
-          DEFAULT: '#FF0000',
-          dark: '#CC0000',
-          light: '#FF3333',
-          hover: '#FF1A1A',
+          DEFAULT: '#53FC18',
+          dark: '#2AB600',
+          light: '#6FFF3B',
+          hover: '#3DD80A',
+        },
+        // Primary green colors (Kick brand)
+        primary: {
+          DEFAULT: '#53FC18',
+          50: 'rgba(83, 252, 24, 0.05)',
+          100: 'rgba(83, 252, 24, 0.1)',
+          200: 'rgba(83, 252, 24, 0.2)',
+          300: 'rgba(83, 252, 24, 0.3)',
+          400: '#8FFF5F',
+          500: '#53FC18',
+          600: '#3DD80A',
+          700: '#2AB600',
+          800: '#1F7A00',
+          900: '#165700',
         },
         // Background colors for dark theme
         background: {

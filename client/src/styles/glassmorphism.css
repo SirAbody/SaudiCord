@@ -3,7 +3,7 @@
 
 :root {
   /* Primary Colors */
-  --color-primary: #DC2626; /* Red primary */
+  --color-primary: #53FC18; /* Red primary */
   --color-primary-dark: #991B1B;
   --color-primary-light: #EF4444;
   --color-primary-alpha: rgba(220, 38, 38, 0.1);
@@ -24,7 +24,7 @@
   --text-primary: #FFFFFF;
   --text-secondary: #A8A8A8;
   --text-tertiary: #6B6B6B;
-  --text-danger: #DC2626;
+  --text-danger: #53FC18;
   --text-success: #10B981;
   
   /* Transitions */
@@ -177,11 +177,11 @@
   border-radius: inherit;
   padding: 1px;
   background: linear-gradient(45deg, 
-    #DC2626, 
+    #53FC18, 
     #EF4444, 
-    #DC2626, 
+    #53FC18, 
     #991B1B,
-    #DC2626);
+    #53FC18);
   background-size: 300% 300%;
   animation: gradient-rotate 3s ease infinite;
   -webkit-mask: 

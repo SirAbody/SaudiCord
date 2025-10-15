@@ -69,7 +69,7 @@ function CallModal() {
           <div className="flex items-center">
             <div className="relative">
               <img
-                src={`https://ui-avatars.com/api/?name=${currentCall.targetUser.username}&background=FF0000&color=fff`}
+                src={`https://ui-avatars.com/api/?name=${currentCall.targetUser.username}&background=53FC18&color=fff`}
                 alt={currentCall.targetUser.username}
                 className="w-10 h-10 rounded-full"
               />
@@ -127,7 +127,7 @@ function CallModal() {
               <div className="text-center">
                 <div className="mb-8">
                   <img
-                    src={`https://ui-avatars.com/api/?name=${currentCall.targetUser.username}&background=FF0000&color=fff`}
+                    src={`https://ui-avatars.com/api/?name=${currentCall.targetUser.username}&background=53FC18&color=fff`}
                     alt={currentCall.targetUser.username}
                     className="w-32 h-32 rounded-full mx-auto mb-4"
                   />
@@ -219,7 +219,7 @@ function CallModal() {
             {/* End Call */}
             <button
               onClick={handleEndCall}
-              className="p-3 bg-red-600 hover:bg-red-700 rounded-full transition-colors"
+              className="p-3 bg-primary-600 hover:bg-primary-700 rounded-full transition-colors"
               title="End call"
             >
               <PhoneIcon className="w-6 h-6 text-white transform rotate-135" />

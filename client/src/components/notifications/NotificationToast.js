@@ -62,7 +62,7 @@ const NotificationToast = ({ notification, onClose }) => {
           title: 'Incoming Call',
           message: `${notification.from.displayName || notification.from.username} is calling you`,
           icon: '📞',
-          color: 'bg-red-500'
+          color: 'bg-primary-500'
         };
       default:
         return {
@@ -89,7 +89,7 @@ const NotificationToast = ({ notification, onClose }) => {
       <div className="fixed top-4 right-4 z-50 max-w-sm">
         <div
           onClick={handleClick}
-          className="bg-black/95 border border-red-900/30 rounded-lg shadow-xl p-4 cursor-pointer hover:bg-black/90 transition"
+          className="bg-black/95 border border-primary-900/30 rounded-lg shadow-xl p-4 cursor-pointer hover:bg-black/90 transition"
         >
           <div className="flex items-start">
             <div className={`${content.color} rounded-lg p-2 mr-3`}>

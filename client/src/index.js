@@ -54,17 +54,17 @@ try {
           style: {
             background: '#1e1e1e',
             color: '#fff',
-            border: '1px solid #FF0000',
+            border: '1px solid #53FC18',
           },
           success: {
             iconTheme: {
-              primary: '#FF0000',
+              primary: '#53FC18',
               secondary: '#fff',
             },
           },
           error: {
             iconTheme: {
-              primary: '#FF0000',
+              primary: '#53FC18',
               secondary: '#fff',
             },
           },

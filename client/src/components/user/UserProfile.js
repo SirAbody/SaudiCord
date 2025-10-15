@@ -59,7 +59,7 @@ function UserProfile({ onClose }) {
   const statusOptions = [
     { value: 'online', label: 'Online', color: 'bg-green-500' },
     { value: 'idle', label: 'Idle', color: 'bg-yellow-500' },
-    { value: 'dnd', label: 'Do Not Disturb', color: 'bg-red-500' },
+    { value: 'dnd', label: 'Do Not Disturb', color: 'bg-primary-500' },
     { value: 'offline', label: 'Invisible', color: 'bg-gray-500' }
   ];
 
@@ -82,7 +82,7 @@ function UserProfile({ onClose }) {
           <div className="relative -mt-16 mb-4">
             <div className="relative inline-block">
               <img
-                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=FF0000&color=fff`}
+                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=53FC18&color=fff`}
                 alt={user?.username}
                 className="w-32 h-32 rounded-full border-4 border-background-secondary"
               />
@@ -198,7 +198,7 @@ function UserProfile({ onClose }) {
             <div className="flex justify-between pt-4">
               <button
                 onClick={handleLogout}
-                className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
               >
                 <ArrowRightOnRectangleIcon className="w-5 h-5 mr-2" />
                 Logout

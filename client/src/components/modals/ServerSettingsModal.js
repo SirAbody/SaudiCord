@@ -163,18 +163,18 @@ function ServerSettingsModal({ show, onClose, server }) {
 
   return (
     <div className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 ${show ? 'flex' : 'hidden'} items-center justify-center`}>
-      <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl w-full max-w-4xl h-[80vh] flex overflow-hidden shadow-2xl border border-red-900/30">
+      <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl w-full max-w-4xl h-[80vh] flex overflow-hidden shadow-2xl border border-primary-900/30">
         {/* Sidebar with Modern Design */}
-        <div className="w-60 bg-black/60 backdrop-blur p-4 border-r border-red-900/20">
-          <h3 className="text-xs font-bold text-red-400 uppercase mb-4 tracking-wider">Server Settings</h3>
+        <div className="w-60 bg-black/60 backdrop-blur p-4 border-r border-primary-900/20">
+          <h3 className="text-xs font-bold text-primary-400 uppercase mb-4 tracking-wider">Server Settings</h3>
           
           <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('overview')}
               className={`w-full text-left px-4 py-2.5 rounded-lg flex items-center space-x-3 transition-all duration-200 ${
                 activeTab === 'overview' 
-                  ? 'bg-red-500/20 text-white border border-red-500/30 shadow-lg shadow-red-500/10' 
-                  : 'text-gray-400 hover:bg-red-500/10 hover:text-white'
+                  ? 'bg-primary-500/20 text-white border border-primary-500/30 shadow-lg shadow-green-500/10' 
+                  : 'text-gray-400 hover:bg-primary-500/10 hover:text-white'
               }`}
             >
               <Cog6ToothIcon className="w-5 h-5" />
@@ -239,8 +239,8 @@ function ServerSettingsModal({ show, onClose, server }) {
                   onClick={() => setActiveTab('danger')}
                   className={`w-full flex items-center px-2 py-1.5 rounded text-sm ${
                     activeTab === 'danger' 
-                      ? 'bg-red-500/20 text-red-500' 
-                      : 'text-red-500 hover:bg-red-500/10'
+                      ? 'bg-primary-500/20 text-primary-500' 
+                      : 'text-primary-500 hover:bg-primary-500/10'
                   }`}
                 >
                   <TrashIcon className="w-4 h-4 mr-2" />
@@ -349,7 +349,7 @@ function ServerSettingsModal({ show, onClose, server }) {
                       </div>
                       <button
                         onClick={() => handleDeleteChannel(channel.id)}
-                        className="text-red-500 hover:text-red-400"
+                        className="text-primary-500 hover:text-primary-400"
                       >
                         <TrashIcon className="w-4 h-4" />
                       </button>
@@ -381,7 +381,7 @@ function ServerSettingsModal({ show, onClose, server }) {
                       {member.id !== user.id && isOwner && (
                         <button
                           onClick={() => handleKickMember(member.id)}
-                          className="text-red-500 hover:text-red-400"
+                          className="text-primary-500 hover:text-primary-400"
                         >
                           Kick
                         </button>
@@ -435,8 +435,8 @@ function ServerSettingsModal({ show, onClose, server }) {
 
             {activeTab === 'danger' && isOwner && (
               <div className="space-y-6">
-                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded">
-                  <h3 className="text-red-500 font-bold mb-2">Delete Server</h3>
+                <div className="p-4 bg-primary-500/10 border border-primary-500/30 rounded">
+                  <h3 className="text-primary-500 font-bold mb-2">Delete Server</h3>
                   <p className="text-gray-400 mb-4">
                     Once you delete a server, there is no going back. All channels, messages, and settings will be permanently deleted.
                   </p>
@@ -444,7 +444,7 @@ function ServerSettingsModal({ show, onClose, server }) {
                   {!showDeleteConfirm ? (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                      className="px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600"
                     >
                       Delete This Server
                     </button>
@@ -462,7 +462,7 @@ function ServerSettingsModal({ show, onClose, server }) {
                         <button
                           onClick={handleDeleteServer}
                           disabled={deleteConfirmInput !== server.name}
-                          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                          className="px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 disabled:opacity-50"
                         >
                           Delete Server
                         </button>

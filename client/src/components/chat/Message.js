@@ -44,7 +44,7 @@ function Message({ message, isOwn, grouped }) {
         {/* Avatar - only show if not grouped */}
         {!grouped && (
           <img
-            src={message.author.avatar || `https://ui-avatars.com/api/?name=${message.author.username}&background=FF0000&color=fff`}
+            src={message.author.avatar || `https://ui-avatars.com/api/?name=${message.author.username}&background=53FC18&color=fff`}
             alt={message.author.username}
             className="w-10 h-10 rounded-full mr-3 mt-0.5"
           />

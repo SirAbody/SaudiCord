@@ -345,7 +345,7 @@ function VoiceCallInterface({ channel, onClose }) {
                 className="w-20 h-20 rounded-full"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-red-500 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-primary-500 flex items-center justify-center">
                 <span className="text-3xl font-bold text-white">
                   {participant.username?.[0]?.toUpperCase()}
                 </span>
@@ -363,7 +363,7 @@ function VoiceCallInterface({ channel, onClose }) {
             </span>
             <div className="flex items-center gap-1">
               {participant.isMuted && (
-                <div className="p-1 bg-red-500 rounded">
+                <div className="p-1 bg-primary-500 rounded">
                   <MicrophoneIcon className="w-3 h-3 text-white" />
                 </div>
               )}
@@ -471,7 +471,7 @@ function VoiceCallInterface({ channel, onClose }) {
             <div className={`w-2 h-2 rounded-full ${
               connectionQuality === 'good' ? 'bg-green-500' :
               connectionQuality === 'connecting' ? 'bg-yellow-500' :
-              'bg-red-500'
+              'bg-primary-500'
             }`} />
             <span className="text-gray-400 text-sm">
               {participants.length} participant{participants.length !== 1 ? 's' : ''}
@@ -559,7 +559,7 @@ function VoiceCallInterface({ channel, onClose }) {
             onClick={toggleMute}
             className={`p-3 rounded-lg transition ${
               isMuted 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
+                ? 'bg-primary-500 text-white hover:bg-primary-600' 
                 : 'bg-gray-700 text-white hover:bg-gray-600'
             }`}
             title={isMuted ? "Unmute" : "Mute"}
@@ -577,7 +577,7 @@ function VoiceCallInterface({ channel, onClose }) {
             onClick={toggleDeafen}
             className={`p-3 rounded-lg transition ${
               isDeafened 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
+                ? 'bg-primary-500 text-white hover:bg-primary-600' 
                 : 'bg-gray-700 text-white hover:bg-gray-600'
             }`}
             title={isDeafened ? "Undeafen" : "Deafen"}
@@ -623,7 +623,7 @@ function VoiceCallInterface({ channel, onClose }) {
           {/* End call button */}
           <button
             onClick={handleEndCall}
-            className="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition ml-4"
+            className="p-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition ml-4"
             title="Leave Call"
           >
             <PhoneXMarkIcon className="w-6 h-6" />
@@ -692,7 +692,7 @@ function VoiceCallInterface({ channel, onClose }) {
           
           <button
             onClick={() => setShowSettings(false)}
-            className="mt-4 w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+            className="mt-4 w-full py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
           >
             Close Settings
           </button>

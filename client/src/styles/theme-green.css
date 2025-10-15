@@ -1,0 +1,216 @@
+/* KICK-STYLE GREEN THEME - Complete Color System */
+
+:root {
+  /* Primary Green Colors (Kick Brand) */
+  --kick-primary: #53FC18;
+  --kick-secondary: #3DD80A;
+  --kick-accent: #2AB600;
+  --kick-dark: #1F7A00;
+  --kick-darker: #165700;
+  --kick-light: #6FFF3B;
+  --kick-lighter: #8FFF5F;
+  
+  /* Background Colors */
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: rgba(83, 252, 24, 0.1);
+  --bg-active: rgba(83, 252, 24, 0.2);
+  
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --text-accent: #53FC18;
+  
+  /* Border Colors */
+  --border-primary: #53FC18;
+  --border-secondary: rgba(83, 252, 24, 0.3);
+  --border-hover: #3DD80A;
+  --border-focus: #53FC18;
+  
+  /* Shadow Colors */
+  --shadow-sm: 0 2px 4px rgba(83, 252, 24, 0.1);
+  --shadow-md: 0 4px 6px rgba(83, 252, 24, 0.15);
+  --shadow-lg: 0 10px 15px rgba(83, 252, 24, 0.2);
+  --shadow-xl: 0 20px 25px rgba(83, 252, 24, 0.25);
+  --shadow-glow: 0 0 20px rgba(83, 252, 24, 0.3);
+  --shadow-glow-strong: 0 0 30px rgba(83, 252, 24, 0.5);
+  
+  /* Gradient Colors */
+  --gradient-primary: linear-gradient(135deg, #53FC18 0%, #3DD80A 100%);
+  --gradient-secondary: linear-gradient(135deg, #3DD80A 0%, #2AB600 100%);
+  --gradient-hover: linear-gradient(135deg, #6FFF3B 0%, #53FC18 100%);
+  
+  /* Status Colors */
+  --status-online: #53FC18;
+  --status-idle: #FFA500;
+  --status-dnd: #F04747;
+  --status-offline: #747F8D;
+  
+  /* Interactive States */
+  --hover-color: #3DD80A;
+  --active-color: #2AB600;
+  --focus-color: #53FC18;
+  --disabled-color: rgba(83, 252, 24, 0.3);
+  
+  /* Glassmorphism */
+  --glass-bg: rgba(15, 15, 15, 0.8);
+  --glass-border: rgba(83, 252, 24, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(83, 252, 24, 0.1);
+}
+
+/* Override all red colors with green */
+.text-green-100 { color: rgba(83, 252, 24, 0.9) !important; }
+.text-green-200 { color: rgba(83, 252, 24, 0.8) !important; }
+.text-green-300 { color: rgba(83, 252, 24, 0.7) !important; }
+.text-primary-400 { color: #6FFF3B !important; }
+.text-primary-500 { color: #53FC18 !important; }
+.text-primary-600 { color: #3DD80A !important; }
+.text-primary-700 { color: #2AB600 !important; }
+.text-primary-800 { color: #1F7A00 !important; }
+.text-primary-900 { color: #165700 !important; }
+
+.bg-green-100 { background-color: rgba(83, 252, 24, 0.1) !important; }
+.bg-green-200 { background-color: rgba(83, 252, 24, 0.2) !important; }
+.bg-green-300 { background-color: rgba(83, 252, 24, 0.3) !important; }
+.bg-green-400 { background-color: rgba(83, 252, 24, 0.4) !important; }
+.bg-primary-500 { background-color: #53FC18 !important; }
+.bg-primary-600 { background-color: #3DD80A !important; }
+.bg-primary-700 { background-color: #2AB600 !important; }
+.bg-primary-800 { background-color: #1F7A00 !important; }
+.bg-primary-900 { background-color: #165700 !important; }
+
+.border-green-100 { border-color: rgba(83, 252, 24, 0.1) !important; }
+.border-green-200 { border-color: rgba(83, 252, 24, 0.2) !important; }
+.border-green-300 { border-color: rgba(83, 252, 24, 0.3) !important; }
+.border-green-400 { border-color: rgba(83, 252, 24, 0.4) !important; }
+.border-primary-500 { border-color: #53FC18 !important; }
+.border-primary-600 { border-color: #3DD80A !important; }
+.border-primary-700 { border-color: #2AB600 !important; }
+.border-primary-800 { border-color: #1F7A00 !important; }
+.border-primary-900 { border-color: #165700 !important; }
+
+/* Hover states */
+.hover\:bg-green-100:hover { background-color: rgba(83, 252, 24, 0.1) !important; }
+.hover\:bg-green-200:hover { background-color: rgba(83, 252, 24, 0.2) !important; }
+.hover\:bg-green-300:hover { background-color: rgba(83, 252, 24, 0.3) !important; }
+.hover\:bg-green-400:hover { background-color: rgba(83, 252, 24, 0.4) !important; }
+.hover\:bg-primary-500:hover { background-color: #53FC18 !important; }
+.hover\:bg-primary-600:hover { background-color: #3DD80A !important; }
+.hover\:bg-primary-700:hover { background-color: #2AB600 !important; }
+
+.hover\:text-green-300:hover { color: rgba(83, 252, 24, 0.7) !important; }
+.hover\:text-primary-400:hover { color: #6FFF3B !important; }
+.hover\:text-primary-500:hover { color: #53FC18 !important; }
+.hover\:text-primary-600:hover { color: #3DD80A !important; }
+
+.hover\:border-green-400:hover { border-color: rgba(83, 252, 24, 0.4) !important; }
+.hover\:border-primary-500:hover { border-color: #53FC18 !important; }
+.hover\:border-primary-600:hover { border-color: #3DD80A !important; }
+
+/* Focus states */
+.focus\:ring-primary-500:focus { 
+  --tw-ring-color: #53FC18 !important;
+}
+
+.focus\:border-primary-500:focus { 
+  border-color: #53FC18 !important;
+}
+
+/* Shadow colors */
+.shadow-green-500\/30 {
+  --tw-shadow-color: rgba(83, 252, 24, 0.3) !important;
+}
+
+.shadow-green-500\/20 {
+  --tw-shadow-color: rgba(83, 252, 24, 0.2) !important;
+}
+
+.shadow-green-900\/20 {
+  --tw-shadow-color: rgba(22, 87, 0, 0.2) !important;
+}
+
+/* Primary color classes */
+.text-primary-500 { color: #53FC18 !important; }
+.bg-primary-500 { background-color: #53FC18 !important; }
+.border-primary-500 { border-color: #53FC18 !important; }
+
+/* Custom animations with green */
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(83, 252, 24, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(83, 252, 24, 0);
+  }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Glow effects */
+.glow-green {
+  box-shadow: 0 0 20px rgba(83, 252, 24, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-green:hover {
+  box-shadow: 0 0 30px rgba(83, 252, 24, 0.5);
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(83, 252, 24, 0.3);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: rgba(83, 252, 24, 0.3);
+  color: #ffffff;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar-thumb {
+  background-color: #2AB600;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #3DD80A;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #1a1a1a;
+}
+
+/* Input focus glow */
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(83, 252, 24, 0.1);
+  border-color: #53FC18 !important;
+}
+
+/* Button styles */
+.btn-primary {
+  background-color: #53FC18 !important;
+  color: #000000 !important;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #3DD80A !important;
+  box-shadow: 0 0 20px rgba(83, 252, 24, 0.3);
+}
+
+.btn-secondary {
+  background-color: transparent !important;
+  border: 1px solid #53FC18 !important;
+  color: #53FC18 !important;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(83, 252, 24, 0.1) !important;
+  box-shadow: 0 0 15px rgba(83, 252, 24, 0.2);
+}

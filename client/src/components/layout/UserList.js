@@ -45,14 +45,14 @@ function UserList() {
     switch (status) {
       case 'online': return 'bg-green-500';
       case 'idle': return 'bg-yellow-500';
-      case 'dnd': return 'bg-red-500';
+      case 'dnd': return 'bg-primary-500';
       default: return 'bg-gray-500';
     }
   };
 
   const getRoleColor = (role) => {
     switch (role) {
-      case 'Owner': return 'text-red-400';
+      case 'Owner': return 'text-primary-400';
       case 'Moderator': return 'text-purple-400';
       default: return 'text-text-secondary';
     }
@@ -66,7 +66,7 @@ function UserList() {
     <button className="w-full px-2 py-1.5 flex items-center hover:bg-dark-400/50 rounded group transition-colors">
       <div className="relative">
         <img
-          src={user.avatar || `https://ui-avatars.com/api/?name=${user.username}&background=FF0000&color=fff`}
+          src={user.avatar || `https://ui-avatars.com/api/?name=${user.username}&background=53FC18&color=fff`}
           alt={user.username}
           className="w-8 h-8 rounded-full"
         />

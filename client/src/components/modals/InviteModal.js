@@ -93,7 +93,7 @@ function InviteModal({ server, onClose }) {
         {/* Invite Link Section */}
         {loading ? (
           <div className="py-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
             <p className="text-gray-400 mt-4">Loading invite link...</p>
           </div>
         ) : (
@@ -107,7 +107,7 @@ function InviteModal({ server, onClose }) {
                   type="text"
                   value={inviteLink}
                   readOnly
-                  className="flex-1 bg-gray-800 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="flex-1 bg-gray-800 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                   onClick={(e) => e.target.select()}
                 />
                 <button
@@ -150,7 +150,7 @@ function InviteModal({ server, onClose }) {
                 <p className="text-gray-400 text-sm">
                   You can also share this server via Discord-style link:
                 </p>
-                <code className="block mt-2 text-red-400 bg-gray-800 px-3 py-2 rounded">
+                <code className="block mt-2 text-primary-400 bg-gray-800 px-3 py-2 rounded">
                   saudicord.com/invite/{inviteCode}
                 </code>
               </div>

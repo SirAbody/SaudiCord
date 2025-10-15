@@ -74,7 +74,7 @@ const ContextMenu = ({
             label: 'Delete Server',
             icon: TrashIcon,
             action: 'delete',
-            className: 'text-red-400 hover:text-red-300',
+            className: 'text-primary-400 hover:text-green-300',
             disabled: !data?.isOwner
           }
         ];
@@ -96,7 +96,7 @@ const ContextMenu = ({
             label: 'Remove Friend',
             icon: UserMinusIcon,
             action: 'remove',
-            className: 'text-red-400 hover:text-red-300'
+            className: 'text-primary-400 hover:text-green-300'
           }
         ];
       
@@ -121,7 +121,7 @@ const ContextMenu = ({
               label: 'Delete Channel',
               icon: TrashIcon,
               action: 'delete',
-              className: 'text-red-400 hover:text-red-300'
+              className: 'text-primary-400 hover:text-green-300'
             }
           );
         }
@@ -160,19 +160,19 @@ const ContextMenu = ({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-black/95 border border-red-900/30 rounded-lg shadow-xl py-2 min-w-[200px]"
+      className="fixed z-50 bg-black/95 border border-primary-900/30 rounded-lg shadow-xl py-2 min-w-[200px]"
       style={adjustedPosition}
     >
       {menuItems.map((item, index) => {
         if (item.divider) {
           return (
-            <div key={`divider-${index}`} className="border-t border-red-900/30 my-1" />
+            <div key={`divider-${index}`} className="border-t border-primary-900/30 my-1" />
           );
         }
 
         const Icon = item.icon;
         const itemClass = `
-          flex items-center px-3 py-2 hover:bg-red-500/20 cursor-pointer transition
+          flex items-center px-3 py-2 hover:bg-primary-500/20 cursor-pointer transition
           ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}
           ${item.className || 'text-gray-300 hover:text-white'}
         `;

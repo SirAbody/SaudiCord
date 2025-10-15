@@ -57,11 +57,11 @@ function SimpleLogin({ onLogin }) {
             className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
             required
           />
-          {error && <div className="text-red-500 mb-4">{error}</div>}
+          {error && <div className="text-primary-500 mb-4">{error}</div>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+            className="w-full p-2 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
           >
             {loading ? 'Loading...' : 'Login'}
           </button>

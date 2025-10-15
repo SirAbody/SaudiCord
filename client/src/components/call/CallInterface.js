@@ -93,9 +93,9 @@ function CallInterface({
     // Incoming call UI
     return (
       <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
-        <div className="bg-gray-900 rounded-lg p-8 max-w-md w-full border border-red-500/30">
+        <div className="bg-gray-900 rounded-lg p-8 max-w-md w-full border border-primary-500/30">
           <div className="text-center">
-            <div className="w-24 h-24 mx-auto bg-red-500 rounded-full flex items-center justify-center mb-4">
+            <div className="w-24 h-24 mx-auto bg-primary-500 rounded-full flex items-center justify-center mb-4">
               {targetUser.avatar ? (
                 <img src={targetUser.avatar} alt="" className="w-full h-full rounded-full" />
               ) : (
@@ -128,7 +128,7 @@ function CallInterface({
                 onClick={() => {
                   onReject();
                 }}
-                className="p-4 bg-red-500 hover:bg-red-600 rounded-full transition"
+                className="p-4 bg-primary-500 hover:bg-primary-600 rounded-full transition"
               >
                 <PhoneXMarkIcon className="w-6 h-6 text-white" />
               </button>
@@ -170,7 +170,7 @@ function CallInterface({
       {callType === 'voice' && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-32 h-32 mx-auto bg-red-500 rounded-full flex items-center justify-center mb-4 animate-pulse">
+            <div className="w-32 h-32 mx-auto bg-primary-500 rounded-full flex items-center justify-center mb-4 animate-pulse">
               {targetUser.avatar ? (
                 <img src={targetUser.avatar} alt="" className="w-full h-full rounded-full" />
               ) : (
@@ -199,7 +199,7 @@ function CallInterface({
             <button
               onClick={handleMute}
               className={`p-4 rounded-full transition ${
-                isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'
+                isMuted ? 'bg-primary-500 hover:bg-primary-600' : 'bg-gray-700 hover:bg-gray-600'
               }`}
             >
               {isMuted ? (
@@ -214,7 +214,7 @@ function CallInterface({
               <button
                 onClick={handleVideoToggle}
                 className={`p-4 rounded-full transition ${
-                  isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'
+                  isVideoOff ? 'bg-primary-500 hover:bg-primary-600' : 'bg-gray-700 hover:bg-gray-600'
                 }`}
               >
                 {isVideoOff ? (
@@ -229,7 +229,7 @@ function CallInterface({
             <button
               onClick={handleSpeakerToggle}
               className={`p-4 rounded-full transition ${
-                isSpeakerOff ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-700 hover:bg-gray-600'
+                isSpeakerOff ? 'bg-primary-500 hover:bg-primary-600' : 'bg-gray-700 hover:bg-gray-600'
               }`}
             >
               {isSpeakerOff ? (
@@ -252,7 +252,7 @@ function CallInterface({
             {/* End Call */}
             <button
               onClick={handleEndCall}
-              className="p-4 bg-red-600 hover:bg-red-700 rounded-full transition ml-8"
+              className="p-4 bg-primary-600 hover:bg-primary-700 rounded-full transition ml-8"
             >
               <PhoneXMarkIcon className="w-6 h-6 text-white" />
             </button>

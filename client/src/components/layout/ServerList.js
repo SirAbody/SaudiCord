@@ -166,7 +166,7 @@ function ServerList() {
         {/* Home/DM Button - SaudiCord Logo */}
         <button 
           onClick={handleHomeClick}
-          className={`w-12 h-12 ${location.pathname === '/dashboard' ? 'bg-red-500 rounded-2xl' : 'bg-black/50 border border-red-900/30 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
+          className={`w-12 h-12 ${location.pathname === '/dashboard' ? 'bg-primary-500 rounded-2xl' : 'bg-black/50 border border-primary-900/30 hover:bg-primary-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
           title="Direct Messages"
         >
           <img 
@@ -176,7 +176,7 @@ function ServerList() {
           />
         </button>
       
-      <div className="w-8 h-0.5 bg-red-900/30 rounded-full mx-auto"></div>
+      <div className="w-8 h-0.5 bg-primary-900/30 rounded-full mx-auto"></div>
       
       {/* Server Icons - Remove duplicates using Set */}
       {[...new Map(servers?.map(server => [server._id || server.id, server])).values()]?.map((server) => (
@@ -186,8 +186,8 @@ function ServerList() {
             onContextMenu={(e) => handleServerRightClick(e, server)}
             className={`relative w-12 h-12 rounded-3xl hover:rounded-2xl transition-all duration-200 flex items-center justify-center ${
               (currentServer?._id === server._id) || (currentServer?.id === server.id)
-                ? 'bg-red-500 text-white rounded-2xl'
-                : 'bg-black/50 border border-red-900/30 hover:bg-red-500'
+                ? 'bg-primary-500 text-white rounded-2xl'
+                : 'bg-black/50 border border-primary-900/30 hover:bg-primary-500'
             }`}
           >
             {/* Server Icon or Letter */}
@@ -200,7 +200,7 @@ function ServerList() {
             )}
             
             {/* Active Indicator */}
-            <span className="absolute left-0 w-1 h-8 bg-red-500 rounded-r-full -ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+            <span className="absolute left-0 w-1 h-8 bg-primary-500 rounded-r-full -ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></span>
           </button>
           
           {/* Settings Button on Hover */}
@@ -210,9 +210,9 @@ function ServerList() {
                 setSelectedServerForSettings(server);
                 setShowSettingsModal(true);
               }}
-              className="absolute -right-1 -top-1 w-5 h-5 bg-black rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-900/30"
+              className="absolute -right-1 -top-1 w-5 h-5 bg-black rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary-900/30"
             >
-              <Cog6ToothIcon className="w-3 h-3 text-red-400" />
+              <Cog6ToothIcon className="w-3 h-3 text-primary-400" />
             </button>
           )}
         </div>
@@ -220,16 +220,16 @@ function ServerList() {
         {/* Add Server Button */}
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="w-12 h-12 bg-black/50 border border-red-900/30 hover:bg-red-500 hover:rounded-2xl rounded-3xl transition-all duration-200 flex items-center justify-center group"
+          className="w-12 h-12 bg-black/50 border border-primary-900/30 hover:bg-primary-500 hover:rounded-2xl rounded-3xl transition-all duration-200 flex items-center justify-center group"
         >
-          <PlusIcon className="w-6 h-6 text-red-400 group-hover:text-white" />
+          <PlusIcon className="w-6 h-6 text-primary-400 group-hover:text-white" />
         </button>
       </div>
 
       {/* Create Server Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-black/90 border border-red-900/30 rounded-lg p-6 w-96">
+          <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-text-primary">Create a Server</h2>
               <button
@@ -276,7 +276,7 @@ function ServerList() {
                 </button>
                 <button
                   onClick={handleCreateServer}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition disabled:opacity-50"
                   disabled={creating}
                 >
                   {creating ? 'Creating...' : 'Create Server'}

@@ -257,7 +257,7 @@ function ChannelList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-red-900/30">
+      <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-primary-900/30">
         <h2 className="font-bold text-text-primary">
           {currentServer ? currentServer.name : 'Select a Server'}
         </h2>
@@ -265,7 +265,7 @@ function ChannelList() {
           {currentServer && (
             <button
               onClick={() => setShowInviteModal(true)}
-              className="p-1 hover:bg-red-900/20 rounded transition"
+              className="p-1 hover:bg-primary-900/20 rounded transition"
               title="Invite People"
             >
               <UserPlusIcon className="w-4 h-4 text-text-secondary" />
@@ -297,8 +297,8 @@ function ChannelList() {
             <button
               key={channel.id}
               onClick={() => handleChannelClick(channel)}
-              className={`w-full px-2 py-1 flex items-center text-gray-400 hover:text-white hover:bg-red-900/20 rounded transition-colors ${
-                currentChannel?.id === channel.id ? 'bg-red-900/30 text-white' : ''
+              className={`w-full px-2 py-1 flex items-center text-gray-400 hover:text-white hover:bg-primary-900/20 rounded transition-colors ${
+                currentChannel?.id === channel.id ? 'bg-primary-900/30 text-white' : ''
               }`}
             >
               <HashtagIcon className="w-5 h-5 mr-1.5 text-gray-500" />
@@ -332,8 +332,8 @@ function ChannelList() {
               <div key={channel.id} className="mb-1">
                 <button
                   onClick={() => handleChannelClick(channel)}
-                  className={`w-full px-2 py-1 flex items-center text-gray-400 hover:text-white hover:bg-red-900/20 rounded transition-colors ${
-                    isActive ? 'bg-red-900/30 text-white' : ''
+                  className={`w-full px-2 py-1 flex items-center text-gray-400 hover:text-white hover:bg-primary-900/20 rounded transition-colors ${
+                    isActive ? 'bg-primary-900/30 text-white' : ''
                   }`}
                 >
                   <SpeakerWaveIcon className="w-5 h-5 mr-1.5 text-gray-500" />
@@ -346,10 +346,10 @@ function ChannelList() {
                         toast.success('Left voice channel');
                         setActiveVoiceChannel(null);
                       }}
-                      className="p-1 hover:bg-red-500/20 rounded"
+                      className="p-1 hover:bg-primary-500/20 rounded"
                       title="Leave Channel"
                     >
-                      <PhoneXMarkIcon className="w-4 h-4 text-red-500" />
+                      <PhoneXMarkIcon className="w-4 h-4 text-primary-500" />
                     </button>
                   )}
                 </button>
@@ -362,7 +362,7 @@ function ChannelList() {
                         key={user.id}
                         className={`flex items-center space-x-2 px-2 py-1 rounded text-xs ${
                           user.isSpeaking ? 'text-green-400' : 'text-gray-400'
-                        } hover:bg-red-900/20 cursor-pointer group`}
+                        } hover:bg-primary-900/20 cursor-pointer group`}
                       >
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
@@ -375,7 +375,7 @@ function ChannelList() {
                               }`}
                             />
                           ) : (
-                            <div className={`w-6 h-6 rounded-full bg-red-500 flex items-center justify-center ${
+                            <div className={`w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center ${
                               user.isSpeaking ? 'ring-2 ring-green-500' : ''
                             }`}>
                               <span className="text-[10px] text-white font-bold">
@@ -402,12 +402,12 @@ function ChannelList() {
                         {/* Status Icons */}
                         <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100">
                           {user.isMuted && (
-                            <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-3 h-3 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                           )}
                           {user.isDeafened && (
-                            <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-3 h-3 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -425,7 +425,7 @@ function ChannelList() {
       {/* Create Channel Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-black/90 border border-red-900/30 rounded-lg p-6 w-96">
+          <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-text-primary">
                 Create {channelType === 'text' ? 'Text' : 'Voice'} Channel
@@ -447,7 +447,7 @@ function ChannelList() {
                   <button
                     onClick={() => setChannelType('text')}
                     className={`flex-1 px-3 py-2 rounded flex items-center justify-center space-x-2 ${
-                      channelType === 'text' ? 'bg-red-500 text-white' : 'bg-black/50 border border-red-900/30 text-gray-400'
+                      channelType === 'text' ? 'bg-primary-500 text-white' : 'bg-black/50 border border-primary-900/30 text-gray-400'
                     }`}
                   >
                     <HashtagIcon className="w-4 h-4" />
@@ -456,7 +456,7 @@ function ChannelList() {
                   <button
                     onClick={() => setChannelType('voice')}
                     className={`flex-1 px-3 py-2 rounded flex items-center justify-center space-x-2 ${
-                      channelType === 'voice' ? 'bg-red-500 text-white' : 'bg-black/50 border border-red-900/30 text-gray-400'
+                      channelType === 'voice' ? 'bg-primary-500 text-white' : 'bg-black/50 border border-primary-900/30 text-gray-400'
                     }`}
                   >
                     <SpeakerWaveIcon className="w-4 h-4" />
@@ -486,7 +486,7 @@ function ChannelList() {
                   type="text"
                   value={newChannelDescription}
                   onChange={(e) => setNewChannelDescription(e.target.value)}
-                  className="w-full bg-black/50 border border-red-900/30 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full bg-black/50 border border-primary-900/30 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="What's this channel for?"
                 />
               </div>
@@ -494,14 +494,14 @@ function ChannelList() {
               <div className="flex space-x-3 pt-2">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-black/50 border border-red-900/30 text-gray-400 rounded hover:bg-red-900/20 hover:text-white transition"
+                  className="flex-1 px-4 py-2 bg-black/50 border border-primary-900/30 text-gray-400 rounded hover:bg-primary-900/20 hover:text-white transition"
                   disabled={creating}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateChannel}
-                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition disabled:opacity-50"
                   disabled={creating}
                 >
                   {creating ? 'Creating...' : 'Create Channel'}

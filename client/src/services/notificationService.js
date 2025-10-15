@@ -83,7 +83,7 @@ class NotificationService {
               {avatar ? (
                 <img className="h-10 w-10 rounded-full" src={avatar} alt="" />
               ) : (
-                <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-primary-500 flex items-center justify-center">
                   <span className="text-white font-semibold">
                     {senderName?.[0]?.toUpperCase()}
                   </span>
@@ -108,8 +108,8 @@ class NotificationService {
               toast.dismiss(t.id);
             }}
             className="w-full border border-transparent rounded-none rounded-r-lg p-4 
-              flex items-center justify-center text-sm font-medium text-red-400 
-              hover:text-red-300 hover:bg-gray-800 focus:outline-none"
+              flex items-center justify-center text-sm font-medium text-primary-400 
+              hover:text-green-300 hover:bg-gray-800 focus:outline-none"
           >
             View
           </button>

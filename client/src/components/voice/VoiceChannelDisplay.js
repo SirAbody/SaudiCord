@@ -243,7 +243,7 @@ function VoiceChannelDisplay({ channelId, channelName }) {
                     {user.displayName || user.username}
                   </span>
                   {user.id === 509 && (
-                    <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded">
+                    <span className="px-1.5 py-0.5 bg-primary-500 text-white text-[10px] font-bold rounded">
                       LIVE
                     </span>
                   )}
@@ -253,12 +253,12 @@ function VoiceChannelDisplay({ channelId, channelName }) {
               {/* Status icons */}
               <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {user.isMuted && (
-                  <div className="text-red-500" title="Muted">
+                  <div className="text-primary-500" title="Muted">
                     <MicrophoneIcon className="w-3.5 h-3.5" />
                   </div>
                 )}
                 {user.isDeafened && (
-                  <div className="text-red-500" title="Deafened">
+                  <div className="text-primary-500" title="Deafened">
                     <SpeakerWaveIcon className="w-3.5 h-3.5" />
                   </div>
                 )}
@@ -273,7 +273,7 @@ function VoiceChannelDisplay({ channelId, channelName }) {
             <button
               onClick={toggleMute}
               className={`p-2 rounded-full ${
-                isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-dark-700 hover:bg-dark-600'
+                isMuted ? 'bg-primary-500 hover:bg-primary-600' : 'bg-dark-700 hover:bg-dark-600'
               } transition-colors`}
               title={isMuted ? 'Unmute' : 'Mute'}
             >
@@ -283,7 +283,7 @@ function VoiceChannelDisplay({ channelId, channelName }) {
             <button
               onClick={toggleDeafen}
               className={`p-2 rounded-full ${
-                isDeafened ? 'bg-red-500 hover:bg-red-600' : 'bg-dark-700 hover:bg-dark-600'
+                isDeafened ? 'bg-primary-500 hover:bg-primary-600' : 'bg-dark-700 hover:bg-dark-600'
               } transition-colors`}
               title={isDeafened ? 'Undeafen' : 'Deafen'}
             >
