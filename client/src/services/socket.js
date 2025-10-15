@@ -156,7 +156,15 @@ class SocketService {
     this.socket.on('message:sent', (data) => {
       console.log('[Socket] Message sent confirmation:', data);
       const chatStore = useChatStore.getState();
-      if (data.tempId && data.messageId) {
+      if (data.tempId && data.message) {
+        // Replace the temporary message with the real one
+        const channelId = data.message.channelId;
+        chatStore.updateMessage(channelId, data.tempId, {
+          ...data.message,
+          pending: false
+        });
+      } else if (data.tempId && data.messageId) {
+        // Fallback for simple ID update
         chatStore.updateMessage(null, data.tempId, {
           id: data.messageId,
           pending: false

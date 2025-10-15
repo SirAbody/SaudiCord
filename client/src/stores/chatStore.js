@@ -107,6 +107,23 @@ export const useChatStore = create((set, get) => ({
     
     set((state) => {
       const currentMessages = state.messages[channelId] || [];
+      
+      // Check if this is an update to a temporary message
+      if (message.tempId) {
+        const tempIndex = currentMessages.findIndex(msg => msg.id === message.tempId);
+        if (tempIndex !== -1) {
+          // Replace temp message with real message
+          const updatedMessages = [...currentMessages];
+          updatedMessages[tempIndex] = { ...message, pending: false };
+          return {
+            messages: {
+              ...state.messages,
+              [channelId]: updatedMessages
+            }
+          };
+        }
+      }
+      
       // Check if message already exists (by ID)
       const messageExists = currentMessages.some(msg => msg.id === message.id);
       if (messageExists) {
@@ -124,15 +141,28 @@ export const useChatStore = create((set, get) => ({
   },
 
   // Update message
-  updateMessage: (channelId, messageId, updates) => {
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [channelId]: state.messages[channelId]?.map(msg =>
-          msg.id === messageId ? { ...msg, ...updates } : msg
-        ) || []
+  updateMessage: (channelId, tempId, updates) => {
+    set((state) => {
+      // If channelId is not provided, search all channels
+      if (!channelId) {
+        const newMessages = { ...state.messages };
+        Object.keys(newMessages).forEach(chId => {
+          newMessages[chId] = newMessages[chId].map(msg =>
+            (msg.id === tempId || msg.tempId === tempId) ? { ...msg, ...updates } : msg
+          );
+        });
+        return { messages: newMessages };
       }
-    }));
+      
+      return {
+        messages: {
+          ...state.messages,
+          [channelId]: state.messages[channelId]?.map(msg =>
+            (msg.id === tempId || msg.tempId === tempId) ? { ...msg, ...updates } : msg
+          ) || []
+        }
+      };
+    });
   },
 
   // Delete message

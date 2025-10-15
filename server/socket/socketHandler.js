@@ -206,6 +206,11 @@ module.exports = (io) => {
           return;
         }
         
+        // Make sure sender is in the channel room
+        if (!socket.rooms.has(`channel-${channelId}`)) {
+          socket.join(`channel-${channelId}`);
+        }
+        
         // Create message in database
         if (!Message || !User) {
           // If no database, create a simple message object
@@ -224,8 +229,16 @@ module.exports = (io) => {
             createdAt: new Date().toISOString()
           };
           
-          // Send to all in channel including sender
-          io.to(`channel-${channelId}`).emit('message:receive', simpleMessage);
+          // Send to everyone in the channel EXCEPT the sender
+          socket.broadcast.to(`channel-${channelId}`).emit('message:receive', simpleMessage);
+          
+          // Send confirmation back to sender with the message ID
+          socket.emit('message:sent', { 
+            tempId, 
+            messageId: simpleMessage.id,
+            message: simpleMessage 
+          });
+          
           console.log(`[Socket] Message sent to channel-${channelId}:`, simpleMessage);
           return;
         }
@@ -248,12 +261,16 @@ module.exports = (io) => {
           ]
         });
 
-        // Emit to all users in channel (including tempId for optimistic updates)
-        const messageWithTempId = { ...fullMessage.toJSON(), tempId };
-        io.to(`channel-${channelId}`).emit('message:receive', messageWithTempId);
+        // Emit to all OTHER users in channel (not the sender)
+        const messageData = fullMessage.toJSON();
+        socket.broadcast.to(`channel-${channelId}`).emit('message:receive', messageData);
         
-        // Also emit to sender for confirmation
-        socket.emit('message:sent', { tempId, messageId: message.id });
+        // Send confirmation back to sender with full message
+        socket.emit('message:sent', { 
+          tempId, 
+          messageId: message.id,
+          message: messageData 
+        });
         
         logger.debug('Message sent successfully', { 
           messageId: message.id, 
@@ -607,65 +624,7 @@ module.exports = (io) => {
       }
     });
     
-    // Voice channel join
-    socket.on('voice:join', async (data) => {
-      console.log('[Socket] User joining voice channel:', data);
-      socket.join(`voice-${data.channelId}`);
-      
-      // Track user in channel
-      if (!voiceChannelUsers[data.channelId]) {
-        voiceChannelUsers[data.channelId] = [];
-      }
-      
-      const userInfo = {
-        id: socket.user ? socket.user.id : socket.userId || socket.id,
-        username: socket.user ? socket.user.username : socket.username || 'Anonymous',
-        displayName: socket.user ? socket.user.displayName : socket.username || 'Anonymous',
-        avatar: socket.user ? socket.user.avatar : null,
-        isSpeaking: false,
-        isMuted: false,
-        isDeafened: false,
-        isVideo: false
-      };
-      
-      voiceChannelUsers[data.channelId].push(userInfo);
-      
-      // Emit updated user list to everyone in the channel
-      io.to(`voice-${data.channelId}`).emit('voice:users:update', {
-        channelId: data.channelId,
-        users: voiceChannelUsers[data.channelId]
-      });
-      
-      socket.broadcast.to(`voice-${data.channelId}`).emit('voice:user:joined', {
-        userId: user ? user.id : socket.id,
-        username: user ? user.username : 'Anonymous',
-        channelId: data.channelId
-      });
-    });
-    
-    // Voice channel leave
-    socket.on('voice:leave', async (data) => {
-      console.log('[Socket] User leaving voice channel:', data);
-      socket.leave(`voice-${data.channelId}`);
-      
-      // Remove user from channel
-      if (voiceChannelUsers[data.channelId]) {
-        const userId = user ? user.id : socket.id;
-        voiceChannelUsers[data.channelId] = voiceChannelUsers[data.channelId].filter(u => u.id !== userId);
-        
-        // Emit updated user list to everyone in the channel
-        io.to(`voice-${data.channelId}`).emit('voice:users:update', {
-          channelId: data.channelId,
-          users: voiceChannelUsers[data.channelId]
-        });
-      }
-      
-      socket.broadcast.to(`voice-${data.channelId}`).emit('voice:user:left', {
-        userId: user ? user.id : socket.id,
-        username: user ? user.username : 'Anonymous',
-        channelId: data.channelId
-      });
-    });
+    // Removed duplicate voice handlers - using the ones above
 
     // Handle disconnection - NO DATABASE CALLS
     socket.on('disconnect', (reason) => {

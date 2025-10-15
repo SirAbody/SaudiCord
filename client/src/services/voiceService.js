@@ -47,13 +47,17 @@ class VoiceService {
     socketService.on('voice:user:joined', async (data) => {
       console.log('[Voice] User joined:', data);
       // Don't create connection for ourselves
-      if (data.userId === localStorage.getItem('userId')) {
+      const currentUserId = localStorage.getItem('userId');
+      if (data.userId === currentUserId || data.userId === socketService.socket?.userId) {
         return;
       }
       
       if (this.currentChannelId && this.localStream) {
-        // Create offer for the new user
-        await this.createPeerConnection(data.userId, true);
+        // Small delay to ensure the new user is ready
+        setTimeout(async () => {
+          // Create offer for the new user
+          await this.createPeerConnection(data.userId, true);
+        }, 1000);
       }
     });
     
@@ -78,7 +82,12 @@ class VoiceService {
     socketService.on('webrtc:ice-candidate', async (data) => {
       const pc = this.peers.get(data.senderId);
       if (pc && data.candidate) {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+          console.log(`[Voice] Added ICE candidate from ${data.senderId}`);
+        } catch (error) {
+          console.error('[Voice] Error adding ICE candidate:', error);
+        }
       }
     });
     
@@ -158,12 +167,13 @@ class VoiceService {
       this.playRemoteAudio(userId, remoteStream);
     };
     
-    // Handle ICE candidates
+    // Handle ICE candidates with proper error handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log(`[Voice] Sending ICE candidate to ${userId}`);  
         socketService.emit('webrtc:ice-candidate', {
           targetUserId: userId,
-          candidate: event.candidate
+          candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
         });
       }
     };

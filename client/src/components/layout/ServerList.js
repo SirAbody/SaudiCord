@@ -5,9 +5,11 @@ import { useAuthStore } from '../../stores/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import CreateServerModal from '../modals/CreateServerModal';
+import ServerSettingsModal from '../modals/ServerSettingsModal';
 import UserPresence from '../user/UserPresence';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 
 function ServerList() {
   const navigate = useNavigate();
@@ -18,6 +20,8 @@ function ServerList() {
   const [newServerName, setNewServerName] = useState('');
   const [newServerDescription, setNewServerDescription] = useState('');
   const [creating, setCreating] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedServerForSettings, setSelectedServerForSettings] = useState(null);
 
   useEffect(() => {
     if (fetchServers) {
@@ -84,23 +88,47 @@ function ServerList() {
       <div className="w-8 h-0.5 bg-dark-400 rounded-full mx-auto"></div>
       
       {/* Server Icons */}
-      {servers.map(server => (
-        <button
-          key={server.id}
-          onClick={() => handleServerClick(server)}
-          className={`relative w-12 h-12 ${currentServer?.id === server.id ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group`}
-        >
-          {server.icon ? (
-            <img src={server.icon} alt={server.name} className="w-full h-full rounded-full" />
-          ) : (
-            <span className="text-text-primary font-bold group-hover:text-white">
-              {server.name.substring(0, 2).toUpperCase()}
-            </span>
-          )}
+      {servers?.map((server) => (
+        <div key={server.id} className="relative group">
+          <button
+            onClick={() => handleServerClick(server)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setSelectedServerForSettings(server);
+              setShowSettingsModal(true);
+            }}
+            className={`relative w-12 h-12 rounded-3xl hover:rounded-2xl transition-all duration-200 flex items-center justify-center ${
+              currentServer?.id === server.id
+                ? 'bg-red-500 text-white rounded-2xl'
+                : 'bg-gray-700 hover:bg-red-500'
+            }`}
+          >
+            {/* Server Icon or Letter */}
+            {server.icon ? (
+              <img src={server.icon} alt={server.name} className="w-full h-full rounded-full" />
+            ) : (
+              <span className="text-text-primary font-bold group-hover:text-white">
+                {server.name.substring(0, 2).toUpperCase()}
+              </span>
+            )}
+            
+            {/* Active Indicator */}
+            <span className="absolute left-0 w-1 h-8 bg-red-500 rounded-r-full -ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+          </button>
           
-          {/* Active Indicator */}
-          <span className="absolute left-0 w-1 h-8 bg-red-500 rounded-r-full -ml-1 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-        </button>
+          {/* Settings Button on Hover */}
+          {(server.ownerId === user?.id || user?.isAdmin) && (
+            <button
+              onClick={() => {
+                setSelectedServerForSettings(server);
+                setShowSettingsModal(true);
+              }}
+              className="absolute -right-1 -top-1 w-5 h-5 bg-dark-800 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-dark-700"
+            >
+              <Cog6ToothIcon className="w-3 h-3 text-gray-400" />
+            </button>
+          )}
+        </div>
       ))}
         {/* Add Server Button */}
         <button 
@@ -171,6 +199,16 @@ function ServerList() {
           </div>
         </div>
       )}
+      
+      {/* Server Settings Modal */}
+      <ServerSettingsModal 
+        show={showSettingsModal}
+        onClose={() => {
+          setShowSettingsModal(false);
+          setSelectedServerForSettings(null);
+        }}
+        server={selectedServerForSettings}
+      />
       
       {/* User Presence at bottom */}
       <UserPresence />

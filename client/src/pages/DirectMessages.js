@@ -53,8 +53,23 @@ function DirectMessages() {
 
   const setupSocketListeners = () => {
     socketService.on('dm:receive', (message) => {
-      if (selectedConversation?.id === message.senderId || selectedConversation?.id === message.receiverId) {
-        setMessages(prev => [...prev, message]);
+      // Check if this message is for the current conversation
+      const isCurrentConversation = 
+        (selectedConversation?.id === message.senderId && message.receiverId === user.id) ||
+        (selectedConversation?.id === message.receiverId && message.senderId === user.id);
+        
+      if (isCurrentConversation) {
+        setMessages(prev => {
+          // Don't add duplicate messages
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) return prev;
+          return [...prev, message];
+        });
+      } else if (message.senderId !== user.id) {
+        // Show notification for messages in other conversations
+        toast(`New message from ${message.senderName}`, {
+          icon: '💬'
+        });
       }
       // Update conversation list
       loadConversations();
@@ -171,18 +186,31 @@ function DirectMessages() {
   const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation) return;
 
-    const message = {
+    // Create optimistic message
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
+      senderId: user.id,
       receiverId: selectedConversation.id,
-      content: messageInput.trim()
+      senderName: user.username || user.displayName,
+      content: messageInput.trim(),
+      createdAt: new Date().toISOString(),
+      timestamp: new Date()
     };
 
+    // Add message optimistically
+    setMessages(prev => [...prev, tempMessage]);
+    setMessageInput('');
+
     try {
-      const response = await axios.post('/dm', message);
-      socketService.emit('dm:send', response.data);
-      setMessages(prev => [...prev, response.data]);
-      setMessageInput('');
+      // Send via socket directly for real-time
+      socketService.emit('dm:send', {
+        receiverId: selectedConversation.id,
+        content: tempMessage.content
+      });
     } catch (error) {
       toast.error('Failed to send message');
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempMessage.id));
     }
   };
 
