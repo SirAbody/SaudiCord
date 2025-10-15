@@ -45,8 +45,16 @@
       }
     </style>
     
-    <!-- Socket.io is now loaded from NPM package, no CDN needed -->
+    <!-- Socket.io CDN as fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.js"></script>
     <script>
+      // Ensure Socket.io is available globally as fallback
+      if (typeof window.io === 'function') {
+        console.log('[HTML] Socket.io loaded from CDN as fallback');
+        window.IO = window.io;
+      } else {
+        console.warn('[HTML] Socket.io CDN failed to load');
+      }
       console.log('[HTML] SaudiCord loading...');
     </script>
     

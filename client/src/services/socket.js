@@ -1,8 +1,15 @@
-// Socket.io Service with NPM Package Support
-import { io } from 'socket.io-client';
+// Socket.io Service - Safe Implementation
 import { useChatStore } from '../stores/chatStore';
 import { useCallStore } from '../stores/callStore';
 import toast from 'react-hot-toast';
+
+// Dynamic import for Socket.io to avoid build issues
+let io = null;
+try {
+  io = require('socket.io-client').io || require('socket.io-client').default || require('socket.io-client');
+} catch (e) {
+  console.warn('[Socket] Failed to load socket.io-client from NPM:', e);
+}
 
 class SocketService {
   constructor() {
@@ -15,10 +22,17 @@ class SocketService {
     console.log('[Socket] Attempting to connect...');
     
     try {
-      // Socket.io is imported from NPM package, no need to check availability
+      // Check if Socket.io is available
       if (!io) {
-        console.error('[Socket] Socket.io library not available');
-        return;
+        console.error('[Socket] Socket.io not available, trying CDN fallback...');
+        // Try to use global io from CDN if available
+        if (typeof window !== 'undefined' && window.io) {
+          io = window.io;
+          console.log('[Socket] Using Socket.io from CDN');
+        } else {
+          console.error('[Socket] Socket.io library not available at all');
+          return;
+        }
       }
 
       // Disconnect any existing connection first
@@ -269,34 +283,46 @@ class SocketService {
     }
   }
 
-  // Safe event handler methods
+  // Safe proxy methods for socket operations
   on(event, handler) {
-    if (this.socket && typeof this.socket.on === 'function') {
-      return this.socket.on(event, handler);
+    if (this.socket && this.socket.on) {
+      try {
+        return this.socket.on(event, handler);
+      } catch (e) {
+        console.error('[Socket] Error calling on:', e);
+      }
     }
-    // Store handlers for later if socket not ready
     if (!this.pendingHandlers) this.pendingHandlers = {};
-    if (!this.pendingHandlers[event]) this.pendingHandlers[event] = [];
+    if (!this.pendingHandlers[event]) {
+      this.pendingHandlers[event] = [];
+    }
     this.pendingHandlers[event].push(handler);
   }
 
   off(event, handler) {
-    if (this.socket && typeof this.socket.off === 'function') {
-      return this.socket.off(event, handler);
+    if (this.socket && this.socket.off) {
+      try {
+        return this.socket.off(event, handler);
+      } catch (e) {
+        console.error('[Socket] Error calling off:', e);
+      }
     }
   }
 
   emit(event, ...args) {
-    if (this.socket && typeof this.socket.emit === 'function') {
-      return this.socket.emit(event, ...args);
+    if (this.socket && this.socket.emit) {
+      try {
+        return this.socket.emit(event, ...args);
+      } catch (e) {
+        console.error('[Socket] Error calling emit:', e);
+      }
     }
-    console.warn(`[Socket] Cannot emit ${event} - not connected`);
+    console.warn(`[Socket] Cannot emit '${event}' - socket not connected`);
   }
 
   // Channel methods
   joinChannel(channelId) {
     if (this.socket && this.socket.connected) {
-      console.log('[Socket] Joining channel:', channelId);
       this.socket.emit('join:channel', channelId);
     }
   }
@@ -305,6 +331,16 @@ class SocketService {
     if (this.socket && this.socket.connected) {
       console.log('[Socket] Leaving channel:', channelId);
       this.socket.emit('leave:channel', channelId);
+    }
+  }
+
+  // Connection status method
+  isConnected() {
+    try {
+      return this.socket && this.socket.connected === true;
+    } catch (e) {
+      console.error('[Socket] Error checking connection:', e);
+      return false;
     }
   }
 
