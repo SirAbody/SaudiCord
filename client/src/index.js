@@ -7,7 +7,8 @@ import App from './App';
 // Import styles
 import './index.css';
 import './styles/animations.css';
-import './services/axiosSetup';
+// Import axios setup for MongoDB
+import './services/axiosSetup-mongodb';
 
 console.log('[Index] Starting SaudiCord application...');
 console.log('[Index] All imports loaded successfully');

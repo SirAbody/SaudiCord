@@ -3,17 +3,8 @@ import { create } from 'zustand';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Use relative URL in production, full URL in development
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
-
-// Axios already configured in axiosSetup.js - no need to duplicate
-// Just set the base URL if not already set
-if (!axios.defaults.baseURL) {
-  axios.defaults.baseURL = API_URL;
-  axios.defaults.withCredentials = true;
-}
+// Axios is already configured in axiosSetup-mongodb.js
+// No need to set baseURL here
 
 export const useAuthStore = create((set, get) => ({
   user: null,

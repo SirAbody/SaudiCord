@@ -7,10 +7,10 @@ import axios from 'axios';
 const getBackendUrl = () => {
   if (process.env.NODE_ENV === 'production') {
     // Use same origin in production (for Render.com deployment)
-    return '';
+    return '/api';
   }
   // Use port 5000 for MongoDB backend in development
-  return 'http://localhost:5000';
+  return 'http://localhost:5000/api';
 };
 
 // Set axios defaults

@@ -1,12 +1,6 @@
 # Render Blueprint for SaudiCord
 # Made With Love By SirAbody
-# Single service deployment (Frontend + Backend)
-
-databases:
-  - name: saudicord-db
-    plan: free
-    databaseName: saudicord
-    user: saudicord_user
+# MongoDB Atlas Configuration
 
 services:
   # Combined Backend + Frontend Service
@@ -15,39 +9,17 @@ services:
     runtime: node
     plan: free
     buildCommand: npm run build
-    startCommand: cd server && node start-production.js
+    startCommand: cd server && node server-mongodb.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-      - key: DB_HOST
-        fromDatabase:
-          name: saudicord-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: saudicord-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: saudicord-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: saudicord-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: saudicord-db
-          property: password
-      - key: DATABASE_URL
-        fromDatabase:
-          name: saudicord-db
-          property: connectionString
+      - key: MONGODB_URI
+        value: mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@saudicord.mongodb.net/saudicord?retryWrites=true&w=majority
       - key: JWT_SECRET
-        generateValue: true
+        value: saudicord-secret-key-2024
       - key: CLIENT_URL
         value: https://saudicord.onrender.com
-      - key: RESET_DB
+      - key: USE_MONGODB
         value: true
