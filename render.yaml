@@ -23,3 +23,5 @@ services:
         value: https://saudicord.onrender.com
       - key: USE_MONGODB
         value: true
+      - key: RESET_DB
+        value: false
