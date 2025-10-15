@@ -1,33 +1,30 @@
 // Server List Component
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, HomeIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useChatStore } from '../../stores/chatStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { PlusIcon } from '@heroicons/react/24/outline';
+import CreateServerModal from '../modals/CreateServerModal';
+import UserPresence from '../user/UserPresence';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { useChatStore } from '../../stores/chatStore';
 
 function ServerList() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setCurrentServer, currentServer } = useChatStore();
-  const [servers, setServers] = useState([]);
+  const { user } = useAuthStore();
+  const { currentServer, setCurrentServer, servers, fetchServers } = useChatStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newServerName, setNewServerName] = useState('');
   const [newServerDescription, setNewServerDescription] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    loadServers();
-  }, []);
-
-  const loadServers = async () => {
-    try {
-      const response = await axios.get('/servers/me');
-      setServers(response.data || []);
-    } catch (error) {
-      console.error('Failed to load servers:', error);
+    if (fetchServers) {
+      fetchServers();
     }
-  };
+  }, [fetchServers]);
+
 
   const handleHomeClick = () => {
     setCurrentServer(null);
@@ -57,7 +54,7 @@ function ServerList() {
       });
       
       toast.success('Server created successfully!');
-      setServers([...servers, response.data]);
+      fetchServers(); // Reload servers list
       setShowCreateModal(false);
       setNewServerName('');
       setNewServerDescription('');
@@ -69,8 +66,8 @@ function ServerList() {
   };
 
   return (
-    <>
-      <div className="flex flex-col items-center py-3 space-y-2">
+    <div className="flex flex-col h-full bg-dark-900">
+      <div className="flex-1 flex flex-col items-center py-3 space-y-2 overflow-y-auto custom-scrollbar">
         {/* Home/DM Button - SaudiCord Logo */}
         <button 
           onClick={handleHomeClick}
@@ -174,7 +171,10 @@ function ServerList() {
           </div>
         </div>
       )}
-    </>
+      
+      {/* User Presence at bottom */}
+      <UserPresence />
+    </div>
   );
 }
 

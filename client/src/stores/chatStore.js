@@ -83,12 +83,22 @@ export const useChatStore = create((set, get) => ({
 
   // Add new message
   addMessage: (channelId, message) => {
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [channelId]: [...(state.messages[channelId] || []), message]
+    set((state) => {
+      const currentMessages = state.messages[channelId] || [];
+      // Check if message already exists (by ID)
+      const messageExists = currentMessages.some(msg => msg.id === message.id);
+      if (messageExists) {
+        console.log('[ChatStore] Message already exists, skipping:', message.id);
+        return state;
       }
-    }));
+      
+      return {
+        messages: {
+          ...state.messages,
+          [channelId]: [...currentMessages, message]
+        }
+      };
+    });
   },
 
   // Update message

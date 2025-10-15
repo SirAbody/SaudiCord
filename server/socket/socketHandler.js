@@ -395,6 +395,12 @@ module.exports = (io) => {
       // Leave voice room
       socket.leave(`voice:${channelId}`);
       
+      // Notify others that user left
+      socket.to(`voice:${channelId}`).emit('voice:user:left', {
+        userId: socket.userId,
+        username: socket.user?.username || socket.username
+      });
+      
       // Remove from voice state
       if (global.voiceRooms && global.voiceRooms.has(channelId)) {
         const users = global.voiceRooms.get(channelId);

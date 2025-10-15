@@ -357,9 +357,12 @@ class SocketService {
   }
 
   disconnect() {
-    if (this.socket && typeof this.socket.disconnect === 'function') {
+    if (this.socket) {
+      // Remove all listeners to prevent memory leaks
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
+      this.pendingHandlers = {};
     }
   }
 
@@ -370,7 +373,6 @@ class SocketService {
   isConnected() {
     return this.socket && this.socket.connected && this.socket !== this.mockSocket;
   }
-
   // Proxy methods for direct socket access (with safety checks)
   on(event, handler) {
     if (this.socket && typeof this.socket.on === 'function') {

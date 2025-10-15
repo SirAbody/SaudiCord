@@ -1,4 +1,3 @@
-// Main Layout Component
 import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
@@ -7,21 +6,25 @@ import socketService from '../../services/socket';
 import ServerList from './ServerList';
 import ChannelList from './ChannelList';
 import ChatArea from '../chat/ChatArea';
-import UserList from './UserList';
-import CallModal from '../call/CallModal';
-import IncomingCallModal from '../call/IncomingCallModal';
-import UserProfile from '../user/UserProfile';
 import DirectMessages from '../../pages/DirectMessages';
+import InvitePage from '../../pages/InvitePage';
+import UserProfile from '../../pages/UserProfile';
+import CallModal from '../modals/CallModal';
+import IncomingCallModal from '../call/IncomingCallModal';
+import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts';
+import toast from 'react-hot-toast';
 
 function MainLayout() {
   console.log('[MainLayout] Component rendering');
   const { user } = useAuthStore();
   const { currentChannel } = useChatStore();
   const [showUserProfile, setShowUserProfile] = useState(false);
+  
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
+  
   console.log('[MainLayout] User:', user);
   console.log('[MainLayout] Current channel:', currentChannel);
-  // const location = useLocation(); // Reserved for future use
-  // const isDirectMessages = location.pathname === '/dashboard'; // Reserved for future use
 
   useEffect(() => {
     // Connect to socket server

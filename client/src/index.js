@@ -4,13 +4,13 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
+// Import styles
 import './index.css';
+import './styles/animations.css';
 import './services/axiosSetup';
 
 console.log('[Index] Starting SaudiCord application...');
 console.log('[Index] All imports loaded successfully');
-
-const rootElement = document.getElementById('root');
 console.log('[Index] Root element found:', !!rootElement);
 
 if (!rootElement) {
