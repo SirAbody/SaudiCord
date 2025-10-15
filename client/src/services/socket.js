@@ -1,4 +1,5 @@
-// Socket.io Service with Enhanced Error Handling
+// Socket.io Service with NPM Package Support
+import { io } from 'socket.io-client';
 import { useChatStore } from '../stores/chatStore';
 import { useCallStore } from '../stores/callStore';
 import toast from 'react-hot-toast';
@@ -10,40 +11,11 @@ class SocketService {
     this.pendingHandlers = {};
   }
 
-  // Get the io function from either npm or CDN
-  async getIoFunction() {
-    // Wait for Socket.io to be ready (max 5 seconds)
-    let attempts = 0;
-    const maxAttempts = 50; // 5 seconds total (100ms * 50)
-    
-    while (attempts < maxAttempts) {
-      if (typeof window !== 'undefined') {
-        // Check for Socket.io availability
-        if (window.IO && typeof window.IO === 'function') {
-          console.log('[Socket] Using global IO from CDN');
-          return window.IO;
-        }
-        if (window.io && typeof window.io === 'function') {
-          console.log('[Socket] Using global io from CDN');
-          return window.io;
-        }
-      }
-      
-      // Wait a bit and try again
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
-    }
-    
-    console.error('[Socket] Socket.io library not available after 5 seconds');
-    return null;
-  }
-
-  async connect(token) {
+  connect(token) {
     console.log('[Socket] Attempting to connect...');
     
     try {
-      // Check if socket.io is available
-      const io = await this.getIoFunction();
+      // Socket.io is imported from NPM package, no need to check availability
       if (!io) {
         console.error('[Socket] Socket.io library not available');
         return;

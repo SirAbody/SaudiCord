@@ -45,39 +45,9 @@
       }
     </style>
     
-    <!-- Socket.io Client from CDN with better loading -->
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" 
-            integrity="sha384-KA7m0DwgQGmeRC6esi2bP5pW0o8kuG/5kpM7F0VF3+Xzs8lHmMJAHVZFVjFrsHZR"
-            crossorigin="anonymous">
-    </script>
+    <!-- Socket.io is now loaded from NPM package, no CDN needed -->
     <script>
-      // Ensure Socket.io is available globally
-      window.addEventListener('DOMContentLoaded', function() {
-        if (typeof window.io === 'function') {
-          console.log('✅ Socket.io loaded successfully from CDN');
-          // Create global references to prevent minification issues
-          window.IO = window.io;
-          window.Socket = window.io.Socket;
-          window.SocketManager = window.io.Manager;
-          // Mark as ready
-          window.socketIOReady = true;
-        } else {
-          console.warn('⚠️ Socket.io not loaded - retrying...');
-          // Fallback: Load from alternative CDN
-          var script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/socket.io-client@4.6.1/dist/socket.io.min.js';
-          script.onload = function() {
-            if (typeof window.io === 'function') {
-              console.log('✅ Socket.io loaded from fallback CDN');
-              window.IO = window.io;
-              window.Socket = window.io.Socket;
-              window.SocketManager = window.io.Manager;
-              window.socketIOReady = true;
-            }
-          };
-          document.head.appendChild(script);
-        }
-      });
+      console.log('[HTML] SaudiCord loading...');
     </script>
     
     <style>
