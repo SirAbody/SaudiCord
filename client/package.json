@@ -14,6 +14,7 @@
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.10.0",
     "react-scripts": "5.0.1",
+    "react-app-rewired": "^2.2.1",
     "simple-peer": "^9.11.1",
     "zustand": "^4.3.7",
     "@tailwindcss/forms": "^0.5.3",
@@ -22,11 +23,11 @@
     "tailwindcss": "^3.3.0"
   },
   "scripts": {
-    "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-scripts start",
-    "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-scripts start",
-    "build": "set GENERATE_SOURCEMAP=false && react-scripts build",
-    "build:full": "set GENERATE_SOURCEMAP=false && react-scripts build",
-    "test": "react-scripts test",
+    "start": "set DANGEROUSLY_DISABLE_HOST_CHECK=true && react-app-rewired start",
+    "start:unix": "DANGEROUSLY_DISABLE_HOST_CHECK=true react-app-rewired start",
+    "build": "set GENERATE_SOURCEMAP=false && react-app-rewired build",
+    "build:full": "set GENERATE_SOURCEMAP=false && react-app-rewired build",
+    "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

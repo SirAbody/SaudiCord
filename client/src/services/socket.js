@@ -11,28 +11,39 @@ class SocketService {
   }
 
   // Get the io function from either npm or CDN
-  getIoFunction() {
-    // Try CDN first (more reliable in production)
-    if (typeof window !== 'undefined') {
-      if (window.IO && typeof window.IO === 'function') {
-        console.log('[Socket] Using global IO from CDN');
-        return window.IO;
+  async getIoFunction() {
+    // Wait for Socket.io to be ready (max 5 seconds)
+    let attempts = 0;
+    const maxAttempts = 50; // 5 seconds total (100ms * 50)
+    
+    while (attempts < maxAttempts) {
+      if (typeof window !== 'undefined') {
+        // Check for Socket.io availability
+        if (window.IO && typeof window.IO === 'function') {
+          console.log('[Socket] Using global IO from CDN');
+          return window.IO;
+        }
+        if (window.io && typeof window.io === 'function') {
+          console.log('[Socket] Using global io from CDN');
+          return window.io;
+        }
       }
-      if (window.io && typeof window.io === 'function') {
-        console.log('[Socket] Using global io from CDN');
-        return window.io;
-      }
+      
+      // Wait a bit and try again
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
     }
-    console.warn('[Socket] No Socket.io library available');
+    
+    console.error('[Socket] Socket.io library not available after 5 seconds');
     return null;
   }
 
-  connect(token) {
+  async connect(token) {
     console.log('[Socket] Attempting to connect...');
     
     try {
       // Check if socket.io is available
-      const io = this.getIoFunction();
+      const io = await this.getIoFunction();
       if (!io) {
         console.error('[Socket] Socket.io library not available');
         return;
