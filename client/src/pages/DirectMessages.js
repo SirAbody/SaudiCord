@@ -31,6 +31,7 @@ function DirectMessages() {
   const [inCall, setInCall] = useState(false);
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('online');
 
   useEffect(() => {
     loadFriends();
