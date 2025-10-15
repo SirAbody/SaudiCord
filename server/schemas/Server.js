@@ -113,7 +113,7 @@ const serverSchema = new mongoose.Schema({
 
 // Indexes
 serverSchema.index({ owner: 1 });
-serverSchema.index({ inviteCode: 1 });
+// inviteCode already has index from unique: true
 serverSchema.index({ 'members.user': 1 });
 
 // Generate unique invite code

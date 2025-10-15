@@ -2,12 +2,10 @@
 const mongoose = require('mongoose');
 
 // MongoDB Atlas connection string
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@saudicord.mongodb.net/saudicord?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@cluster0.mongodb.net/saudicord?retryWrites=true&w=majority';
 
 // Connection options
 const mongoOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 10000, // 10 seconds timeout
   socketTimeoutMS: 45000, // 45 seconds
   maxPoolSize: 50, // Maintain up to 50 socket connections
