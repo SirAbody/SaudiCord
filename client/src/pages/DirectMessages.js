@@ -8,6 +8,7 @@ import {
   VideoCameraIcon, 
   ComputerDesktopIcon,
   EllipsisHorizontalIcon,
+  EllipsisVerticalIcon,
   PaperAirplaneIcon,
   XMarkIcon,
   ChatBubbleLeftIcon 
@@ -908,53 +909,83 @@ function DirectMessages() {
                 {/* Friends & Conversations List */}
                 <div className="flex-1 overflow-y-auto">
                   {/* Show different friend lists based on activeTab */}
-                  <div className="p-2">
-                    <h3 className="text-xs font-semibold text-primary-400 uppercase mb-2">
-                      {activeTab === 'online' ? 'Online Friends' : 'All Friends'}
+                  <div className="online-friends-section p-5">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                      {activeTab === 'online' ? `ONLINE — ${filteredFriends.filter(f => f.friendshipStatus === 'accepted' && f.status === 'online').length}` : `ALL FRIENDS — ${filteredFriends.filter(f => f.friendshipStatus === 'accepted').length}`}
                     </h3>
-                    {filteredFriends
-                      .filter(f => {
-                        const isAccepted = f.friendshipStatus === 'accepted';
-                        if (activeTab === 'online') {
-                          return isAccepted && f.status === 'online';
-                        }
-                        return isAccepted;
-                      })
-                      .map(friend => (
-                        <button
-                          key={friend.id}
-                          onClick={() => selectConversation(friend)}
-                          className={`w-full flex items-center space-x-3 p-2 rounded transition ${
-                            selectedConversation?.id === friend.id 
-                              ? 'bg-primary-500/20 text-white' 
-                              : 'hover:bg-primary-500/10 text-green-300'
-                          }`}
-                        >
-                          <div className="relative">
-                            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
-                              {friend.avatar ? (
-                                <img src={friend.avatar} alt={friend.displayName} className="w-full h-full rounded-full" />
-                              ) : (
-                                <UserIcon className="w-6 h-6 text-white" />
+                    
+                    <div className="friends-list space-y-2">
+                      {filteredFriends
+                        .filter(f => {
+                          const isAccepted = f.friendshipStatus === 'accepted';
+                          if (activeTab === 'online') {
+                            return isAccepted && f.status === 'online';
+                          }
+                          return isAccepted;
+                        })
+                        .map(friend => (
+                          <div
+                            key={friend.id}
+                            className={`friend-item group flex items-center p-3 rounded-lg cursor-pointer transition-all ${
+                              selectedConversation?.id === friend.id 
+                                ? 'bg-gray-700' 
+                                : 'hover:bg-gray-700'
+                            }`}
+                            onClick={() => selectConversation(friend)}
+                          >
+                            {/* Avatar */}
+                            <div className="relative mr-3">
+                              <div className="w-10 h-10 rounded-full overflow-hidden">
+                                {friend.avatar ? (
+                                  <img src={friend.avatar} alt={friend.displayName} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-600 flex items-center justify-center">
+                                    <UserIcon className="w-6 h-6 text-gray-300" />
+                                  </div>
+                                )}
+                              </div>
+                              {friend.status === 'online' && (
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"></div>
                               )}
                             </div>
-                            {friend.status === 'online' && (
-                              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
-                            )}
+                            
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white font-medium text-sm">
+                                {friend.displayName || friend.username}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {friend.status === 'online' ? 'Online' : 'Offline'}
+                              </p>
+                            </div>
+                            
+                            {/* Action Buttons */}
+                            <div className="friend-actions flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                className="action-btn w-8 h-8 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  selectConversation(friend);
+                                }}
+                                title="Message"
+                              >
+                                <ChatBubbleLeftIcon className="w-4 h-4 text-gray-300" />
+                              </button>
+                              <button
+                                className="action-btn w-8 h-8 bg-gray-600 hover:bg-gray-500 rounded-full flex items-center justify-center transition-all"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // More options
+                                }}
+                                title="More"
+                              >
+                                <EllipsisVerticalIcon className="w-4 h-4 text-gray-300" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex-1 text-left">
-                            <p className="font-medium flex items-center">
-                              {friend.displayName || friend.username}
-                              {friend.status === 'online' && (
-                                <span className="ml-2 text-xs text-green-500">●</span>
-                              )}
-                            </p>
-                            <p className="text-xs text-text-tertiary">
-                              {friend.status === 'online' ? 'Online' : 'Offline'}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
+                        ))
+                      }
+                    </div>
                   </div>
                 </div>
               </>
