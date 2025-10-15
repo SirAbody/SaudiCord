@@ -23,7 +23,7 @@ function ServerSettingsModal({ show, onClose, server }) {
   const [serverDescription, setServerDescription] = useState('');
   const [channels, setChannels] = useState([]);
   const [members, setMembers] = useState([]);
-  const [roles, setRoles] = useState([]); // Reserved for future use
+  // const [roles, setRoles] = useState([]); // Reserved for future use
   const [inviteCode, setInviteCode] = useState('');
   const [saving, setSaving] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');

@@ -32,10 +32,8 @@ function UserPresence() {
   useEffect(() => {
     // Auto-idle after 5 minutes of inactivity
     let idleTimer;
-    let lastActivity = Date.now();
     
     const resetIdleTimer = () => {
-      lastActivity = Date.now();
       if (status === 'idle' && status !== 'dnd') {
         setStatus('online');
       }

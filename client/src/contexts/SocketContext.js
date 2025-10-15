@@ -31,6 +31,7 @@ export const SocketProvider = ({ children }) => {
         disconnectSocket();
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const connectSocket = async (token) => {
@@ -106,7 +107,7 @@ export const SocketProvider = ({ children }) => {
   };
 
   return (
-    <SocketContext.Provider value={socket}>
+    <SocketContext.Provider value={value}>
       {children}
     </SocketContext.Provider>
   );

@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, UserPlusIcon, PhoneXMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
-import { useCallStore } from '../../stores/callStore'; // Reserved for future use
+// import { useCallStore } from '../../stores/callStore'; // Reserved for future use
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
 import webrtcService from '../../services/webrtc';
 import InviteModal from '../modals/InviteModal';
 import UserPresence from '../user/UserPresence';
+import VoiceCallInterface from '../voice/VoiceCallInterface';
 
 function ChannelList() {
   const { currentChannel, selectChannel, fetchMessages, currentServer, channels } = useChatStore();
@@ -24,7 +25,8 @@ function ChannelList() {
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
-  const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
+  const [voiceParticipants, setVoiceParticipants] = useState({}); // channelId -> [users]
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
 
   useEffect(() => {
     // Listen for voice channel left event
@@ -158,21 +160,23 @@ function ChannelList() {
         // Leave the voice channel
         if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
           webrtcService.endCall();
-          socketService.emit('voice:leave', { channelId: channel.id });
-          toast.success('Left voice channel');
-          setActiveVoiceChannel(null);
-          
-          // Update users list
-          setVoiceChannelUsers(prev => ({
-            ...prev,
-            [channel.id]: prev[channel.id]?.filter(u => u.id !== user.id) || []
-          }));
         }
+        socketService.emit('voice:leave', { channelId: channel.id });
+        toast.success('Left voice channel');
+        setActiveVoiceChannel(null);
+        setShowVoiceCall(false); // Close voice call interface
+        
+        // Update users list
+        setVoiceChannelUsers(prev => ({
+          ...prev,
+          [channel.id]: prev[channel.id]?.filter(u => u.id !== user.id) || []
+        }));
         return;
       }
       
       // Join voice channel
       setActiveVoiceChannel(channel);
+      setShowVoiceCall(true); // Show Discord-style voice call interface
       socketService.emit('voice:join', { channelId: channel.id });
       
       // Add ourselves to users list
@@ -186,16 +190,6 @@ function ChannelList() {
           isSpeaking: false
         }]
       }));
-      
-      // Start WebRTC connection
-      try {
-        await webrtcService.startCall(channel.id, true); // isVideo = false for voice
-        toast.success(`Joined voice channel: ${channel.name}`);
-      } catch (error) {
-        console.error('[ChannelList] Failed to join voice channel:', error);
-        toast.error('Failed to join voice channel');
-        setActiveVoiceChannel(null);
-      }
       
       return; // Don't handle as text channel
     }
@@ -477,6 +471,23 @@ function ChannelList() {
         <InviteModal 
           server={currentServer}
           onClose={() => setShowInviteModal(false)}
+        />
+      )}
+      
+      {/* Voice Call Interface - Discord Style */}
+      {showVoiceCall && activeVoiceChannel && (
+        <VoiceCallInterface 
+          channel={activeVoiceChannel}
+          onClose={() => {
+            setShowVoiceCall(false);
+            setActiveVoiceChannel(null);
+            // Leave voice channel
+            socketService.emit('voice:leave', { channelId: activeVoiceChannel.id });
+            if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
+              webrtcService.endCall();
+            }
+            toast.success('Left voice channel');
+          }}
         />
       )}
       

@@ -21,7 +21,11 @@ function InviteModal({ server, onClose }) {
   const fetchInviteLink = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/servers/${server.id}/invite`);
+      const serverId = server._id || server.id;
+      if (!serverId) {
+        throw new Error('Server ID is missing');
+      }
+      const response = await axios.get(`/servers/${serverId}/invite`);
       setInviteCode(response.data.inviteCode);
       // Use current window location for the invite link
       const baseUrl = window.location.origin;
@@ -48,7 +52,11 @@ function InviteModal({ server, onClose }) {
   const regenerateInvite = async () => {
     try {
       setRegenerating(true);
-      const response = await axios.post(`/servers/${server.id}/invite/regenerate`);
+      const serverId = server._id || server.id;
+      if (!serverId) {
+        throw new Error('Server ID is missing');
+      }
+      const response = await axios.post(`/servers/${serverId}/invite/regenerate`);
       setInviteCode(response.data.inviteCode);
       const baseUrl = window.location.origin;
       setInviteLink(`${baseUrl}/invite/${response.data.inviteCode}`);

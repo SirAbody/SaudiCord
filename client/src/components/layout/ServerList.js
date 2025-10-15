@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useChatStore } from '../../stores/chatStore';
-import { PlusIcon, HomeIcon } from '@heroicons/react/24/solid';
+import { PlusIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 import ContextMenu from '../ui/ContextMenu';
@@ -30,6 +30,7 @@ function ServerList() {
     if (fetchServers) {
       fetchServers();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only fetch on mount
 
   // Auto-select first server if no server is selected
