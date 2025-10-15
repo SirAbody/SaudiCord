@@ -244,25 +244,80 @@ function ChannelList() {
             
             return (
               <div key={channel.id} className="mb-1">
-                <button
-                  onClick={() => handleChannelClick(channel)}
-                  className={`w-full px-2 py-1.5 mx-2 rounded flex items-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors ${
-                    isActive ? 'bg-gray-700 text-white' : ''
-                  }`}
-                >
-                  <SpeakerWaveIcon className="w-5 h-5 mr-2 text-gray-500" />
-                  <span className="text-sm flex-1 text-left">{channel.name}</span>
+                <div className="group w-full px-2 py-1.5 mx-2 rounded flex items-center text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
+                  <button
+                    onClick={() => handleChannelClick(channel)}
+                    className={`flex items-center flex-1 ${
+                      isActive ? 'text-white' : ''
+                    }`}
+                  >
+                    <SpeakerWaveIcon className="w-5 h-5 mr-2 text-gray-500" />
+                    <span className="text-sm flex-1 text-left">{channel.name}</span>
+                    {isActive && (
+                      <div className="flex items-center space-x-1 ml-2">
+                        <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs text-primary-400">Connected</span>
+                      </div>
+                    )}
+                  </button>
+                  
+                  {/* Screen Share Button */}
                   {isActive && (
-                    <div className="flex items-center space-x-1 ml-2">
-                      <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-primary-400">Connected</span>
-                    </div>
+                    <button
+                      onClick={() => {
+                        if (window.voiceService && window.voiceService.startScreenShare) {
+                          window.voiceService.startScreenShare();
+                        }
+                      }}
+                      className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-600 rounded transition-all ml-2"
+                      title="Share Screen"
+                    >
+                      <svg className="w-4 h-4 text-gray-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </button>
                   )}
-                </button>
+                </div>
                 
                 {/* Voice Participants List */}
-                {showParticipants && channelParticipants.length > 0 && (
+                {showParticipants && (isActive || channelParticipants.length > 0) && (
                   <div className="ml-9 mt-1 space-y-0.5">
+                    {/* Show current user first if connected */}
+                    {isActive && user && (
+                      <div className="flex items-center px-2 py-1 rounded bg-primary-900/20 border-l-2 border-primary-500">
+                        <div className="relative mr-2">
+                          <div className={`w-6 h-6 rounded-full overflow-hidden ${
+                            speakingUsers.has('self') ? 'ring-2 ring-primary-500' : ''
+                          }`}>
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.username} className="w-full h-full" />
+                            ) : (
+                              <div className="w-full h-full bg-primary-600 flex items-center justify-center">
+                                <span className="text-xs text-white">
+                                  {user.username?.[0]?.toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {speakingUsers.has('self') && (
+                            <div className="absolute -inset-1 rounded-full border-2 border-primary-500 animate-pulse"></div>
+                          )}
+                        </div>
+                        <span className="text-sm text-primary-400 flex-1 font-semibold">
+                          {user.username} (You)
+                        </span>
+                        <div className="flex items-center space-x-0.5">
+                          {isMuted && (
+                            <MicrophoneSlashIcon className="w-3 h-3 text-red-500" />
+                          )}
+                          {isDeafened && (
+                            <SpeakerSlashIcon className="w-3 h-3 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Show other participants */}
                     {channelParticipants.map(participant => (
                       <div
                         key={participant.id}

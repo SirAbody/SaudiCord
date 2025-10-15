@@ -726,49 +726,55 @@ function DirectMessages() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Discord-style Tabs Header */}
-        <div className="h-12 bg-black border-b border-primary-900/30 flex items-center px-4">
-          <UserIcon className="w-5 h-5 text-primary-500 mr-2" />
-          <span className="text-white font-semibold mr-6">Friends</span>
+        <div className="h-14 bg-gray-800 border-b border-gray-700 flex items-center px-6">
+          <UserIcon className="w-5 h-5 text-gray-400 mr-2" />
+          <span className="text-white font-semibold mr-8">Friends</span>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-5">
             <button
               onClick={() => setActiveTab('online')}
-              className={`px-3 py-1 rounded transition-all ${
-                activeTab === 'online' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-primary-500/20'
+              className={`px-4 py-1.5 text-sm font-medium rounded transition-all ${
+                activeTab === 'online' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
               }`}
             >
               Online
             </button>
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-3 py-1 rounded transition-all ${
-                activeTab === 'all' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-primary-500/20'
+              className={`px-4 py-1.5 text-sm font-medium rounded transition-all ${
+                activeTab === 'all' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setActiveTab('pending')}
-              className={`px-3 py-1 rounded relative transition-all ${
-                activeTab === 'pending' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-primary-500/20'
+              className={`px-4 py-1.5 text-sm font-medium rounded relative transition-all ${
+                activeTab === 'pending' 
+                  ? 'bg-gray-700 text-white' 
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
               }`}
             >
               Pending
               {pendingRequests.length > 0 && (
-                <span className="notification-badge absolute -top-1 -right-2 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style={{ backgroundColor: '#F23F42' }}>
+                <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-semibold">
                   {pendingRequests.length}
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setActiveTab('addFriend')}
-              className={`px-3 py-1 rounded transition-all text-primary-500 hover:bg-primary-500/20 ${
-                activeTab === 'addFriend' ? 'bg-primary-500/20' : ''
-              }`}
-            >
-              Add Friend
-            </button>
           </div>
+          
+          <button
+            onClick={() => setShowAddFriend(true)}
+            className="ml-auto px-4 py-1.5 text-sm font-medium rounded border transition-all text-primary-400 border-primary-400 hover:bg-primary-500/10"
+            style={{ borderColor: '#53FC18', color: '#53FC18' }}
+          >
+            Add Friend
+          </button>
         </div>
 
         {/* Content based on active tab */}
@@ -839,24 +845,24 @@ function DirectMessages() {
                           </div>
                         </div>
                         {request.isReceiver ? (
-                          <div className="flex space-x-2">
+                          <div className="flex gap-2">
                             <button
                               onClick={() => acceptFriendRequest(request.friendshipId)}
-                              className="accept-btn p-2 rounded transition"
-                              style={{ backgroundColor: '#53FC18' }}
-                              title="Accept Request"
+                              className="accept-btn px-4 py-2 rounded font-medium text-sm flex items-center gap-2 transition-all"
+                              style={{ backgroundColor: '#53FC18', color: '#1e1e1e' }}
                             >
-                              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
+                              Accept
                             </button>
                             <button
                               onClick={() => rejectFriendRequest(request.friendshipId)}
-                              className="decline-btn p-2 rounded transition"
-                              style={{ backgroundColor: '#F23F42' }}
-                              title="Reject Request"
+                              className="decline-btn px-4 py-2 rounded font-medium text-sm border transition-all text-red-400 hover:bg-red-500/10"
+                              style={{ borderColor: '#F23F42' }}
                             >
-                              <XMarkIcon className="w-4 h-4 text-white" />
+                              <XMarkIcon className="w-4 h-4 inline mr-1" />
+                              Decline
                             </button>
                           </div>
                         ) : (
