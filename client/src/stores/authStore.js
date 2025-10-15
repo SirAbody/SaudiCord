@@ -79,33 +79,17 @@ export const useAuthStore = create((set, get) => ({
     if (!token) {
       console.log('[AuthStore] No token found - setting user to null');
       set({ user: null, loading: false });
-      return;
+      return null;
     }
 
     // Check if already checking to prevent loops
     const store = get();
-    if (store.loading) {
-      console.log('[AuthStore] Already checking auth - skipping');
-      return;
-    }
-    
     set({ loading: true });
     try {
-      console.log('[AuthStore] Verifying token with server...');
-      // Reasonable timeout for slow connections
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('[AuthStore] Auth verify timeout - aborting');
-        controller.abort();
-      }, 3000); // 3 seconds
-      
       const response = await axios.get('/auth/verify', {
         signal: controller.signal,
-        timeout: 3000
+        timeout: 10000
       });
-      
-      clearTimeout(timeoutId);
-      console.log('[AuthStore] Auth verify response:', response.data);
       
       if (response.data.valid && response.data.user) {
         console.log('[AuthStore] Token valid - setting user:', response.data.user.username);

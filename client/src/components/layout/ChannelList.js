@@ -71,8 +71,8 @@ function ChannelList() {
 
   const loadChannels = async () => {
     try {
-      // If we have a current server, load its channels
-      if (currentServer) {
+      // If we have a current server with valid ID, load its channels
+      if (currentServer && currentServer.id) {
         const response = await axios.get(`/channels/server/${currentServer.id}`);
         const channelsData = response.data || [];
         

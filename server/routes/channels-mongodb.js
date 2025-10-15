@@ -3,17 +3,21 @@ const express = require('express');
 const router = express.Router();
 const Channel = require('../schemas/Channel');
 const Server = require('../schemas/Server');
-const auth = require('../middleware/auth-mongodb');
+const authenticateToken = require('../middleware/auth-mongodb');
 
 // Get channels for a server
-router.get('/server/:serverId', auth, async (req, res) => {
+router.get('/server/:serverId', authenticateToken, async (req, res) => {
   try {
+    // Validate serverId
+    if (!req.params.serverId || req.params.serverId === 'undefined') {
+      return res.status(400).json({ error: 'Invalid server ID' });
+    }
+    
     const server = await Server.findById(req.params.serverId);
     
     if (!server) {
       return res.status(404).json({ error: 'Server not found' });
     }
-    
     // Check if user is member
     if (!server.isMember(req.userId)) {
       return res.status(403).json({ error: 'Access denied' });

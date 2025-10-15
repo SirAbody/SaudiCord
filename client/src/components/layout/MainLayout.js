@@ -51,7 +51,7 @@ function MainLayout() {
   return (
     <div className="flex h-screen bg-background-primary">
       {/* Server List - Far Left */}
-      <div className="w-[72px] bg-background-tertiary flex-shrink-0">
+      <div className="w-[72px] bg-black flex-shrink-0 border-r border-red-900/20">
         <ServerList />
       </div>
 

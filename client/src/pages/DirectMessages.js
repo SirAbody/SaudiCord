@@ -298,7 +298,7 @@ function DirectMessages() {
             <button
               onClick={() => setActiveTab('online')}
               className={`px-3 py-1 rounded transition-all ${
-                activeTab === 'online' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-dark-700'
+                activeTab === 'online' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white hover:bg-red-500/20'
               }`}
             >
               Online
@@ -306,7 +306,7 @@ function DirectMessages() {
             <button
               onClick={() => setActiveTab('all')}
               className={`px-3 py-1 rounded transition-all ${
-                activeTab === 'all' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-dark-700'
+                activeTab === 'all' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white hover:bg-red-500/20'
               }`}
             >
               All
@@ -314,7 +314,7 @@ function DirectMessages() {
             <button
               onClick={() => setActiveTab('pending')}
               className={`px-3 py-1 rounded relative transition-all ${
-                activeTab === 'pending' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-dark-700'
+                activeTab === 'pending' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white hover:bg-red-500/20'
               }`}
             >
               Pending
@@ -428,7 +428,7 @@ function DirectMessages() {
               // Friends List (Online/All tabs)
               <>
                 {/* Search */}
-                <div className="p-4 border-b border-gray-800">
+                <div className="p-4 border-b border-red-900/30">
                   <div className="relative">
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                     <input
@@ -463,7 +463,7 @@ function DirectMessages() {
                           className={`w-full flex items-center space-x-3 p-2 rounded transition ${
                             selectedConversation?.id === friend.id 
                               ? 'bg-primary-500/20 text-white' 
-                              : 'hover:bg-dark-700 text-gray-300'
+                              : 'hover:bg-red-500/10 text-gray-300'
                           }`}
                         >
                           <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
@@ -547,19 +547,19 @@ function DirectMessages() {
                   </button>
                 )}
                 <div className="relative group">
-                  <button className="p-2 hover:bg-gray-700 rounded transition">
+                  <button className="p-2 hover:bg-red-500/20 rounded transition">
                     <EllipsisHorizontalIcon className="w-5 h-5 text-gray-400" />
                   </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-10">
+                  <div className="absolute right-0 mt-2 w-48 bg-black/90 border border-red-900/30 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-10">
                     <button
                       onClick={() => removeFriend(selectedConversation.friendshipId)}
-                      className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 transition"
+                      className="w-full text-left px-4 py-2 text-white hover:bg-red-500/20 transition"
                     >
                       Remove Friend
                     </button>
                     <button
                       onClick={() => blockUser(selectedConversation.id)}
-                      className="w-full text-left px-4 py-2 text-red-500 hover:bg-gray-700 transition"
+                      className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-500/20 transition"
                     >
                       Block User
                     </button>
@@ -578,7 +578,7 @@ function DirectMessages() {
                   <div className={`max-w-2xl px-4 py-2 rounded-lg ${
                     message.senderId === user.id 
                       ? 'bg-red-500 text-white' 
-                      : 'bg-gray-700 text-white'
+                      : 'bg-black/50 border border-red-900/20 text-white'
                   }`}>
                     <p>{message.content}</p>
                     <span className="text-xs opacity-70">
@@ -590,7 +590,7 @@ function DirectMessages() {
             </div>
 
             {/* Message Input */}
-            <div className="p-4 border-t border-gray-800 bg-background-secondary">
+            <div className="p-4 border-t border-red-900/30 bg-black/50">
               <div className="flex items-center space-x-3">
                 <input
                   type="text"
@@ -598,7 +598,7 @@ function DirectMessages() {
                   onChange={(e) => setMessageInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   placeholder={`Message @${selectedConversation.username}`}
-                  className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="flex-1 bg-black/70 border border-red-900/30 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
                 <button
                   onClick={sendMessage}
