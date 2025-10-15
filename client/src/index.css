@@ -39,52 +39,70 @@
     background: rgba(255, 0, 0, 0.3);
     color: white;
   }
-}
-
-/* Global styles */
-body {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-/* Discord-like Colors */
 :root {
-  --background-primary: #36393f;
-  --background-secondary: #2f3136;
-  --background-tertiary: #202225;
-  --background-floating: #18191c;
-  --text-normal: #dcddde;
-  --text-muted: #72767d;
-  --text-faint: #484b51;
-  --accent: #ff0000;
-  --accent-hover: #cc0000;
-  --interactive-normal: #b9bbbe;
-  --interactive-hover: #dcddde;
-  --interactive-active: #fff;
-  --border: #202225;
-  --success: #43b581;
-  --warning: #faa61a;
-  --danger: #f04747;
+  /* Dark Theme with Red Accent */
+  --background-primary: #0a0a0a;
+  --background-secondary: #141414;
+  --background-tertiary: #1f1f1f;
+  --background-modifier-hover: rgba(255, 0, 0, 0.1);
+  --background-modifier-active: rgba(255, 0, 0, 0.2);
+  --background-modifier-selected: rgba(255, 0, 0, 0.3);
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --text-muted: #666666;
+  --primary-500: #FF0000;
+  --primary-600: #DC2626;
+  --accent: #FF0000;
+  --accent-dark: #DC2626;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --dark-100: #2a2a2a;
+  --dark-200: #1f1f1f;
+  --dark-300: #1a1a1a;
+  --dark-400: #141414;
+  --dark-500: #0f0f0f;
+  --dark-600: #0a0a0a;
+  --dark-700: #080808;
+  --dark-800: #050505;
+  --dark-900: #000000;
 }
 
-/* Beautiful scrollbar */
-::-webkit-scrollbar {
+/* Beautiful/* Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--background-secondary);
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--background-tertiary);
+  border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #202225;
-  border-radius: 8px;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 0, 0, 0.3);
+  border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #484b51;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 0, 0, 0.5);
+}
+
+/* Glass Morphism Effect */
+.glass-morphism {
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 0, 0, 0.1);
+}
+
+/* Red Glow Effect */
+.red-glow {
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+}
+
+.red-glow:hover {
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
 }
 
 /* Buttons */
@@ -97,23 +115,6 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background-color: var(--accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: var(--accent-hover);
-}
-
-.btn-secondary {
-  background-color: var(--background-floating);
-  color: var(--text-normal);
 }
 
 .btn-secondary:hover {

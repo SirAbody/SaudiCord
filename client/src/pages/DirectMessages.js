@@ -337,30 +337,38 @@ function DirectMessages() {
 
         {/* Content based on active tab */}
         <div className="flex-1 flex">
-          {/* Sidebar - Friends List */}
-          <div className="w-80 bg-background-secondary flex flex-col border-r border-gray-800">
+          {/* Sidebar - Friends List with Glass Effect */}
+          <div className="w-96 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20">
             {activeTab === 'addFriend' ? (
-              // Add Friend Tab
-              <div className="p-4">
-                <h2 className="text-xl font-bold text-white mb-2">ADD FRIEND</h2>
-                <p className="text-gray-400 text-sm mb-4">
-                  You can add friends with their username.
-                </p>
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={friendUsername}
-                    onChange={(e) => setFriendUsername(e.target.value)}
-                    placeholder="Enter a Username#0000"
-                    className="flex-1 bg-dark-900 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    onKeyPress={(e) => e.key === 'Enter' && sendFriendRequest()}
-                  />
-                  <button
-                    onClick={sendFriendRequest}
-                    className="px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
-                  >
-                    Send Friend Request
-                  </button>
+              // Add Friend Tab - Beautiful Design
+              <div className="p-8">
+                <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl p-6 shadow-xl shadow-red-900/20">
+                  <h2 className="text-2xl font-bold text-white mb-3 flex items-center">
+                    <UserPlusIcon className="w-7 h-7 mr-2" />
+                    ADD FRIEND
+                  </h2>
+                  <p className="text-red-100 text-sm mb-6">
+                    Connect with friends using their username
+                  </p>
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={friendUsername}
+                      onChange={(e) => setFriendUsername(e.target.value)}
+                      placeholder="Enter a Username#0000"
+                      className="w-full bg-black/50 text-white px-4 py-3 rounded-lg border border-red-500/30 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-500/20 placeholder-gray-400"
+                      onKeyPress={(e) => e.key === 'Enter' && sendFriendRequest()}
+                    />
+                    <button
+                      onClick={sendFriendRequest}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 font-semibold shadow-lg shadow-red-500/30 transform hover:scale-105"
+                    >
+                      <span className="flex items-center justify-center">
+                        <PaperAirplaneIcon className="w-5 h-5 mr-2" />
+                        Send Friend Request
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : activeTab === 'pending' ? (
@@ -483,18 +491,27 @@ function DirectMessages() {
           <div className="flex-1 flex flex-col">
             {selectedConversation ? (
           <>
-            {/* Chat Header */}
-            <div className="h-16 px-6 flex items-center justify-between border-b border-gray-800 bg-background-secondary">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                  <UserIcon className="w-6 h-6 text-white" />
+            {/* Chat Header - Modern Design */}
+            <div className="h-16 px-6 flex items-center justify-between border-b border-red-900/20 glass-morphism">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-lg shadow-red-500/30">
+                    {selectedConversation.avatar ? (
+                      <img src={selectedConversation.avatar} alt="" className="w-full h-full rounded-full" />
+                    ) : (
+                      <UserIcon className="w-7 h-7 text-white" />
+                    )}
+                  </div>
+                  {selectedConversation.status === 'online' && (
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
+                  )}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-text-primary">
+                  <h3 className="font-bold text-white text-lg">
                     {selectedConversation.displayName || selectedConversation.username}
                   </h3>
-                  <p className="text-xs text-text-tertiary">
-                    {selectedConversation.status === 'online' ? 'Active now' : 'Offline'}
+                  <p className="text-xs text-gray-400">
+                    {selectedConversation.status === 'online' ? '🟢 Active now' : '⚫ Offline'}
                   </p>
                 </div>
               </div>

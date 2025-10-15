@@ -42,22 +42,36 @@ function ServerSettingsModal({ show, onClose, server }) {
       loadServerData();
     }
   }, [show, server]);
-
   const loadServerData = async () => {
     if (!server) return;
 
     try {
       // Load channels
-      const channelsRes = await axios.get(`/api/channels/server/${server.id}`);
-      setChannels(channelsRes.data);
+      try {
+        const channelsResponse = await axios.get(`/channels/server/${server.id}`);
+        setChannels(channelsResponse.data || []);
+      } catch (error) {
+        console.error('Failed to load channels:', error);
+        setChannels([]);
+      }
 
       // Load members
-      const membersRes = await axios.get(`/api/servers/${server.id}/members`);
-      setMembers(membersRes.data);
+      try {
+        const membersResponse = await axios.get(`/servers/${server.id}/members`);
+        setMembers(membersResponse.data || []);
+      } catch (error) {
+        console.error('Failed to load members:', error);
+        setMembers([]);
+      }
 
       // Load roles
-      const rolesRes = await axios.get(`/api/servers/${server.id}/roles`);
-      setRoles(rolesRes.data);
+      try {
+        const rolesResponse = await axios.get(`/servers/${server.id}/roles`);
+        setRoles(rolesResponse.data || []);
+      } catch (error) {
+        console.error('Failed to load roles:', error);
+        setRoles([]);
+      }
 
       // Generate invite code
       setInviteCode(server.inviteCode || `${server.name.toLowerCase().replace(/\s+/g, '-')}-${server.id.slice(0, 6)}`);
@@ -66,114 +80,28 @@ function ServerSettingsModal({ show, onClose, server }) {
     }
   };
 
-  const handleSaveOverview = async () => {
-    setSaving(true);
-    try {
-      await axios.patch(`/api/servers/${server.id}`, {
-        name: serverName,
-        description: serverDescription
-      });
-      toast.success('Server settings saved');
-      // Update the server in parent component
-      server.name = serverName;
-      server.description = serverDescription;
-    } catch (error) {
-      toast.error('Failed to save settings');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCreateChannel = async () => {
-    if (!newChannelName.trim()) {
-      toast.error('Channel name is required');
-      return;
-    }
-
-    try {
-      const response = await axios.post('/api/channels', {
-        name: newChannelName,
-        type: newChannelType,
-        serverId: server.id
-      });
-      
-      setChannels([...channels, response.data]);
-      setNewChannelName('');
-      toast.success('Channel created successfully');
-      fetchChannels(server.id);
-    } catch (error) {
-      toast.error('Failed to create channel');
-    }
-  };
-
-  const handleDeleteChannel = async (channelId) => {
-    if (!window.confirm('Are you sure you want to delete this channel?')) return;
-
-    try {
-      await axios.delete(`/api/channels/${channelId}`);
-      setChannels(channels.filter(c => c.id !== channelId));
-      toast.success('Channel deleted');
-      fetchChannels(server.id);
-    } catch (error) {
-      toast.error('Failed to delete channel');
-    }
-  };
-
-  const handleKickMember = async (memberId) => {
-    if (!window.confirm('Are you sure you want to kick this member?')) return;
-
-    try {
-      await axios.delete(`/api/servers/${server.id}/members/${memberId}`);
-      setMembers(members.filter(m => m.id !== memberId));
-      toast.success('Member kicked');
-    } catch (error) {
-      toast.error('Failed to kick member');
-    }
-  };
-
-  const handleDeleteServer = async () => {
-    if (deleteConfirmInput !== server.name) {
-      toast.error('Server name does not match');
-      return;
-    }
-
-    try {
-      await axios.delete(`/api/servers/${server.id}`);
-      toast.success('Server deleted');
-      onClose();
-      window.location.reload(); // Refresh to update server list
-    } catch (error) {
-      toast.error('Failed to delete server');
-    }
-  };
-
-  const isOwner = server?.ownerId === user?.id || server?.owner?.id === user?.id;
   const isAdmin = isOwner || user?.isAdmin;
 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-dark-800 rounded-lg w-full max-w-4xl h-[600px] flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-56 bg-dark-900 p-3">
-          <div className="mb-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase px-2 mb-1">
-              {server?.name}
-            </h3>
-          </div>
+    <div className={`fixed inset-0 bg-black/70 backdrop-blur-sm z-50 ${show ? 'flex' : 'hidden'} items-center justify-center`}>
+      <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl w-full max-w-4xl h-[80vh] flex overflow-hidden shadow-2xl border border-red-900/30">
+        {/* Sidebar with Modern Design */}
+        <div className="w-60 bg-black/60 backdrop-blur p-4 border-r border-red-900/20">
+          <h3 className="text-xs font-bold text-red-400 uppercase mb-4 tracking-wider">Server Settings</h3>
           
-          <nav className="space-y-1">
+          <nav className="space-y-2">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center px-2 py-1.5 rounded text-sm ${
+              className={`w-full text-left px-4 py-2.5 rounded-lg flex items-center space-x-3 transition-all duration-200 ${
                 activeTab === 'overview' 
-                  ? 'bg-primary-500/20 text-white' 
-                  : 'text-gray-400 hover:bg-dark-700 hover:text-gray-300'
+                  ? 'bg-red-500/20 text-white border border-red-500/30 shadow-lg shadow-red-500/10' 
+                  : 'text-gray-400 hover:bg-red-500/10 hover:text-white'
               }`}
             >
-              <Cog6ToothIcon className="w-4 h-4 mr-2" />
-              Overview
+              <Cog6ToothIcon className="w-5 h-5" />
+              <span className="font-medium">Overview</span>
             </button>
             
             {isAdmin && (

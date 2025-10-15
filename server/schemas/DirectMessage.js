@@ -111,7 +111,7 @@ directMessageSchema.statics.getConversationsList = async function(userId) {
     {
       $match: {
         $and: [
-          { $or: [{ sender: mongoose.Types.ObjectId(userId) }, { receiver: mongoose.Types.ObjectId(userId) }] },
+          { $or: [{ sender: new mongoose.Types.ObjectId(userId) }, { receiver: new mongoose.Types.ObjectId(userId) }] },
           { deleted: false }
         ]
       }

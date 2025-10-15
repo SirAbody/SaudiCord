@@ -29,6 +29,13 @@ function ServerList() {
     }
   }, [fetchServers]);
 
+  // Auto-select first server if no server is selected
+  useEffect(() => {
+    if (servers && servers.length > 0 && !currentServer) {
+      setCurrentServer(servers[0]);
+    }
+  }, [servers, currentServer, setCurrentServer]);
+
 
   const handleHomeClick = () => {
     setCurrentServer(null);
@@ -58,7 +65,9 @@ function ServerList() {
       });
       
       toast.success('Server created successfully!');
-      fetchServers(); // Reload servers list
+      await fetchServers(); // Reload servers list
+      // Set the new server as current server
+      setCurrentServer(response.data);
       setShowCreateModal(false);
       setNewServerName('');
       setNewServerDescription('');
@@ -87,8 +96,8 @@ function ServerList() {
       
       <div className="w-8 h-0.5 bg-dark-400 rounded-full mx-auto"></div>
       
-      {/* Server Icons */}
-      {servers?.map((server) => (
+      {/* Server Icons - Remove duplicates using Set */}
+      {[...new Map(servers?.map(server => [server.id, server])).values()]?.map((server) => (
         <div key={server.id} className="relative group">
           <button
             onClick={() => handleServerClick(server)}
@@ -107,7 +116,7 @@ function ServerList() {
             {server.icon ? (
               <img src={server.icon} alt={server.name} className="w-full h-full rounded-full" />
             ) : (
-              <span className="text-text-primary font-bold group-hover:text-white">
+              <span className="text-white font-bold">
                 {server.name.substring(0, 2).toUpperCase()}
               </span>
             )}
