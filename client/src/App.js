@@ -10,6 +10,9 @@ import { SocketProvider } from './contexts/SocketContext';
 import NotificationManager from './components/notifications/NotificationManager';
 import notificationService from './services/notificationService';
 import socketService from './services/socket';
+import { VoiceProvider } from './contexts/VoiceContext';
+import VoiceBottomBar from './components/voice/VoiceBottomBar';
+import VoiceCallNotification from './components/voice/VoiceCallNotification';
 
 function App() {
   console.log('[App] Component mounting...');
@@ -103,32 +106,40 @@ function App() {
 
   return (
     <SocketProvider>
-      <div className="App">
-        {console.log('[App] Rendering App component with Routes')}
-        {isAuthenticated && <NotificationManager />}
-        <Routes>
-          <Route 
-            path="/" 
-            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-          />
-          <Route 
-            path="/login" 
-            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
-          />
-          <Route 
-            path="/register" 
-            element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
-          />
-          <Route 
-            path="/invite/:inviteCode" 
-            element={<InvitePage />} 
-          />
-          <Route 
-            path="*" 
-            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-          />
-        </Routes>
-      </div>
+      <VoiceProvider>
+        <div className="App">
+          {console.log('[App] Rendering App component with Routes')}
+          {isAuthenticated && (
+            <>
+              <NotificationManager />
+              <VoiceBottomBar />
+              <VoiceCallNotification />
+            </>
+          )}
+          <Routes>
+            <Route 
+              path="/" 
+              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+            />
+            <Route 
+              path="/login" 
+              element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+            />
+            <Route 
+              path="/register" 
+              element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
+            />
+            <Route 
+              path="/invite/:inviteCode" 
+              element={<InvitePage />} 
+            />
+            <Route 
+              path="*" 
+              element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+            />
+          </Routes>
+        </div>
+      </VoiceProvider>
     </SocketProvider>
   );
 }

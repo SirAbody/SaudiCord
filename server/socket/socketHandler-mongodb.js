@@ -336,61 +336,154 @@ module.exports = (io) => {
       }
 
       try {
-        const { channelId } = data;
+        const { channelId, serverId } = data;
+        console.log(`[Socket] User ${socket.userId} joining voice channel ${channelId}`);
         
-        // Get channel
-        const channel = await Channel.findById(channelId);
-        if (!channel || channel.type !== 'voice') {
-          socket.emit('error', { message: 'Invalid voice channel' });
-          return;
+        // Join voice room
+        const voiceRoom = `voice-${channelId}`;
+        socket.join(voiceRoom);
+        
+        // Get existing participants in the room
+        const roomSockets = io.sockets.adapter.rooms.get(voiceRoom);
+        const participants = [];
+        
+        if (roomSockets) {
+          for (const socketId of roomSockets) {
+            const participantSocket = io.sockets.sockets.get(socketId);
+            if (participantSocket && participantSocket.userId !== socket.userId) {
+              participants.push({
+                id: participantSocket.userId,
+                username: participantSocket.username,
+                socketId: socketId
+              });
+            }
+          }
         }
-
-        // Join voice channel in database
-        await channel.joinVoiceChannel(socket.userId);
         
-        // Join socket room
-        socket.join(`voice:${channelId}`);
-        
-        // Get all users in channel
-        await channel.populate('connectedUsers.user', 'username displayName avatar');
-        const users = channel.connectedUsers.map(cu => ({
-          id: cu.user._id,
-          username: cu.user.username,
-          displayName: cu.user.displayName,
-          avatar: cu.user.avatar,
-          isMuted: cu.isMuted,
-          isDeafened: cu.isDeafened,
-          isVideo: cu.isVideo
-        }));
-        
-        // Store voice channel for user
-        socket.voiceChannelId = channelId;
-        
-        // Notify all users in voice channel
-        io.to(`voice:${channelId}`).emit('voice:users', {
-          channelId,
-          users
-        });
-        
-        // Notify about user joining - send to everyone including the joiner
-        io.to(`voice:${channelId}`).emit('voice:user:joined', {
-          channelId,
+        // Notify existing participants about new user
+        socket.to(voiceRoom).emit('voice:user-joined', {
           user: {
             id: socket.userId,
-            username: socket.user.username,
-            displayName: socket.user.displayName,
-            avatar: socket.user.avatar
+            username: socket.username,
+            socketId: socket.id
           }
         });
         
-        console.log(`[Socket] User ${socket.username} joined voice channel ${channelId}`);
+        // Send existing participants to new user
+        socket.emit('voice:existing-participants', {
+          participants
+        });
+        
+        console.log(`[Socket] User ${socket.userId} joined voice channel with ${participants.length} existing participants`);
+        
+        // Store voice channel for user
+        socket.voiceChannelId = channelId;
       } catch (error) {
         console.error('[Socket] Error joining voice channel:', error);
         socket.emit('error', { message: 'Failed to join voice channel' });
       }
     });
 
-    // Handle WebRTC offer
+    // Leave voice channel
+    socket.on('voice:leave', async (data) => {
+      try {
+        const { channelId } = data;
+        const voiceRoom = `voice-${channelId}`;
+        
+        // Leave the room
+        socket.leave(voiceRoom);
+        
+        // Notify others in the channel
+        socket.to(voiceRoom).emit('voice:user-left', {
+          userId: socket.userId
+        });
+        
+        // Clear voice channel from socket
+        socket.voiceChannelId = null;
+        
+        console.log(`[Socket] User ${socket.userId} left voice channel ${channelId}`);
+      } catch (error) {
+        console.error('[Socket] Error leaving voice channel:', error);
+      }
+    });
+    
+    // WebRTC Signaling - Offer
+    socket.on('voice:offer', (data) => {
+      const { to, offer } = data;
+      console.log(`[Socket] Relaying offer from ${socket.userId} to ${to}`);
+      
+      // Find target socket
+      const targetSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.userId === to);
+      
+      if (targetSocket) {
+        targetSocket.emit('voice:offer', {
+          from: socket.userId,
+          offer: offer
+        });
+      }
+    });
+    
+    // WebRTC Signaling - Answer
+    socket.on('voice:answer', (data) => {
+      const { to, answer } = data;
+      console.log(`[Socket] Relaying answer from ${socket.userId} to ${to}`);
+      
+      // Find target socket
+      const targetSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.userId === to);
+      
+      if (targetSocket) {
+        targetSocket.emit('voice:answer', {
+          from: socket.userId,
+          answer: answer
+        });
+      }
+    });
+    
+    // WebRTC Signaling - ICE Candidate
+    socket.on('voice:ice-candidate', (data) => {
+      const { to, candidate } = data;
+      console.log(`[Socket] Relaying ICE candidate from ${socket.userId} to ${to}`);
+      
+      // Find target socket
+      const targetSocket = Array.from(io.sockets.sockets.values())
+        .find(s => s.userId === to);
+      
+      if (targetSocket) {
+        targetSocket.emit('voice:ice-candidate', {
+          from: socket.userId,
+          candidate: candidate
+        });
+      }
+    });
+    
+    // Mute/Unmute status
+    socket.on('voice:mute-status', (data) => {
+      const { channelId, isMuted } = data;
+      const voiceRoom = `voice-${channelId}`;
+      
+      // Notify others in the channel
+      socket.to(voiceRoom).emit('voice:user-status', {
+        userId: socket.userId,
+        isMuted: isMuted
+      });
+    });
+    
+    // Deafen status
+    socket.on('voice:deafen-status', (data) => {
+      const { channelId, isDeafened, isMuted } = data;
+      const voiceRoom = `voice-${channelId}`;
+      
+      // Notify others in the channel
+      socket.to(voiceRoom).emit('voice:user-status', {
+        userId: socket.userId,
+        isDeafened: isDeafened,
+        isMuted: isMuted
+      });
+    });
+    
+    // Handle WebRTC offer (OLD - keeping for compatibility)
     socket.on('webrtc:offer', (data) => {
       const { targetUserId, offer } = data;
       const targetSocketId = userSockets.get(targetUserId?.toString());
