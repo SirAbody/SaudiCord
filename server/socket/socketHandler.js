@@ -22,6 +22,7 @@ try {
 // Store active connections
 const activeUsers = new Map();
 const userSockets = new Map();
+const voiceChannelUsers = {};
 
 module.exports = (io) => {
   // Middleware for socket authentication (always non-blocking for production)
@@ -599,24 +600,77 @@ module.exports = (io) => {
         
         if (targetSocket) {
           targetSocket.emit('call:ended', {
-            enderId: socket.userId
+            enderId: socket.userId,
+            channelId: data.channelId
           });
         }
       }
+    });
+    
+    // Voice channel join
+    socket.on('voice:join', async (data) => {
+      console.log('[Socket] User joining voice channel:', data);
+      socket.join(`voice-${data.channelId}`);
       
-      if (data.channelId) {
-        // Leave voice channel
-        socket.to(`voice:${data.channelId}`).emit('voice:user:left', {
-          userId: socket.userId,
-          username: socket.username
+      // Track user in channel
+      if (!voiceChannelUsers[data.channelId]) {
+        voiceChannelUsers[data.channelId] = [];
+      }
+      
+      const userInfo = {
+        id: socket.user ? socket.user.id : socket.userId || socket.id,
+        username: socket.user ? socket.user.username : socket.username || 'Anonymous',
+        displayName: socket.user ? socket.user.displayName : socket.username || 'Anonymous',
+        avatar: socket.user ? socket.user.avatar : null,
+        isSpeaking: false,
+        isMuted: false,
+        isDeafened: false,
+        isVideo: false
+      };
+      
+      voiceChannelUsers[data.channelId].push(userInfo);
+      
+      // Emit updated user list to everyone in the channel
+      io.to(`voice-${data.channelId}`).emit('voice:users:update', {
+        channelId: data.channelId,
+        users: voiceChannelUsers[data.channelId]
+      });
+      
+      socket.broadcast.to(`voice-${data.channelId}`).emit('voice:user:joined', {
+        userId: user ? user.id : socket.id,
+        username: user ? user.username : 'Anonymous',
+        channelId: data.channelId
+      });
+    });
+    
+    // Voice channel leave
+    socket.on('voice:leave', async (data) => {
+      console.log('[Socket] User leaving voice channel:', data);
+      socket.leave(`voice-${data.channelId}`);
+      
+      // Remove user from channel
+      if (voiceChannelUsers[data.channelId]) {
+        const userId = user ? user.id : socket.id;
+        voiceChannelUsers[data.channelId] = voiceChannelUsers[data.channelId].filter(u => u.id !== userId);
+        
+        // Emit updated user list to everyone in the channel
+        io.to(`voice-${data.channelId}`).emit('voice:users:update', {
+          channelId: data.channelId,
+          users: voiceChannelUsers[data.channelId]
         });
       }
+      
+      socket.broadcast.to(`voice-${data.channelId}`).emit('voice:user:left', {
+        userId: user ? user.id : socket.id,
+        username: user ? user.username : 'Anonymous',
+        channelId: data.channelId
+      });
     });
 
     // Handle disconnection - NO DATABASE CALLS
     socket.on('disconnect', (reason) => {
       if (socket.userId && socket.user) {
-        logger.info(`User ${socket.user.username} disconnected`, {
+        logger.info('User disconnected', {
           socketId: socket.id,
           userId: socket.userId,
           reason

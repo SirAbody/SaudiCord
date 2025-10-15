@@ -8,7 +8,6 @@ import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
 import webrtcService from '../../services/webrtc';
 import InviteModal from '../modals/InviteModal';
-import VoiceChannelDisplay from '../voice/VoiceChannelDisplay';
 
 function ChannelList() {
   const { currentChannel, selectChannel, fetchMessages, currentServer, channels } = useChatStore();
@@ -22,6 +21,7 @@ function ChannelList() {
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
+  const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
 
   useEffect(() => {
     // Listen for voice channel left event
@@ -29,10 +29,30 @@ function ChannelList() {
       setActiveVoiceChannel(null);
     };
     
+    // Listen for voice channel user updates from window event
+    const handleVoiceUsersUpdate = (event) => {
+      const data = event.detail;
+      setVoiceChannelUsers(prev => ({
+        ...prev,
+        [data.channelId]: data.users
+      }));
+    };
+    
     window.addEventListener('voiceChannelLeft', handleVoiceChannelLeft);
+    window.addEventListener('voiceUsersUpdate', handleVoiceUsersUpdate);
+    
+    // Also listen directly on socket
+    socketService.on('voice:users:update', (data) => {
+      setVoiceChannelUsers(prev => ({
+        ...prev,
+        [data.channelId]: data.users
+      }));
+    });
     
     return () => {
       window.removeEventListener('voiceChannelLeft', handleVoiceChannelLeft);
+      window.removeEventListener('voiceUsersUpdate', handleVoiceUsersUpdate);
+      socketService.off('voice:users:update');
     };
   }, []);
 
@@ -223,38 +243,98 @@ function ChannelList() {
           </div>
           
           {voiceChannels.map(channel => {
-            const isActive = currentChannel?.id === channel.id;
+            const isActive = activeVoiceChannel?.id === channel.id;
             const isInCall = isActive && webrtcService.isInCall();
+            const usersInChannel = voiceChannelUsers[channel.id] || [];
             
             return (
-              <div key={channel.id} className="relative group">
+              <div key={channel.id} className="mb-1">
                 <button
                   onClick={() => handleChannelClick(channel)}
-                  className={`w-full px-2 py-1 flex items-center text-text-secondary hover:text-text-primary hover:bg-dark-400/50 rounded transition-colors ${
-                    isActive ? 'bg-dark-400/50 text-text-primary' : ''
+                  className={`w-full px-2 py-1 flex items-center text-text-secondary hover:text-text-primary hover:bg-primary-500/20 rounded transition-colors ${
+                    isActive ? 'bg-primary-500/20 text-text-primary' : ''
                   }`}
                 >
                   <SpeakerWaveIcon className="w-5 h-5 mr-1.5 text-text-tertiary" />
                   <span className="text-sm flex-1 text-left">{channel.name}</span>
                   {isInCall && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-green-500">Connected</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          webrtcService.endCall();
-                          toast.success('Left voice channel');
-                        }}
-                        className="p-1 hover:bg-red-500/20 rounded"
-                      >
-                        <PhoneXMarkIcon className="w-4 h-4 text-red-500" />
-                      </button>
-                    </div>
-                  )}
-                  {!isInCall && isActive && (
-                    <PhoneIcon className="w-4 h-4 text-green-500 animate-pulse" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        webrtcService.endCall();
+                        toast.success('Left voice channel');
+                        setActiveVoiceChannel(null);
+                      }}
+                      className="p-1 hover:bg-red-500/20 rounded"
+                      title="Leave Channel"
+                    >
+                      <PhoneXMarkIcon className="w-4 h-4 text-red-500" />
+                    </button>
                   )}
                 </button>
+                
+                {/* Users in Voice Channel - Discord Style */}
+                {usersInChannel.length > 0 && (
+                  <div className="ml-7 mt-1 space-y-0.5">
+                    {usersInChannel.map(user => (
+                      <div 
+                        key={user.id}
+                        className={`flex items-center space-x-2 px-2 py-1 rounded text-xs ${
+                          user.isSpeaking ? 'text-green-400' : 'text-gray-400'
+                        } hover:bg-dark-400/30 cursor-pointer group`}
+                      >
+                        {/* Avatar */}
+                        <div className="relative flex-shrink-0">
+                          {user.avatar ? (
+                            <img 
+                              src={user.avatar} 
+                              alt={user.username}
+                              className={`w-6 h-6 rounded-full ${
+                                user.isSpeaking ? 'ring-2 ring-green-500' : ''
+                              }`}
+                            />
+                          ) : (
+                            <div className={`w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center ${
+                              user.isSpeaking ? 'ring-2 ring-green-500' : ''
+                            }`}>
+                              <span className="text-[10px] text-white font-bold">
+                                {user.username?.[0]?.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          {user.isVideo && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                              <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Username */}
+                        <span className={`flex-1 truncate ${
+                          user.isSpeaking ? 'text-green-400 font-medium' : ''
+                        }`}>
+                          {user.displayName || user.username}
+                        </span>
+                        
+                        {/* Status Icons */}
+                        <div className="flex items-center space-x-0.5 opacity-0 group-hover:opacity-100">
+                          {user.isMuted && (
+                            <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {user.isDeafened && (
+                            <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -356,14 +436,6 @@ function ChannelList() {
         <InviteModal 
           server={currentServer}
           onClose={() => setShowInviteModal(false)}
-        />
-      )}
-      
-      {/* Voice Channel Display */}
-      {activeVoiceChannel && (
-        <VoiceChannelDisplay
-          channelId={activeVoiceChannel.id}
-          channelName={activeVoiceChannel.name}
         />
       )}
     </div>

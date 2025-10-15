@@ -12,6 +12,7 @@ export const useChatStore = create((set, get) => ({
   typingUsers: {},
   onlineUsers: new Set(),
   loading: false,
+  lastMessageTime: null,
 
   // Fetch user's servers
   fetchServers: async () => {
@@ -288,5 +289,10 @@ export const useChatStore = create((set, get) => ({
         }
       }));
     }
+  },
+
+  // Force re-render with timestamp
+  setLastMessageTime: (time) => {
+    set({ lastMessageTime: time });
   }
 }));

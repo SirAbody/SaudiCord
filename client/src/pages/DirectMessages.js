@@ -38,6 +38,17 @@ function DirectMessages() {
     loadFriends();
     loadConversations();
     setupSocketListeners();
+
+    // Listen for friends update event
+    const handleFriendsUpdate = () => {
+      loadFriends();
+    };
+    
+    window.addEventListener('friendsUpdate', handleFriendsUpdate);
+    
+    return () => {
+      window.removeEventListener('friendsUpdate', handleFriendsUpdate);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setupSocketListeners = () => {
@@ -252,43 +263,43 @@ function DirectMessages() {
       <div className="flex-1 flex flex-col">
         {/* Discord-style Tabs Header */}
         <div className="h-12 bg-dark-800 border-b border-dark-600 flex items-center px-4">
-          <UserIcon className="w-5 h-5 text-gray-400 mr-2" />
+          <UserIcon className="w-5 h-5 text-primary-500 mr-2" />
           <span className="text-white font-semibold mr-6">Friends</span>
           
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setActiveTab('online')}
-              className={`px-3 py-1 rounded ${
-                activeTab === 'online' ? 'bg-dark-700 text-white' : 'text-gray-400 hover:text-white'
+              className={`px-3 py-1 rounded transition-all ${
+                activeTab === 'online' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-dark-700'
               }`}
             >
               Online
             </button>
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-3 py-1 rounded ${
-                activeTab === 'all' ? 'bg-dark-700 text-white' : 'text-gray-400 hover:text-white'
+              className={`px-3 py-1 rounded transition-all ${
+                activeTab === 'all' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-dark-700'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setActiveTab('pending')}
-              className={`px-3 py-1 rounded relative ${
-                activeTab === 'pending' ? 'bg-dark-700 text-white' : 'text-gray-400 hover:text-white'
+              className={`px-3 py-1 rounded relative transition-all ${
+                activeTab === 'pending' ? 'bg-primary-500 text-white' : 'text-gray-400 hover:text-white hover:bg-dark-700'
               }`}
             >
               Pending
               {pendingRequests.length > 0 && (
-                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-2 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {pendingRequests.length}
                 </span>
               )}
             </button>
             <button
               onClick={() => setActiveTab('addFriend')}
-              className={`px-3 py-1 rounded text-green-400 hover:bg-green-500/20 ${
-                activeTab === 'addFriend' ? 'bg-green-500/20' : ''
+              className={`px-3 py-1 rounded transition-all text-primary-500 hover:bg-primary-500/20 ${
+                activeTab === 'addFriend' ? 'bg-primary-500/20' : ''
               }`}
             >
               Add Friend
@@ -313,12 +324,12 @@ function DirectMessages() {
                     value={friendUsername}
                     onChange={(e) => setFriendUsername(e.target.value)}
                     placeholder="Enter a Username#0000"
-                    className="flex-1 bg-dark-900 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="flex-1 bg-dark-900 text-white px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                     onKeyPress={(e) => e.key === 'Enter' && sendFriendRequest()}
                   />
                   <button
                     onClick={sendFriendRequest}
-                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+                    className="px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
                   >
                     Send Friend Request
                   </button>
@@ -389,7 +400,7 @@ function DirectMessages() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search friends..."
-                      className="w-full bg-gray-700 text-white pl-10 pr-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full bg-dark-700 text-white pl-10 pr-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                 </div>
@@ -415,11 +426,11 @@ function DirectMessages() {
                           onClick={() => selectConversation(friend)}
                           className={`w-full flex items-center space-x-3 p-2 rounded transition ${
                             selectedConversation?.id === friend.id 
-                              ? 'bg-gray-700 text-white' 
-                              : 'hover:bg-gray-700/50 text-gray-300'
+                              ? 'bg-primary-500/20 text-white' 
+                              : 'hover:bg-dark-700 text-gray-300'
                           }`}
                         >
-                          <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                          <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
                             {friend.avatar ? (
                               <img src={friend.avatar} alt={friend.displayName} className="w-full h-full rounded-full" />
                             ) : (
@@ -442,7 +453,7 @@ function DirectMessages() {
 
           {/* Chat Area */}
           <div className="flex-1 flex flex-col">
-        {selectedConversation ? (
+            {selectedConversation ? (
           <>
             {/* Chat Header */}
             <div className="h-16 px-6 flex items-center justify-between border-b border-gray-800 bg-background-secondary">
@@ -554,19 +565,19 @@ function DirectMessages() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <ChatBubbleLeftIcon className="w-16 h-16 text-text-tertiary mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-text-primary mb-2">
-                Welcome to Direct Messages
-              </h3>
-              <p className="text-text-secondary">
-                Select a friend to start chatting
-              </p>
-            </div>
-            </div>
-          )}
-        </div>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <ChatBubbleLeftIcon className="w-20 h-20 text-primary-500/50 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Welcome to Direct Messages
+                  </h3>
+                  <p className="text-gray-400">
+                    Select a friend to start chatting
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
