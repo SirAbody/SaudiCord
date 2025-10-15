@@ -11,6 +11,9 @@ import './services/axiosSetup';
 
 console.log('[Index] Starting SaudiCord application...');
 console.log('[Index] All imports loaded successfully');
+
+// Get root element
+const rootElement = document.getElementById('root');
 console.log('[Index] Root element found:', !!rootElement);
 
 if (!rootElement) {

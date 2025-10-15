@@ -100,10 +100,10 @@ function MainLayout() {
               {currentChannel ? (
                 <>
                   <ChatArea />
-                  {/* User List for current channel */}
-                  <div className="w-60 bg-background-secondary flex-shrink-0">
+                  {/* User List for current channel - TODO: Create UserList component */}
+                  {/* <div className="w-60 bg-background-secondary flex-shrink-0">
                     <UserList />
-                  </div>
+                  </div> */}
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">

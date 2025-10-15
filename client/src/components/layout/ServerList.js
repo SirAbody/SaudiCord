@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import CreateServerModal from '../modals/CreateServerModal';
 import UserPresence from '../user/UserPresence';
 import axios from 'axios';
