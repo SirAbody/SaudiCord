@@ -111,7 +111,7 @@ function ChannelList() {
     }
 
     if (!currentServer || !currentServer.id) {
-      toast.error('No server selected');
+      // Don't show error toast if no server selected
       return;
     }
 
@@ -176,7 +176,7 @@ function ChannelList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-dark-400">
+      <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-red-900/30">
         <h2 className="font-bold text-text-primary">
           {currentServer ? currentServer.name : 'Select a Server'}
         </h2>
@@ -184,7 +184,7 @@ function ChannelList() {
           {currentServer && (
             <button
               onClick={() => setShowInviteModal(true)}
-              className="p-1 hover:bg-gray-700 rounded transition"
+              className="p-1 hover:bg-red-900/20 rounded transition"
               title="Invite People"
             >
               <UserPlusIcon className="w-4 h-4 text-text-secondary" />
@@ -204,7 +204,7 @@ function ChannelList() {
                 setChannelType('text');
                 setShowCreateModal(true);
               }}
-              className="flex items-center text-xs font-semibold text-text-tertiary hover:text-text-secondary w-full"
+              className="flex items-center text-xs font-semibold text-gray-500 hover:text-gray-300 w-full"
             >
               <ChevronDownIcon className="w-3 h-3 mr-0.5" />
               TEXT CHANNELS
@@ -216,11 +216,11 @@ function ChannelList() {
             <button
               key={channel.id}
               onClick={() => handleChannelClick(channel)}
-              className={`w-full px-2 py-1 flex items-center text-text-secondary hover:text-text-primary hover:bg-dark-400/50 rounded transition-colors ${
-                currentChannel?.id === channel.id ? 'bg-dark-400/50 text-text-primary' : ''
+              className={`w-full px-2 py-1 flex items-center text-gray-400 hover:text-white hover:bg-red-900/20 rounded transition-colors ${
+                currentChannel?.id === channel.id ? 'bg-red-900/30 text-white' : ''
               }`}
             >
-              <HashtagIcon className="w-5 h-5 mr-1.5 text-text-tertiary" />
+              <HashtagIcon className="w-5 h-5 mr-1.5 text-gray-500" />
               <span className="text-sm">{channel.name}</span>
             </button>
           ))}
@@ -234,7 +234,7 @@ function ChannelList() {
                 setChannelType('voice');
                 setShowCreateModal(true);
               }}
-              className="flex items-center text-xs font-semibold text-text-tertiary hover:text-text-secondary w-full"
+              className="flex items-center text-xs font-semibold text-gray-500 hover:text-gray-300 w-full"
             >
               <ChevronDownIcon className="w-3 h-3 mr-0.5" />
               VOICE CHANNELS
@@ -251,11 +251,11 @@ function ChannelList() {
               <div key={channel.id} className="mb-1">
                 <button
                   onClick={() => handleChannelClick(channel)}
-                  className={`w-full px-2 py-1 flex items-center text-text-secondary hover:text-text-primary hover:bg-primary-500/20 rounded transition-colors ${
-                    isActive ? 'bg-primary-500/20 text-text-primary' : ''
+                  className={`w-full px-2 py-1 flex items-center text-gray-400 hover:text-white hover:bg-red-900/20 rounded transition-colors ${
+                    isActive ? 'bg-red-900/30 text-white' : ''
                   }`}
                 >
-                  <SpeakerWaveIcon className="w-5 h-5 mr-1.5 text-text-tertiary" />
+                  <SpeakerWaveIcon className="w-5 h-5 mr-1.5 text-gray-500" />
                   <span className="text-sm flex-1 text-left">{channel.name}</span>
                   {isInCall && (
                     <button
@@ -281,7 +281,7 @@ function ChannelList() {
                         key={user.id}
                         className={`flex items-center space-x-2 px-2 py-1 rounded text-xs ${
                           user.isSpeaking ? 'text-green-400' : 'text-gray-400'
-                        } hover:bg-dark-400/30 cursor-pointer group`}
+                        } hover:bg-red-900/20 cursor-pointer group`}
                       >
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
@@ -294,7 +294,7 @@ function ChannelList() {
                               }`}
                             />
                           ) : (
-                            <div className={`w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center ${
+                            <div className={`w-6 h-6 rounded-full bg-red-500 flex items-center justify-center ${
                               user.isSpeaking ? 'ring-2 ring-green-500' : ''
                             }`}>
                               <span className="text-[10px] text-white font-bold">
@@ -344,7 +344,7 @@ function ChannelList() {
       {/* Create Channel Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-dark-600 rounded-lg p-6 w-96">
+          <div className="bg-black/90 border border-red-900/30 rounded-lg p-6 w-96">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-text-primary">
                 Create {channelType === 'text' ? 'Text' : 'Voice'} Channel
@@ -366,7 +366,7 @@ function ChannelList() {
                   <button
                     onClick={() => setChannelType('text')}
                     className={`flex-1 px-3 py-2 rounded flex items-center justify-center space-x-2 ${
-                      channelType === 'text' ? 'bg-accent text-white' : 'bg-dark-400 text-text-secondary'
+                      channelType === 'text' ? 'bg-red-500 text-white' : 'bg-black/50 border border-red-900/30 text-gray-400'
                     }`}
                   >
                     <HashtagIcon className="w-4 h-4" />
@@ -375,7 +375,7 @@ function ChannelList() {
                   <button
                     onClick={() => setChannelType('voice')}
                     className={`flex-1 px-3 py-2 rounded flex items-center justify-center space-x-2 ${
-                      channelType === 'voice' ? 'bg-accent text-white' : 'bg-dark-400 text-text-secondary'
+                      channelType === 'voice' ? 'bg-red-500 text-white' : 'bg-black/50 border border-red-900/30 text-gray-400'
                     }`}
                   >
                     <SpeakerWaveIcon className="w-4 h-4" />
@@ -405,7 +405,7 @@ function ChannelList() {
                   type="text"
                   value={newChannelDescription}
                   onChange={(e) => setNewChannelDescription(e.target.value)}
-                  className="w-full bg-dark-400 text-text-primary rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-black/50 border border-red-900/30 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
                   placeholder="What's this channel for?"
                 />
               </div>
@@ -413,14 +413,14 @@ function ChannelList() {
               <div className="flex space-x-3 pt-2">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-dark-400 text-text-primary rounded hover:bg-dark-500 transition"
+                  className="flex-1 px-4 py-2 bg-black/50 border border-red-900/30 text-gray-400 rounded hover:bg-red-900/20 hover:text-white transition"
                   disabled={creating}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateChannel}
-                  className="flex-1 px-4 py-2 bg-accent text-white rounded hover:bg-accent-dark transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition disabled:opacity-50"
                   disabled={creating}
                 >
                   {creating ? 'Creating...' : 'Create Channel'}
