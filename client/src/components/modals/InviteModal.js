@@ -15,6 +15,7 @@ function InviteModal({ server, onClose }) {
     if (server) {
       fetchInviteLink();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server]);
 
   const fetchInviteLink = async () => {

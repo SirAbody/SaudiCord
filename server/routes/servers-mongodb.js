@@ -44,11 +44,12 @@ router.post('/', auth, async (req, res) => {
     // Generate invite code
     server.generateInviteCode();
     
-    // Add owner as member
-    await server.addMember(req.userId);
-    
-    // Save server
-    await server.save();
+    // Add owner as member (don't save yet)
+    server.members.push({
+      user: req.userId,
+      joinedAt: new Date(),
+      roles: []
+    });
     
     // Create default channels
     const generalChannel = new Channel({
@@ -70,13 +71,14 @@ router.post('/', auth, async (req, res) => {
     // Update server with channels
     server.channels.push(generalChannel._id, voiceChannel._id);
     server.settings.defaultChannel = generalChannel._id;
-    await server.save();
     
     // Create default roles
     const everyoneRole = await Role.createDefaultRole(server._id);
     const adminRole = await Role.createAdminRole(server._id);
     
     server.roles.push(everyoneRole._id, adminRole._id);
+    
+    // Save server once with all data
     await server.save();
     
     // Add server to user's server list

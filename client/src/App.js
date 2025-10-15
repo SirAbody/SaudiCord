@@ -53,6 +53,7 @@ function App() {
       console.log('[App] No token or authStore - setting initialLoad to false');
       setInitialLoad(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - run only once on mount
 
   // Show loading screen during initial load

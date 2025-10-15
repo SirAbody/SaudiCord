@@ -9,26 +9,24 @@ function InvitePage() {
   const { inviteCode } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [serverInfo, setServerInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
+    // Check if user is authenticated
     if (!user) {
-      // Save invite code and redirect to login
-      localStorage.setItem('pendingInvite', inviteCode);
       navigate('/login');
       return;
     }
 
     // Try to fetch server info
     fetchServerInfo();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, inviteCode, navigate]);
 
   const fetchServerInfo = async () => {
     try {
       setLoading(true);
-      // This endpoint might need to be created
       const response = await axios.get(`/servers/invite/${inviteCode}/info`);
       setServerInfo(response.data);
     } catch (error) {

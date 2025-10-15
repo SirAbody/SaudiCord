@@ -1,13 +1,14 @@
 // Channel List Component
 import React, { useState, useEffect } from 'react';
-import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, PhoneIcon, PhoneXMarkIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { HashtagIcon, SpeakerWaveIcon, PlusIcon, XMarkIcon, ChevronDownIcon, UserPlusIcon, PhoneXMarkIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
-// import { useCallStore } from '../../stores/callStore'; // Reserved for future use
+import { useCallStore } from '../../stores/callStore'; // Reserved for future use
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socketService from '../../services/socket';
 import webrtcService from '../../services/webrtc';
 import InviteModal from '../modals/InviteModal';
+import UserPresence from '../user/UserPresence';
 
 function ChannelList() {
   const { currentChannel, selectChannel, fetchMessages, currentServer, channels } = useChatStore();
@@ -438,6 +439,9 @@ function ChannelList() {
           onClose={() => setShowInviteModal(false)}
         />
       )}
+      
+      {/* User Presence Section at Bottom */}
+      <UserPresence />
     </div>
   );
 }

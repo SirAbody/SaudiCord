@@ -7,12 +7,10 @@ import ServerList from './ServerList';
 import ChannelList from './ChannelList';
 import ChatArea from '../chat/ChatArea';
 import DirectMessages from '../../pages/DirectMessages';
-import InvitePage from '../../pages/InvitePage';
 import UserProfile from '../user/UserProfile';
 import CallModal from '../call/CallModal';
 import IncomingCallModal from '../call/IncomingCallModal';
 import useKeyboardShortcuts from '../../hooks/useKeyboardShortcuts';
-import toast from 'react-hot-toast';
 
 function MainLayout() {
   console.log('[MainLayout] Component rendering');

@@ -8,11 +8,7 @@ import {
   HashtagIcon,
   UserGroupIcon,
   ShieldCheckIcon,
-  BellIcon,
-  PaintBrushIcon,
-  TrashIcon,
-  ChevronRightIcon,
-  ArrowLeftIcon
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -21,13 +17,13 @@ import { useChatStore } from '../../stores/chatStore';
 
 function ServerSettingsModal({ show, onClose, server }) {
   const { user } = useAuthStore();
-  const { fetchChannels, fetchServers } = useChatStore();
+  const { fetchChannels } = useChatStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [serverName, setServerName] = useState('');
   const [serverDescription, setServerDescription] = useState('');
   const [channels, setChannels] = useState([]);
   const [members, setMembers] = useState([]);
-  const [roles, setRoles] = useState([]);
+  // const [roles, setRoles] = useState([]); // Reserved for future use
   const [inviteCode, setInviteCode] = useState('');
   const [saving, setSaving] = useState(false);
   const [newChannelName, setNewChannelName] = useState('');
@@ -41,6 +37,7 @@ function ServerSettingsModal({ show, onClose, server }) {
       setServerDescription(server.description || '');
       loadServerData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, server]);
   // Check if user is server owner
   const isOwner = server?.ownerId === user?.id;

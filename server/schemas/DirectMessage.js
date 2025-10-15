@@ -127,7 +127,7 @@ directMessageSchema.statics.getConversationsList = async function(userId) {
           $sum: {
             $cond: [
               { $and: [
-                { $eq: ['$receiver', mongoose.Types.ObjectId(userId)] },
+                { $eq: ['$receiver', new mongoose.Types.ObjectId(userId)] },
                 { $eq: ['$read', false] }
               ]},
               1,

@@ -4,7 +4,6 @@ import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import CreateServerModal from '../modals/CreateServerModal';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -86,12 +85,12 @@ function ServerList() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-dark-900">
+    <div className="flex flex-col h-full bg-black">
       <div className="flex-1 flex flex-col items-center py-3 space-y-2 overflow-y-auto custom-scrollbar">
         {/* Home/DM Button - SaudiCord Logo */}
         <button 
           onClick={handleHomeClick}
-          className={`w-12 h-12 ${location.pathname === '/dashboard' ? 'bg-red-500 rounded-2xl' : 'bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
+          className={`w-12 h-12 ${location.pathname === '/dashboard' ? 'bg-red-500 rounded-2xl' : 'bg-black/50 border border-red-900/30 hover:bg-red-500 hover:rounded-2xl rounded-3xl'} transition-all duration-200 flex items-center justify-center group relative overflow-hidden`}
           title="Direct Messages"
         >
           <img 
@@ -101,7 +100,7 @@ function ServerList() {
           />
         </button>
       
-      <div className="w-8 h-0.5 bg-dark-400 rounded-full mx-auto"></div>
+      <div className="w-8 h-0.5 bg-red-900/30 rounded-full mx-auto"></div>
       
       {/* Server Icons - Remove duplicates using Set */}
       {[...new Map(servers?.map(server => [server.id, server])).values()]?.map((server) => (
@@ -116,7 +115,7 @@ function ServerList() {
             className={`relative w-12 h-12 rounded-3xl hover:rounded-2xl transition-all duration-200 flex items-center justify-center ${
               currentServer?.id === server.id
                 ? 'bg-red-500 text-white rounded-2xl'
-                : 'bg-gray-700 hover:bg-red-500'
+                : 'bg-black/50 border border-red-900/30 hover:bg-red-500'
             }`}
           >
             {/* Server Icon or Letter */}
@@ -139,9 +138,9 @@ function ServerList() {
                 setSelectedServerForSettings(server);
                 setShowSettingsModal(true);
               }}
-              className="absolute -right-1 -top-1 w-5 h-5 bg-dark-800 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-dark-700"
+              className="absolute -right-1 -top-1 w-5 h-5 bg-black rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-900/30"
             >
-              <Cog6ToothIcon className="w-3 h-3 text-gray-400" />
+              <Cog6ToothIcon className="w-3 h-3 text-red-400" />
             </button>
           )}
         </div>
@@ -149,16 +148,16 @@ function ServerList() {
         {/* Add Server Button */}
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="w-12 h-12 bg-gray-700 hover:bg-red-500 hover:rounded-2xl rounded-3xl transition-all duration-200 flex items-center justify-center group"
+          className="w-12 h-12 bg-black/50 border border-red-900/30 hover:bg-red-500 hover:rounded-2xl rounded-3xl transition-all duration-200 flex items-center justify-center group"
         >
-          <PlusIcon className="w-6 h-6 text-gray-400 group-hover:text-white" />
+          <PlusIcon className="w-6 h-6 text-red-400 group-hover:text-white" />
         </button>
       </div>
 
       {/* Create Server Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-96">
+          <div className="bg-black/90 border border-red-900/30 rounded-lg p-6 w-96">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-text-primary">Create a Server</h2>
               <button
