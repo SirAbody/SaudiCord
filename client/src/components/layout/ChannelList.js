@@ -156,7 +156,7 @@ function ChannelList() {
       // If already in this voice channel
       if (activeVoiceChannel?.id === channel.id) {
         // Leave the voice channel
-        if (webrtcService.isInCall()) {
+        if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
           webrtcService.endCall();
           socketService.emit('voice:leave', { channelId: channel.id });
           toast.success('Left voice channel');
@@ -285,7 +285,7 @@ function ChannelList() {
           
           {voiceChannels.map(channel => {
             const isActive = activeVoiceChannel?.id === channel.id;
-            const isInCall = isActive && webrtcService.isInCall();
+            const isInCall = isActive && webrtcService && webrtcService.isInCall && webrtcService.isInCall();
             const usersInChannel = voiceChannelUsers[channel.id] || [];
             
             return (

@@ -19,7 +19,7 @@ function UserPresence() {
   
   useEffect(() => {
     // Send presence update when status changes
-    if (socketService.isConnected()) {
+    if (socketService && socketService.isConnected && socketService.isConnected()) {
       socketService.emit('presence:update', {
         status,
         customStatus

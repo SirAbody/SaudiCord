@@ -287,6 +287,11 @@ class SocketService {
   sendIceCandidate(targetUserId, candidate) {
     this.emit('webrtc:ice-candidate', { targetUserId, candidate });
   }
+  
+  // Check if socket is connected
+  isConnected() {
+    return this.socket && this.socket.connected;
+  }
 }
 
 const socketService = new SocketService();

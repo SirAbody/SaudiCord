@@ -139,7 +139,7 @@ function DirectMessages() {
       audio.play().catch(e => console.log('Could not play ringtone:', e));
       
       // Create notification with accept/reject buttons
-      const notification = toast.custom(
+      toast.custom(
         (t) => (
           <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-black border border-red-500 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
             <div className="flex-1 w-0 p-4">
