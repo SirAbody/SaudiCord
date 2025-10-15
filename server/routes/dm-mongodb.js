@@ -85,6 +85,25 @@ router.post('/', auth, async (req, res) => {
     // Populate sender info
     await dm.populate('sender', 'username displayName avatar');
     
+    // Send real-time notification via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      // Notify the recipient
+      io.to(`user-${receiverId}`).emit('dm:new_message', {
+        from: {
+          id: req.userId,
+          username: req.user?.username,
+          displayName: req.user?.displayName,
+          avatar: req.user?.avatar
+        },
+        message: content,
+        conversationId,
+        timestamp: dm.createdAt
+      });
+      
+      console.log(`[Socket] DM notification sent from ${req.user?.username} to user ${receiverId}`);
+    }
+    
     res.status(201).json(dm);
   } catch (error) {
     console.error('[DM] Error sending message:', error);

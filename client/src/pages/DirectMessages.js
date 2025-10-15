@@ -127,7 +127,7 @@ function DirectMessages() {
       console.error('Failed to load messages:', error);
     }
   };
-
+  
   const sendFriendRequest = async () => {
     if (!friendUsername.trim()) {
       toast.error('Please enter a username');
@@ -135,15 +135,23 @@ function DirectMessages() {
     }
 
     try {
-      await axios.post('/friends/request', { username: friendUsername });
-      toast.success('Friend request sent!');
+      const response = await axios.post('/friends/request', { username: friendUsername });
+      toast.success(`Friend request sent to ${friendUsername}`);
+      
+      // Send socket notification
+      if (socket && socket.connected) {
+        socket.emit('friend:request:send', {
+          targetUsername: friendUsername,
+          friendshipId: response.data.id
+        });
+      }
+      
       setFriendUsername('');
-      setShowAddFriend(false);
+      loadFriends();
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to send friend request');
     }
   };
-
   const acceptFriendRequest = async (friendshipId) => {
     try {
       await axios.post(`/friends/accept/${friendshipId}`);

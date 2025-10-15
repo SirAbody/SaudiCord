@@ -36,7 +36,7 @@ module.exports = (io) => {
       }
 
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
         
         // Only try to fetch user if User model is available and database is connected
         if (User) {
@@ -83,7 +83,7 @@ module.exports = (io) => {
     // Handle user authentication - SIMPLIFIED
     socket.on('authenticate', async (token) => {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
         
         // Use token data directly - avoid DB call in critical path
         socket.userId = decoded.userId;

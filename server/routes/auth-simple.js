@@ -45,7 +45,7 @@ initDefaultUsers();
 const generateToken = (userId, username) => {
   return jwt.sign(
     { userId, username },
-    process.env.JWT_SECRET || 'saudicord-secret',
+    process.env.JWT_SECRET || 'saudicord-secret-key-2024',
     { expiresIn: '7d' }
   );
 };
@@ -209,7 +209,7 @@ router.get('/me', (req, res) => {
     const token = authHeader.replace('Bearer ', '');
     
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
     
     // Find user
     let user = null;
@@ -250,7 +250,7 @@ router.get('/verify', (req, res) => {
 
     // Verify token
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
       
       const user = users.get(Array.from(users.keys()).find(key => 
         users.get(key).id === decoded.userId

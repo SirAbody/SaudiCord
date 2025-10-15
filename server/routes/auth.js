@@ -12,7 +12,7 @@ const router = express.Router();
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
-    process.env.JWT_SECRET || 'saudicord-secret',
+    process.env.JWT_SECRET || 'saudicord-secret-key-2024',
     { expiresIn: '7d' }
   );
 };
@@ -227,7 +227,7 @@ router.get('/verify', async (req, res) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
     console.log('[AUTH] Token decoded for user:', decoded.userId);
     
     const user = await User.findByPk(decoded.userId, {

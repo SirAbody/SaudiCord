@@ -1,12 +1,14 @@
 // Server List Component
 import React, { useState, useEffect } from 'react';
-import { useChatStore } from '../../stores/chatStore';
-import { useAuthStore } from '../../stores/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import axios from '../../utils/axios';
+import { useAuthStore } from '../../stores/authStore';
+import { useChatStore } from '../../stores/chatStore';
+import { PlusIcon, HomeIcon } from '@heroicons/react/24/solid';
+import { toast } from 'react-hot-toast';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
-import axios from 'axios';
-import toast from 'react-hot-toast';
+import ContextMenu from '../ui/ContextMenu';
+import InviteModal from '../modals/InviteModal';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 
 function ServerList() {
@@ -20,6 +22,9 @@ function ServerList() {
   const [creating, setCreating] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedServerForSettings, setSelectedServerForSettings] = useState(null);
+  const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, type: null, data: null });
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState(null);
 
   useEffect(() => {
     if (fetchServers) {
@@ -49,6 +54,70 @@ function ServerList() {
     }
     // Update the current server
     setCurrentServer(server);
+  };
+
+  const handleServerRightClick = (e, server) => {
+    e.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'server',
+      data: {
+        ...server,
+        isOwner: server.owner === user?._id || server.owner?._id === user?._id
+      }
+    });
+  };
+
+  const handleContextMenuAction = async (action, serverData) => {
+    switch (action) {
+      case 'invite':
+        try {
+          const response = await axios.post(`/servers/${serverData._id || serverData.id}/invite`);
+          setInviteCode(response.data.code);
+          setShowInviteModal(true);
+        } catch (error) {
+          toast.error('Failed to generate invite link');
+        }
+        break;
+      
+      case 'settings':
+        setSelectedServerForSettings(serverData);
+        setShowSettingsModal(true);
+        break;
+      
+      case 'mute':
+        toast.success('Server muted');
+        break;
+      
+      case 'delete':
+        if (window.confirm(`Are you sure you want to delete "${serverData.name}"? This action cannot be undone.`)) {
+          handleDeleteServer(serverData._id || serverData.id);
+        }
+        break;
+      
+      default:
+        break;
+    }
+  };
+
+  const handleDeleteServer = async (serverId) => {
+    try {
+      await axios.delete(`/servers/${serverId}`);
+      toast.success('Server deleted successfully');
+      
+      // Fetch updated server list
+      await fetchServers();
+      
+      // Clear current server if it was deleted
+      if (currentServer?._id === serverId || currentServer?.id === serverId) {
+        setCurrentServer(null);
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to delete server');
+    }
   };
 
   const handleCreateServer = async () => {
@@ -113,11 +182,7 @@ function ServerList() {
         <div key={server._id || server.id} className="relative group">
           <button
             onClick={() => handleServerClick(server)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setSelectedServerForSettings(server);
-              setShowSettingsModal(true);
-            }}
+            onContextMenu={(e) => handleServerRightClick(e, server)}
             className={`relative w-12 h-12 rounded-3xl hover:rounded-2xl transition-all duration-200 flex items-center justify-center ${
               (currentServer?._id === server._id) || (currentServer?.id === server.id)
                 ? 'bg-red-500 text-white rounded-2xl'
@@ -230,6 +295,30 @@ function ServerList() {
         }}
         server={selectedServerForSettings}
       />
+      
+      {/* Context Menu */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        type={contextMenu.type}
+        data={contextMenu.data}
+        onClose={() => setContextMenu({ isOpen: false, x: 0, y: 0, type: null, data: null })}
+        onAction={handleContextMenuAction}
+      />
+      
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <InviteModal
+          isOpen={showInviteModal}
+          onClose={() => {
+            setShowInviteModal(false);
+            setInviteCode(null);
+          }}
+          inviteCode={inviteCode}
+          serverName={contextMenu.data?.name}
+        />
+      )}
     </div>
   );
 }

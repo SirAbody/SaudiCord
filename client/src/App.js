@@ -6,6 +6,8 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import MainLayout from './components/layout/MainLayout';
 import InvitePage from './pages/InvitePage';
+import { SocketProvider } from './contexts/SocketContext';
+import NotificationManager from './components/notifications/NotificationManager';
 
 function App() {
   console.log('[App] Component mounting...');
@@ -72,31 +74,34 @@ function App() {
   console.log('[App] Rendering routes, isAuthenticated:', isAuthenticated);
 
   return (
-    <div className="App">
-      {console.log('[App] Rendering App component with Routes')}
-      <Routes>
-        <Route 
-          path="/" 
-          element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/login" 
-          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
-        />
-        <Route 
-          path="/register" 
-          element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
-        />
-        <Route 
-          path="/invite/:inviteCode" 
-          element={<InvitePage />} 
-        />
-        <Route 
-          path="*" 
-          element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
-        />
-      </Routes>
-    </div>
+    <SocketProvider>
+      <div className="App">
+        {console.log('[App] Rendering App component with Routes')}
+        {isAuthenticated && <NotificationManager />}
+        <Routes>
+          <Route 
+            path="/" 
+            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/login" 
+            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+          />
+          <Route 
+            path="/register" 
+            element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} 
+          />
+          <Route 
+            path="/invite/:inviteCode" 
+            element={<InvitePage />} 
+          />
+          <Route 
+            path="*" 
+            element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />} 
+          />
+        </Routes>
+      </div>
+    </SocketProvider>
   );
 }
 

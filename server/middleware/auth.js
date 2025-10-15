@@ -9,7 +9,7 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret', (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024', (err, decoded) => {
     if (err) {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
@@ -27,7 +27,7 @@ const optionalAuth = (req, res, next) => {
     return next();
   }
 
-  jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret', (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024', (err, decoded) => {
     if (!err) {
       req.userId = decoded.userId;
     }

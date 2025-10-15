@@ -30,7 +30,7 @@ module.exports = (io) => {
       }
 
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
         socket.userId = decoded.userId;
         socket.username = decoded.username || 'User';
         logger.info(`Socket pre-authenticated for user: ${socket.username}`);
@@ -58,7 +58,7 @@ module.exports = (io) => {
           return;
         }
         
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
         socket.userId = decoded.userId;
         socket.username = decoded.username || 'User';
         

@@ -68,15 +68,13 @@ module.exports = (io) => {
           socket.userId = user._id.toString();
           socket.username = user.username;
           
-          // Update user status
           user.status = 'online';
           await user.save();
           
           // Store in active users
           activeUsers.set(socket.userId, user.toSafeObject());
-          userSockets.set(socket.userId, socket);
           
-          // Join user room
+          // Join user room for direct messages
           socket.join(`user-${socket.userId}`);
           
           // Broadcast online status
@@ -412,6 +410,81 @@ module.exports = (io) => {
         channelId: data.channelId,
         userId: socket.userId
       });
+    });
+
+    // Friend request events
+    socket.on('friend:request:send', async (data) => {
+      if (!socket.userId) return;
+      
+      try {
+        const targetUser = await User.findOne({ username: data.targetUsername });
+        if (!targetUser) {
+          socket.emit('error', { message: 'User not found' });
+          return;
+        }
+        
+        // Send real-time notification to target user
+        io.to(`user-${targetUser._id.toString()}`).emit('friend:request:received', {
+          from: {
+            id: socket.userId,
+            username: socket.username,
+            avatar: socket.user?.avatar,
+            displayName: socket.user?.displayName
+          },
+          friendshipId: data.friendshipId,
+          timestamp: new Date()
+        });
+        
+        console.log(`[Socket] Friend request notification sent from ${socket.username} to ${targetUser.username}`);
+      } catch (error) {
+        console.error('[Socket] Error sending friend request notification:', error);
+      }
+    });
+
+    // Friend request accepted
+    socket.on('friend:request:accept', async (data) => {
+      if (!socket.userId) return;
+      
+      try {
+        // Notify the original requester
+        io.to(`user-${data.requesterId}`).emit('friend:request:accepted', {
+          by: {
+            id: socket.userId,
+            username: socket.username,
+            avatar: socket.user?.avatar,
+            displayName: socket.user?.displayName
+          },
+          friendshipId: data.friendshipId,
+          timestamp: new Date()
+        });
+        
+        console.log(`[Socket] Friend request accepted notification sent by ${socket.username}`);
+      } catch (error) {
+        console.error('[Socket] Error sending accept notification:', error);
+      }
+    });
+    
+    // DM notification
+    socket.on('dm:notify', async (data) => {
+      if (!socket.userId) return;
+      
+      try {
+        // Notify recipient of new message
+        io.to(`user-${data.recipientId}`).emit('dm:new_message', {
+          from: {
+            id: socket.userId,
+            username: socket.username,
+            avatar: socket.user?.avatar,
+            displayName: socket.user?.displayName
+          },
+          message: data.message,
+          timestamp: new Date()
+        });
+        
+        console.log(`[Socket] DM notification sent from ${socket.username} to user ${data.recipientId}`);
+      } catch (error) {
+        console.error('[Socket] Error sending DM notification:', error);
+      }
     });
 
     // Handle disconnection

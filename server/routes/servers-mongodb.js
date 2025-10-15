@@ -158,6 +158,11 @@ router.patch('/:serverId', auth, async (req, res) => {
 // Delete server
 router.delete('/:serverId', auth, async (req, res) => {
   try {
+    // Validate server ID
+    if (!req.params.serverId || req.params.serverId === 'undefined') {
+      return res.status(400).json({ error: 'Invalid server ID' });
+    }
+    
     const server = await Server.findById(req.params.serverId);
     
     if (!server) {
