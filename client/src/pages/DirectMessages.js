@@ -16,6 +16,10 @@ import { useAuthStore } from '../stores/authStore';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socketService from '../services/socket';
+import MessageContextMenu from '../components/chat/MessageContextMenu';
+import UserProfilePopup from '../components/user/UserProfilePopup';
+import VoiceCallInterface from '../components/voice/VoiceCallInterface';
+import webrtcService from '../services/webrtc';
 
 function DirectMessages() {
   const { user } = useAuthStore();
@@ -33,15 +37,15 @@ function DirectMessages() {
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
   const [pendingRequests, setPendingRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('online');
+  const [contextMenu, setContextMenu] = useState(null);
+  const [userProfilePopup, setUserProfilePopup] = useState(null);
 
   useEffect(() => {
     loadFriends();
     loadConversations();
     
-    // Setup socket listeners after a brief delay to ensure socket is connected
-    const timer = setTimeout(() => {
-      setupSocketListeners();
-    }, 500);
+    // Setup socket listeners immediately - no delay needed
+    setupSocketListeners();
     
     // Listen for friends update event
     const handleFriendsUpdate = () => {
@@ -51,7 +55,6 @@ function DirectMessages() {
     window.addEventListener('friendsUpdate', handleFriendsUpdate);
     
     return () => {
-      clearTimeout(timer);
       window.removeEventListener('friendsUpdate', handleFriendsUpdate);
       // Clean up socket listeners
       socketService.off('dm:receive');
@@ -70,23 +73,46 @@ function DirectMessages() {
   }, [messages]);
 
   const setupSocketListeners = () => {
+    // First, remove any existing listeners to prevent duplicates
+    socketService.off('friend:request:received');
+    socketService.off('friend:request:accepted');
+    socketService.off('dm:receive');
+    socketService.off('dm:sent');
+    socketService.off('call:incoming');
+    socketService.off('call:rejected');
+    socketService.off('call:ended');
+    
+    // Handle friend request received - Real-time
+    socketService.on('friend:request:received', (data) => {
+      console.log('[Friend] Request received:', data);
+      loadFriends(); // Reload friends to update pending requests
+      toast.success(`${data.from.username} sent you a friend request!`);
+    });
+
+    // Handle friend request accepted - Real-time
+    socketService.on('friend:request:accepted', (data) => {
+      console.log('[Friend] Request accepted:', data);
+      loadFriends(); // Reload friends list
+      toast.success(`${data.username} accepted your friend request!`);
+    });
+
     // Handle incoming DM - ENHANCED
-    socketService.on('dm:receive', (message) => {
+    const handleIncomingMessage = (message) => {
       console.log('[DM] Received message:', message);
       
       // Parse sender and current user IDs properly
-      const msgSenderId = message.senderId?.toString() || message.sender?._id?.toString();
-      const msgReceiverId = message.receiverId?.toString();
+      const msgSenderId = message.senderId?.toString() || message.sender?._id?.toString() || message.sender?.toString();
+      const msgReceiverId = message.receiverId?.toString() || message.receiver?.toString();
       const currentUserId = user?.id?.toString() || user?._id?.toString();
-      const currentConvId = selectedConversation?.id?.toString() || selectedConversation?._id?.toString();
+      const selectedId = selectedConversation?.id?.toString() || selectedConversation?._id?.toString();
       
-      console.log('[DM] Message IDs:', { msgSenderId, msgReceiverId, currentUserId, currentConvId });
+      console.log('[DM] Message IDs:', { msgSenderId, msgReceiverId, currentUserId, selectedId });
       
-      // Check if message is for current conversation
-      const isForCurrentConv = 
-        (msgSenderId === currentConvId && msgReceiverId === currentUserId) ||
-        (msgSenderId === currentUserId && msgReceiverId === currentConvId) ||
-        (currentConvId && (msgSenderId === currentConvId || msgReceiverId === currentConvId));
+      // Check if message is for current conversation (both sent and received)
+      const isForCurrentConv = selectedId && (
+        (msgSenderId === selectedId) || // Message from selected friend
+        (msgReceiverId === selectedId && msgSenderId === currentUserId) // Message we sent to selected friend
+      );
       
       if (isForCurrentConv) {
         console.log('[DM] Adding message to current conversation');
@@ -146,7 +172,10 @@ function DirectMessages() {
       
       // Update conversation list
       loadConversations();
-    });
+    };
+    
+    // Attach the message handler
+    socketService.on('dm:receive', handleIncomingMessage);
     
     // Handle message sent confirmation
     socketService.on('dm:sent', (data) => {
@@ -902,14 +931,31 @@ function DirectMessages() {
                   
                   return (
                     <div key={message.id || message._id || `msg-${index}`} 
-                         className="group hover:bg-gray-950/30 px-4 py-0.5 -mx-4">
+                         className="group hover:bg-gray-950/30 px-4 py-0.5 -mx-4"
+                         onContextMenu={(e) => {
+                           e.preventDefault();
+                           setContextMenu({
+                             message,
+                             position: { x: e.clientX, y: e.clientY },
+                             isOwnMessage
+                           });
+                         }}>
                       <div className="flex items-start gap-4">
                         {/* Avatar or spacer */}
                         {showHeader ? (
                           <img
                             src={senderAvatar}
                             alt={senderName}
-                            className="w-10 h-10 rounded-full mt-1"
+                            className="w-10 h-10 rounded-full mt-1 cursor-pointer hover:opacity-90 transition"
+                            onClick={(e) => {
+                              const sender = message.sender || selectedConversation;
+                              if (!isOwnMessage && sender) {
+                                setUserProfilePopup({
+                                  user: sender,
+                                  position: { x: e.clientX, y: e.clientY }
+                                });
+                              }
+                            }}
                           />
                         ) : (
                           <div className="w-10 flex-shrink-0 text-center text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 mt-1">
@@ -924,7 +970,18 @@ function DirectMessages() {
                         <div className="flex-1 min-w-0">
                           {showHeader && (
                             <div className="flex items-baseline gap-2 mb-0.5">
-                              <span className={`text-sm font-medium ${isOwnMessage ? 'text-red-400' : 'text-gray-300'}`}>
+                              <span 
+                                className={`text-sm font-medium cursor-pointer hover:underline ${isOwnMessage ? 'text-red-400' : 'text-gray-300'}`}
+                                onClick={(e) => {
+                                  const sender = message.sender || selectedConversation;
+                                  if (!isOwnMessage && sender) {
+                                    setUserProfilePopup({
+                                      user: sender,
+                                      position: { x: e.clientX, y: e.clientY }
+                                    });
+                                  }
+                                }}
+                              >
                                 {senderName}
                               </span>
                               <span className="text-xs text-gray-500">
@@ -1028,6 +1085,38 @@ function DirectMessages() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Message Context Menu */}
+      {contextMenu && (
+        <MessageContextMenu
+          message={contextMenu.message}
+          position={contextMenu.position}
+          isOwnMessage={contextMenu.isOwnMessage}
+          onClose={() => setContextMenu(null)}
+          onAction={(action, message) => {
+            console.log('Context menu action:', action, message);
+            // Handle actions here
+            if (action === 'delete' && contextMenu.isOwnMessage) {
+              // Implement delete message
+              console.log('Deleting message:', message);
+            }
+          }}
+        />
+      )}
+
+      {/* User Profile Popup */}
+      {userProfilePopup && (
+        <UserProfilePopup
+          user={userProfilePopup.user}
+          position={userProfilePopup.position}
+          onClose={() => setUserProfilePopup(null)}
+          onMessage={(user) => {
+            // Handle opening conversation with user
+            setSelectedConversation(user);
+            setUserProfilePopup(null);
+          }}
+        />
       )}
     </div>
   );

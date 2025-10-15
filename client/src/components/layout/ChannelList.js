@@ -25,7 +25,6 @@ function ChannelList() {
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
-  // const [voiceParticipants, setVoiceParticipants] = useState({}); // Unused - removed
   const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // For voice channel users
   const [showVoiceCall, setShowVoiceCall] = useState(false);
 
@@ -162,7 +161,10 @@ function ChannelList() {
         if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
           webrtcService.endCall();
         }
-        socketService.emit('voice:leave', { channelId: channel.id });
+        const channelId = channel._id || channel.id;
+        if (channelId) {
+          socketService.emit('voice:leave', { channelId });
+        }
         toast.success('Left voice channel');
         setActiveVoiceChannel(null);
         setShowVoiceCall(false); // Close voice call interface
@@ -178,7 +180,10 @@ function ChannelList() {
       // Join voice channel
       setActiveVoiceChannel(channel);
       setShowVoiceCall(true); // Show Discord-style voice call interface
-      socketService.emit('voice:join', { channelId: channel.id });
+      const joinChannelId = channel._id || channel.id;
+      if (joinChannelId) {
+        socketService.emit('voice:join', { channelId: joinChannelId });
+      }
       
       // Add ourselves to users list
       setVoiceChannelUsers(prev => ({
@@ -483,11 +488,14 @@ function ChannelList() {
             setShowVoiceCall(false);
             setActiveVoiceChannel(null);
             // Leave voice channel
-            socketService.emit('voice:leave', { channelId: activeVoiceChannel.id });
-            if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
-              webrtcService.endCall();
+            const channelId = activeVoiceChannel?._id || activeVoiceChannel?.id;
+            if (channelId) {
+              socketService.emit('voice:leave', { channelId });
+              if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
+                webrtcService.endCall();
+              }
+              toast.success('Left voice channel');
             }
-            toast.success('Left voice channel');
           }}
         />
       )}

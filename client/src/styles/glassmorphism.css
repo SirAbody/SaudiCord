@@ -1,0 +1,366 @@
+/* Glass-morphism Theme with Red Accent - Discord Style */
+/* Made with Love by SirAbody */
+
+:root {
+  /* Primary Colors */
+  --color-primary: #DC2626; /* Red primary */
+  --color-primary-dark: #991B1B;
+  --color-primary-light: #EF4444;
+  --color-primary-alpha: rgba(220, 38, 38, 0.1);
+  
+  /* Background Colors */
+  --color-bg-primary: #0F0F0F;
+  --color-bg-secondary: #1A1A1A;
+  --color-bg-tertiary: #242424;
+  --color-bg-overlay: rgba(0, 0, 0, 0.8);
+  
+  /* Glass Effect Colors */
+  --glass-bg: rgba(15, 15, 15, 0.6);
+  --glass-bg-hover: rgba(25, 25, 25, 0.7);
+  --glass-border: rgba(220, 38, 38, 0.2);
+  --glass-shadow: rgba(220, 38, 38, 0.1);
+  
+  /* Text Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A8A8A8;
+  --text-tertiary: #6B6B6B;
+  --text-danger: #DC2626;
+  --text-success: #10B981;
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Glass Container Base */
+.glass-container {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px var(--glass-shadow);
+  transition: all var(--transition-normal);
+}
+
+.glass-container:hover {
+  background: var(--glass-bg-hover);
+  box-shadow: 0 12px 40px var(--glass-shadow);
+  transform: translateY(-2px);
+}
+
+/* Glass Card */
+.glass-card {
+  background: linear-gradient(135deg, 
+    rgba(220, 38, 38, 0.05) 0%, 
+    rgba(15, 15, 15, 0.8) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all var(--transition-normal);
+}
+
+.glass-card:hover {
+  background: linear-gradient(135deg, 
+    rgba(220, 38, 38, 0.1) 0%, 
+    rgba(15, 15, 15, 0.9) 100%);
+  border-color: rgba(220, 38, 38, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(220, 38, 38, 0.15);
+}
+
+/* Glass Button */
+.glass-button {
+  background: linear-gradient(135deg, 
+    rgba(220, 38, 38, 0.2) 0%, 
+    rgba(220, 38, 38, 0.05) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(220, 38, 38, 0.3), 
+    transparent);
+  transition: left var(--transition-slow);
+}
+
+.glass-button:hover {
+  background: linear-gradient(135deg, 
+    rgba(220, 38, 38, 0.3) 0%, 
+    rgba(220, 38, 38, 0.1) 100%);
+  border-color: rgba(220, 38, 38, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.2);
+}
+
+.glass-button:hover::before {
+  left: 100%;
+}
+
+.glass-button:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 10px rgba(220, 38, 38, 0.2);
+}
+
+/* Glass Input */
+.glass-input {
+  background: rgba(15, 15, 15, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  outline: none;
+  width: 100%;
+}
+
+.glass-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.glass-input:focus {
+  background: rgba(15, 15, 15, 0.7);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha),
+              inset 0 0 20px rgba(220, 38, 38, 0.05);
+}
+
+/* Glass Modal */
+.glass-modal {
+  background: linear-gradient(135deg, 
+    rgba(15, 15, 15, 0.95) 0%, 
+    rgba(25, 25, 25, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5),
+              0 0 100px rgba(220, 38, 38, 0.1);
+}
+
+/* Animated Gradient Border */
+.gradient-border {
+  position: relative;
+  background: var(--color-bg-primary);
+  border-radius: 12px;
+  padding: 1px;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(45deg, 
+    #DC2626, 
+    #EF4444, 
+    #DC2626, 
+    #991B1B,
+    #DC2626);
+  background-size: 300% 300%;
+  animation: gradient-rotate 3s ease infinite;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: exclude;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+@keyframes gradient-rotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Glow Effect */
+.glow-red {
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.5),
+              0 0 40px rgba(220, 38, 38, 0.3),
+              0 0 60px rgba(220, 38, 38, 0.1);
+  transition: all var(--transition-normal);
+}
+
+.glow-red:hover {
+  box-shadow: 0 0 30px rgba(220, 38, 38, 0.6),
+              0 0 60px rgba(220, 38, 38, 0.4),
+              0 0 90px rgba(220, 38, 38, 0.2);
+}
+
+/* Smooth Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 15, 15, 0.3);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, 
+    rgba(220, 38, 38, 0.5), 
+    rgba(220, 38, 38, 0.3));
+  border-radius: 10px;
+  transition: all var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, 
+    rgba(220, 38, 38, 0.7), 
+    rgba(220, 38, 38, 0.5));
+}
+
+/* Selection Color */
+::selection {
+  background: rgba(220, 38, 38, 0.3);
+  color: var(--text-primary);
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth Loading Animation */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Ripple Effect */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 2s infinite;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5);
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: rgba(15, 15, 15, 0.95);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-12px);
+}

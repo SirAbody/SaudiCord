@@ -1,18 +1,17 @@
-// SaudiCord Client - Made With Love By SirAbody
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
-// Import styles
 import './index.css';
+import './styles/tailwind.css';
 import './styles/animations.css';
+import './styles/glassmorphism.css';
 // Import axios setup for MongoDB
 import './services/axiosSetup-mongodb';
 
 console.log('[Index] Starting SaudiCord application...');
 console.log('[Index] All imports loaded successfully');
-
 // Get root element
 const rootElement = document.getElementById('root');
 console.log('[Index] Root element found:', !!rootElement);

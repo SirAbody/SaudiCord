@@ -297,17 +297,9 @@ module.exports = (io) => {
           }
         });
         
-        // Send to receiver's all sessions
-        if (receiverSocketIds.length > 0) {
-          receiverSocketIds.forEach(socketId => {
-            io.to(socketId).emit('dm:receive', messageData);
-            console.log(`[Socket] DM sent to receiver socket: ${socketId}`);
-          });
-        }
-        
-        // Also send via user room for redundancy
-        io.to(`user-${receiverId}`).emit('dm:receive', messageData);
+        // Send to receiver using room (all their sessions will get it once)
         io.to(`user-${receiverId.toString()}`).emit('dm:receive', messageData);
+        console.log(`[Socket] DM sent to receiver ${receiverId}`);
         
         // Send to sender's other sessions (not current socket)
         socket.to(`user-${socket.userId}`).emit('dm:receive', messageData);
@@ -438,6 +430,12 @@ module.exports = (io) => {
       try {
         const { channelId } = data;
         
+        // Check if channelId is valid
+        if (!channelId || channelId === 'undefined') {
+          console.log(`[Socket] Invalid channelId received from ${socket.username}`);
+          return;
+        }
+        
         // Get channel
         const channel = await Channel.findById(channelId);
         if (channel) {
@@ -454,7 +452,7 @@ module.exports = (io) => {
           username: socket.user?.username
         });
         
-        console.log(`[Socket] User ${socket.username} left voice channel ${channelId}`);
+        console.log(`[Socket] User ${socket.username} left voice channel ${channel?.name || channelId}`);
       } catch (error) {
         console.error('[Socket] Error leaving voice channel:', error);
       }
@@ -538,25 +536,16 @@ module.exports = (io) => {
         });
         
         if (targetSocketIds.length > 0) {
-          // Send to all target user's sessions
-          targetSocketIds.forEach(socketId => {
-            io.to(socketId).emit('call:incoming', {
-              callerId: socket.userId,
-              callerName: callerName || socket.username,
-              type: type,
-              timestamp: new Date()
-            });
-          });
-          
-          // Also send to user room
-          io.to(`user-${targetUserId}`).emit('call:incoming', {
+          // Send to user room once (all sessions will get it)
+          const callData = {
             callerId: socket.userId,
             callerName: callerName || socket.username,
             type: type,
             timestamp: new Date()
-          });
+          };
           
-          console.log(`[Socket] Call notification sent to ${targetSocketIds.length} sessions`);
+          io.to(`user-${targetUserId}`).emit('call:incoming', callData);
+          console.log(`[Socket] Call notification sent to user ${targetUserId}`);
         } else {
           socket.emit('call:user-offline', {
             message: 'User is offline',
@@ -686,87 +675,12 @@ module.exports = (io) => {
       }
     });
     
-    // Call initiation
-    socket.on('call:initiate', async (data) => {
-      if (!socket.userId) return;
-      try {
-        const { targetUserId, type, callerName } = data;
-        console.log(`[Socket] ${socket.username} initiating ${type} call to user ${targetUserId}`);
-        
-        const callData = {
-          callerId: socket.userId.toString(),
-          callerName: callerName || socket.username || socket.user?.username,
-          type: type || 'voice',
-          timestamp: new Date()
-        };
-        
-        // Find target socket
-        const targetSocketId = userSockets.get(targetUserId.toString());
-        
-        if (targetSocketId) {
-          // Send directly to target socket
-          io.to(targetSocketId).emit('call:incoming', callData);
-          console.log(`[Socket] Call notification sent to ${targetUserId} at socket ${targetSocketId}`);
-          
-          // Confirm to caller
-          socket.emit('call:initiated', { targetUserId, status: 'ringing' });
-        } else {
-          // User not online
-          socket.emit('call:error', { message: 'User is not online' });
-          console.log(`[Socket] User ${targetUserId} not online for call`);
-        }
-      } catch (error) {
-        console.error('[Socket] Error initiating call:', error);
-        socket.emit('call:error', { message: 'Failed to initiate call' });
-      }
-    });
-    
-    // Call accepted
-    socket.on('call:accept', async (data) => {
-      
-      const { callerId, type } = data;
-      console.log(`[Socket] ${socket.username} accepted call from ${callerId}`);
-      
-      // Notify the caller that call was accepted
-      io.to(`user-${callerId}`).emit('call:accepted', {
-        acceptedBy: socket.userId,
-        acceptedByName: socket.username,
-        type: type
-      });
-    });
-    
-    // Call rejected
-    socket.on('call:reject', async (data) => {
-      if (!socket.userId) return;
-      
-      const { callerId } = data;
-      console.log(`[Socket] ${socket.username} rejected call from ${callerId}`);
-      
-      // Notify the caller that call was rejected
-      io.to(`user-${callerId}`).emit('call:rejected', {
-        rejectedBy: socket.userId,
-        rejectedByName: socket.username
-      });
-    });
-    
-    // Call ended
-    socket.on('call:end', async (data) => {
-      if (!socket.userId) return;
-      
-      const { targetUserId } = data;
-      console.log(`[Socket] ${socket.username} ended call with ${targetUserId}`);
-      
-      // Notify the other user that call ended
-      io.to(`user-${targetUserId}`).emit('call:ended', {
-        endedBy: socket.userId,
-        endedByName: socket.username
-      });
-    });
+    // Duplicate handlers removed - already defined above
 
     // Handle disconnection
     socket.on('disconnect', async (reason) => {
       if (socket.userId && socket.user) {
-        console.log(`[Socket] User ${socket.username} disconnected:`, reason);
+        console.log(`[Socket] User ${socket.user.username} disconnected:`, reason);
         
         // Update user status in MongoDB
         try {
