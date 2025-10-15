@@ -24,7 +24,7 @@ module.exports = (io) => {
       }
 
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
         
         // Fetch user from MongoDB
         const user = await User.findById(decoded.userId);
@@ -58,7 +58,7 @@ module.exports = (io) => {
     // Handle authentication
     socket.on('authenticate', async (token) => {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret-key-2024');
         
         // Fetch user from MongoDB
         const user = await User.findById(decoded.userId);

@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../schemas/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'saudicord-secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'saudicord-secret-key-2024';
 
 module.exports = async (req, res, next) => {
   try {

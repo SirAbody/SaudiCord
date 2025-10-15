@@ -4,7 +4,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../schemas/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'saudicord-secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'saudicord-secret-key-2024';
 
 // Generate JWT token
 function generateToken(user) {

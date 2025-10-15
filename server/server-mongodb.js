@@ -108,17 +108,27 @@ socketHandler(io);
 // Start Server
 async function startServer() {
   try {
-    // Connect to MongoDB Atlas
-    await connectDB();
+    // Try to connect to MongoDB
+    const dbConnection = await connectDB();
     
-    // Initialize default data
-    await initializeDefaultData();
+    // Only initialize data if connected
+    if (dbConnection) {
+      try {
+        await initializeDefaultData();
+      } catch (dataError) {
+        console.error('[MongoDB] Error initializing default data:', dataError.message);
+        // Continue anyway - don't stop the server
+      }
+    }
     
-    // Start Express server
+    // Start Express server (with or without DB)
     server.listen(PORT, () => {
       console.log(`[Server] ✅ Server running on port ${PORT}`);
       console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`[Server] MongoDB: Connected to Atlas`);
+      console.log(`[Server] MongoDB: ${dbConnection ? 'Connected' : 'Not connected (degraded mode)'}`);
+      if (!dbConnection) {
+        console.log(`[Server] ⚠️ Running in degraded mode - no database operations available`);
+      }
     });
   } catch (error) {
     console.error('[Server] ❌ Failed to start server:', error);

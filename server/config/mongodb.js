@@ -1,8 +1,14 @@
 // MongoDB Atlas Configuration
 const mongoose = require('mongoose');
 
-// MongoDB Atlas connection string
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@cluster0.mongodb.net/saudicord?retryWrites=true&w=majority';
+// MongoDB Atlas connection string - CORRECT CLUSTER!
+const MONGODB_URI = process.env.MONGODB_URI || 
+  'mongodb+srv://abood3alshrary_db_user:tRW1DvPPDkdhkjrA@saudicord.sfzfre8.mongodb.net/saudicord?retryWrites=true&w=majority&appName=saudicord';
+
+// For production, should be set in environment variables
+if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI) {
+  console.warn('[MongoDB] Warning: Using default connection string. Set MONGODB_URI in production!');
+}
 
 // Connection options
 const mongoOptions = {
@@ -14,10 +20,12 @@ const mongoOptions = {
   w: 'majority'
 };
 
-// Connect to MongoDB Atlas
+// Connect to MongoDB
 const connectDB = async () => {
   try {
-    console.log('[MongoDB] Attempting to connect to MongoDB Atlas...');
+    const isLocal = MONGODB_URI.includes('localhost') || MONGODB_URI.includes('127.0.0.1');
+    console.log(`[MongoDB] Attempting to connect to ${isLocal ? 'Local MongoDB' : 'MongoDB Atlas'}...`);
+    console.log(`[MongoDB] URI: ${MONGODB_URI.replace(/:[^:@]+@/, ':****@')}`);
     
     // Set mongoose options
     mongoose.set('strictQuery', false);
@@ -25,7 +33,7 @@ const connectDB = async () => {
     // Connect to MongoDB
     const conn = await mongoose.connect(MONGODB_URI, mongoOptions);
     
-    console.log(`[MongoDB] ✅ Connected successfully to MongoDB Atlas`);
+    console.log(`[MongoDB] ✅ Connected successfully to ${isLocal ? 'Local MongoDB' : 'MongoDB Atlas'}`);
     console.log(`[MongoDB] Database: ${conn.connection.name}`);
     console.log(`[MongoDB] Host: ${conn.connection.host}`);
     
@@ -35,11 +43,11 @@ const connectDB = async () => {
     });
     
     mongoose.connection.on('disconnected', () => {
-      console.warn('[MongoDB] Disconnected from MongoDB Atlas');
+      console.warn('[MongoDB] Disconnected from MongoDB');
     });
     
     mongoose.connection.on('reconnected', () => {
-      console.log('[MongoDB] Reconnected to MongoDB Atlas');
+      console.log('[MongoDB] Reconnected to MongoDB');
     });
     
     // Graceful shutdown
@@ -51,8 +59,15 @@ const connectDB = async () => {
     
     return conn;
   } catch (error) {
-    console.error('[MongoDB] ❌ Failed to connect to MongoDB Atlas:', error.message);
-    // Retry connection after 5 seconds
+    console.error('[MongoDB] ❌ Failed to connect:', error.message);
+    
+    // In production, allow server to start anyway for health checks
+    if (process.env.NODE_ENV === 'production') {
+      console.log('[MongoDB] Running without database connection (degraded mode)');
+      return null;
+    }
+    
+    // In development, retry connection
     console.log('[MongoDB] Retrying connection in 5 seconds...');
     setTimeout(connectDB, 5000);
   }
