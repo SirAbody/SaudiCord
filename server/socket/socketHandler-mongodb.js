@@ -1,0 +1,447 @@
+// Socket.io Handler with MongoDB
+const jwt = require('jsonwebtoken');
+const User = require('../schemas/User');
+const Message = require('../schemas/Message');
+const Channel = require('../schemas/Channel');
+const Server = require('../schemas/Server');
+const DirectMessage = require('../schemas/DirectMessage');
+const VoiceCall = require('../schemas/VoiceCall');
+const Friendship = require('../schemas/Friendship');
+
+// Active connections tracking
+const activeUsers = new Map();
+const userSockets = new Map();
+
+module.exports = (io) => {
+  // Authentication middleware
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      
+      if (!token) {
+        console.log('[Socket] No token provided, allowing connection for later auth');
+        return next();
+      }
+
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        
+        // Fetch user from MongoDB
+        const user = await User.findById(decoded.userId);
+        
+        if (user) {
+          socket.user = user;
+          socket.userId = user._id.toString();
+          socket.username = user.username;
+          console.log(`[Socket] Pre-auth successful for user: ${user.username}`);
+          
+          // Update last seen and status
+          await user.updateLastSeen();
+        } else {
+          socket.userId = decoded.userId;
+          socket.username = decoded.username || 'Unknown';
+        }
+      } catch (tokenErr) {
+        console.log('[Socket] Invalid token, allowing connection');
+      }
+      
+      next();
+    } catch (err) {
+      console.error('[Socket] Auth middleware error:', err);
+      next();
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log('[Socket] New connection:', socket.id);
+
+    // Handle authentication
+    socket.on('authenticate', async (token) => {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'saudicord-secret');
+        
+        // Fetch user from MongoDB
+        const user = await User.findById(decoded.userId);
+        
+        if (user) {
+          socket.user = user;
+          socket.userId = user._id.toString();
+          socket.username = user.username;
+          
+          // Update user status
+          user.status = 'online';
+          await user.save();
+          
+          // Store in active users
+          activeUsers.set(socket.userId, user.toSafeObject());
+          userSockets.set(socket.userId, socket);
+          
+          // Join user room
+          socket.join(`user-${socket.userId}`);
+          
+          // Broadcast online status
+          socket.broadcast.emit('user:online', {
+            userId: socket.userId,
+            username: socket.username
+          });
+          
+          // Send success response
+          socket.emit('auth:success', {
+            userId: socket.userId,
+            username: socket.username
+          });
+          
+          console.log(`[Socket] User ${socket.username} authenticated`);
+        }
+      } catch (err) {
+        console.error('[Socket] Authentication failed:', err);
+        socket.emit('auth:error', { message: 'Authentication failed' });
+      }
+    });
+
+    // Join channel
+    socket.on('join:channel', async (channelId) => {
+      if (!socket.userId) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      try {
+        // Leave previous channels
+        const rooms = Array.from(socket.rooms);
+        rooms.forEach(room => {
+          if (room.startsWith('channel-') && room !== socket.id) {
+            socket.leave(room);
+          }
+        });
+        
+        socket.join(`channel-${channelId}`);
+        console.log(`[Socket] User ${socket.username} joined channel ${channelId}`);
+        
+        // Notify others
+        socket.to(`channel-${channelId}`).emit('user:joined', {
+          channelId,
+          user: {
+            id: socket.userId,
+            username: socket.username,
+            avatar: socket.user?.avatar
+          }
+        });
+      } catch (error) {
+        console.error('[Socket] Error joining channel:', error);
+        socket.emit('error', { message: 'Failed to join channel' });
+      }
+    });
+
+    // Send message
+    socket.on('message:send', async (data) => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      try {
+        const { channelId, content, tempId } = data;
+        
+        if (!channelId || !content) {
+          socket.emit('error', { message: 'Channel ID and content are required' });
+          return;
+        }
+
+        // Make sure sender is in the channel room
+        if (!socket.rooms.has(`channel-${channelId}`)) {
+          socket.join(`channel-${channelId}`);
+        }
+
+        // Get channel info
+        const channel = await Channel.findById(channelId);
+        if (!channel) {
+          socket.emit('error', { message: 'Channel not found' });
+          return;
+        }
+
+        // Create message in MongoDB
+        const message = new Message({
+          content,
+          author: socket.userId,
+          channel: channelId,
+          server: channel.server
+        });
+        
+        await message.save();
+        
+        // Populate author info
+        await message.populate('author', 'username displayName avatar');
+        
+        const messageData = {
+          _id: message._id,
+          id: message._id,
+          content: message.content,
+          channelId: channelId,
+          author: {
+            id: message.author._id,
+            username: message.author.username,
+            displayName: message.author.displayName,
+            avatar: message.author.avatar
+          },
+          createdAt: message.createdAt
+        };
+
+        // Send to everyone in channel except sender
+        socket.broadcast.to(`channel-${channelId}`).emit('message:receive', messageData);
+        
+        // Send confirmation to sender
+        socket.emit('message:sent', {
+          tempId,
+          messageId: message._id,
+          message: messageData
+        });
+        
+        // Update channel's last message
+        channel.lastMessageId = message._id;
+        channel.lastMessageAt = new Date();
+        await channel.save();
+        
+        console.log(`[Socket] Message sent to channel ${channelId}`);
+      } catch (error) {
+        console.error('[Socket] Error sending message:', error);
+        socket.emit('error', { message: 'Failed to send message' });
+      }
+    });
+
+    // Send direct message
+    socket.on('dm:send', async (data) => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      try {
+        const { receiverId, content } = data;
+        
+        if (!receiverId || !content) {
+          socket.emit('error', { message: 'Receiver and content are required' });
+          return;
+        }
+
+        // Check if users are friends or not blocked
+        const isBlocked = await Friendship.isBlocked(socket.userId, receiverId);
+        if (isBlocked) {
+          socket.emit('error', { message: 'Cannot send message to this user' });
+          return;
+        }
+
+        // Create conversation ID
+        const conversationId = DirectMessage.createConversationId(socket.userId, receiverId);
+
+        // Create DM in MongoDB
+        const dm = new DirectMessage({
+          content,
+          sender: socket.userId,
+          receiver: receiverId,
+          conversation: conversationId
+        });
+        
+        await dm.save();
+        
+        // Populate sender info
+        await dm.populate('sender', 'username displayName avatar');
+        
+        const messageData = {
+          id: dm._id,
+          content: dm.content,
+          senderId: dm.sender._id,
+          receiverId: dm.receiver,
+          senderName: dm.sender.username,
+          createdAt: dm.createdAt
+        };
+
+        // Send to receiver if online
+        const receiverSocket = userSockets.get(receiverId.toString());
+        if (receiverSocket) {
+          receiverSocket.emit('dm:receive', messageData);
+        }
+        
+        // Send confirmation to sender
+        socket.emit('dm:receive', messageData);
+        
+        console.log(`[Socket] DM sent from ${socket.userId} to ${receiverId}`);
+      } catch (error) {
+        console.error('[Socket] Error sending DM:', error);
+        socket.emit('error', { message: 'Failed to send message' });
+      }
+    });
+
+    // Join voice channel
+    socket.on('voice:join', async (data) => {
+      if (!socket.userId || !socket.user) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
+
+      try {
+        const { channelId } = data;
+        
+        // Get channel
+        const channel = await Channel.findById(channelId);
+        if (!channel || channel.type !== 'voice') {
+          socket.emit('error', { message: 'Invalid voice channel' });
+          return;
+        }
+
+        // Join voice channel in database
+        await channel.joinVoiceChannel(socket.userId);
+        
+        // Join socket room
+        socket.join(`voice:${channelId}`);
+        
+        // Get all users in channel
+        await channel.populate('connectedUsers.user', 'username displayName avatar');
+        const users = channel.connectedUsers.map(cu => ({
+          id: cu.user._id,
+          username: cu.user.username,
+          displayName: cu.user.displayName,
+          avatar: cu.user.avatar,
+          isMuted: cu.isMuted,
+          isDeafened: cu.isDeafened,
+          isVideo: cu.isVideo
+        }));
+        
+        // Notify all users in voice channel
+        io.to(`voice:${channelId}`).emit('voice:users', {
+          channelId,
+          users
+        });
+        
+        // Notify about user joining
+        socket.to(`voice:${channelId}`).emit('voice:user:joined', {
+          userId: socket.userId,
+          username: socket.user.username,
+          displayName: socket.user.displayName,
+          avatar: socket.user.avatar
+        });
+        
+        console.log(`[Socket] User ${socket.username} joined voice channel ${channelId}`);
+      } catch (error) {
+        console.error('[Socket] Error joining voice channel:', error);
+        socket.emit('error', { message: 'Failed to join voice channel' });
+      }
+    });
+
+    // Leave voice channel
+    socket.on('voice:leave', async (data) => {
+      if (!socket.userId) return;
+
+      try {
+        const { channelId } = data;
+        
+        // Get channel
+        const channel = await Channel.findById(channelId);
+        if (channel) {
+          // Leave voice channel in database
+          await channel.leaveVoiceChannel(socket.userId);
+        }
+        
+        // Leave socket room
+        socket.leave(`voice:${channelId}`);
+        
+        // Notify others
+        socket.to(`voice:${channelId}`).emit('voice:user:left', {
+          userId: socket.userId,
+          username: socket.user?.username
+        });
+        
+        console.log(`[Socket] User ${socket.username} left voice channel ${channelId}`);
+      } catch (error) {
+        console.error('[Socket] Error leaving voice channel:', error);
+      }
+    });
+
+    // WebRTC signaling
+    socket.on('webrtc:offer', (data) => {
+      const { targetUserId, offer } = data;
+      const targetSocket = userSockets.get(targetUserId);
+      
+      if (targetSocket) {
+        targetSocket.emit('webrtc:offer', {
+          senderId: socket.userId,
+          offer
+        });
+      }
+    });
+
+    socket.on('webrtc:answer', (data) => {
+      const { targetUserId, answer } = data;
+      const targetSocket = userSockets.get(targetUserId);
+      
+      if (targetSocket) {
+        targetSocket.emit('webrtc:answer', {
+          senderId: socket.userId,
+          answer
+        });
+      }
+    });
+
+    socket.on('webrtc:ice-candidate', (data) => {
+      const { targetUserId, candidate } = data;
+      const targetSocket = userSockets.get(targetUserId);
+      
+      if (targetSocket) {
+        targetSocket.emit('webrtc:ice-candidate', {
+          senderId: socket.userId,
+          candidate
+        });
+      }
+    });
+
+    // Typing indicators
+    socket.on('typing:start', (data) => {
+      if (!socket.userId || !socket.user) return;
+      
+      socket.to(`channel-${data.channelId}`).emit('typing:start', {
+        channelId: data.channelId,
+        userId: socket.userId,
+        username: socket.user.username
+      });
+    });
+
+    socket.on('typing:stop', (data) => {
+      if (!socket.userId) return;
+      
+      socket.to(`channel-${data.channelId}`).emit('typing:stop', {
+        channelId: data.channelId,
+        userId: socket.userId
+      });
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', async (reason) => {
+      if (socket.userId && socket.user) {
+        console.log(`[Socket] User ${socket.username} disconnected:`, reason);
+        
+        // Update user status in MongoDB
+        try {
+          const user = await User.findById(socket.userId);
+          if (user) {
+            user.status = 'offline';
+            user.lastSeen = new Date();
+            await user.save();
+          }
+        } catch (error) {
+          console.error('[Socket] Error updating user status:', error);
+        }
+        
+        // Remove from active users
+        activeUsers.delete(socket.userId);
+        userSockets.delete(socket.userId);
+        
+        // Broadcast offline status
+        socket.broadcast.emit('user:offline', {
+          userId: socket.userId
+        });
+      } else {
+        console.log('[Socket] Unauthenticated socket disconnected');
+      }
+    });
+  });
+};
