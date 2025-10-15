@@ -28,6 +28,8 @@ function DirectMessages() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
   const messagesEndRef = useRef(null);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [friendUsername, setFriendUsername] = useState('');
@@ -81,6 +83,12 @@ function DirectMessages() {
     socketService.off('call:incoming');
     socketService.off('call:rejected');
     socketService.off('call:ended');
+    socketService.off('user:online');
+    socketService.off('user:offline');
+    socketService.off('user:status:changed');
+    socketService.off('friend:removed');
+    socketService.off('dm:typing');
+    socketService.off('dm:stop-typing');
     
     // Handle friend request received - Real-time
     socketService.on('friend:request:received', (data) => {
@@ -216,6 +224,40 @@ function DirectMessages() {
     socketService.on('friend:accepted', (data) => {
       toast.success(`${data.username} accepted your friend request!`);
       loadFriends();
+    });
+
+    // Handle user status changes - REAL TIME
+    socketService.on('user:online', (data) => {
+      console.log('[Status] User came online:', data);
+      setFriends(prev => prev.map(friend => {
+        if (friend.id === data.userId || friend._id === data.userId) {
+          return { ...friend, status: 'online' };
+        }
+        return friend;
+      }));
+    });
+
+    socketService.on('user:offline', (data) => {
+      console.log('[Status] User went offline:', data);
+      setFriends(prev => prev.map(friend => {
+        if (friend.id === data.userId || friend._id === data.userId) {
+          return { ...friend, status: 'offline' };
+        }
+        return friend;
+      }));
+    });
+
+    // Handle typing indicators
+    socketService.on('dm:typing', (data) => {
+      if (selectedConversation?.id === data.senderId) {
+        setIsTyping(true);
+      }
+    });
+
+    socketService.on('dm:stop-typing', (data) => {
+      if (selectedConversation?.id === data.senderId) {
+        setIsTyping(false);
+      }
     });
 
     // Handle incoming calls
@@ -653,7 +695,7 @@ function DirectMessages() {
         {/* Content based on active tab */}
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Friends List with Glass Effect */}
-          <div className="w-64 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
+          <div className="w-80 bg-black/60 backdrop-blur-lg flex flex-col border-r border-red-900/20 flex-shrink-0">
             {activeTab === 'addFriend' ? (
               // Add Friend Tab - Beautiful Design
               <div className="p-8">
@@ -823,7 +865,7 @@ function DirectMessages() {
           </div>
 
           {/* Chat Area - Full Remaining Width */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 bg-black/40">
             {selectedConversation ? (
           <>
             {/* Chat Header - Modern Design */}
@@ -1002,8 +1044,23 @@ function DirectMessages() {
                     </div>
                   );
                 })}
-                <div ref={messagesEndRef} />
               </div>
+              <div ref={messagesEndRef} />
+              
+              {/* Typing Indicator */}
+              {isTyping && (
+                <div className="px-4 py-2 text-gray-400 text-sm animate-pulse">
+                  <span className="inline-flex items-center">
+                    <span className="font-semibold text-red-400">{selectedConversation.displayName || selectedConversation.username}</span>
+                    <span className="ml-1">is typing</span>
+                    <span className="ml-1 flex space-x-1">
+                      <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Message Input */}
@@ -1012,8 +1069,33 @@ function DirectMessages() {
                 <input
                   type="text"
                   value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  onChange={(e) => {
+                    setMessageInput(e.target.value);
+                    
+                    // Handle typing indicator
+                    if (e.target.value.trim() && selectedConversation) {
+                      socketService.emit('dm:typing', { receiverId: selectedConversation.id });
+                      
+                      // Clear existing timeout
+                      if (typingTimeout) clearTimeout(typingTimeout);
+                      
+                      // Set new timeout to stop typing after 2 seconds
+                      const timeout = setTimeout(() => {
+                        socketService.emit('dm:stop-typing', { receiverId: selectedConversation.id });
+                      }, 2000);
+                      setTypingTimeout(timeout);
+                    } else if (!e.target.value.trim()) {
+                      socketService.emit('dm:stop-typing', { receiverId: selectedConversation.id });
+                      if (typingTimeout) clearTimeout(typingTimeout);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      sendMessage();
+                      socketService.emit('dm:stop-typing', { receiverId: selectedConversation.id });
+                      if (typingTimeout) clearTimeout(typingTimeout);
+                    }
+                  }}
                   placeholder={`Message @${selectedConversation.username}`}
                   className="flex-1 bg-black/70 border border-red-900/30 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 />

@@ -19,23 +19,33 @@ function ChannelList() {
   const [voiceChannels, setVoiceChannels] = useState([]);
   // const [loading, setLoading] = useState(true); // Reserved for loading state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [channelType, setChannelType] = useState('text');
   const [newChannelName, setNewChannelName] = useState('');
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
-  const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // For voice channel users
-  const [showVoiceCall, setShowVoiceCall] = useState(false);
+  const [voiceChannelUsers, setVoiceChannelUsers] = useState({}); // Track users in each voice channel
+  const [showVoiceCall, setShowVoiceCall] = useState(false); // Show voice call interface
+
+  // Debug log on mount and state changes
+  useEffect(() => {
+    console.log('[ChannelList] Component mounted, activeVoiceChannel:', activeVoiceChannel);
+  }, []);
+
+  useEffect(() => {
+    console.log('[ChannelList] activeVoiceChannel changed to:', activeVoiceChannel);
+  }, [activeVoiceChannel]);
 
   useEffect(() => {
     // Listen for voice channel left event
     const handleVoiceChannelLeft = () => {
+      console.log('[ChannelList] Received voiceChannelLeft event');
       setActiveVoiceChannel(null);
     };
     
     // Listen for voice channel user updates from window event
     const handleVoiceUsersUpdate = (event) => {
+      console.log('[ChannelList] Received voiceUsersUpdate event:', event.detail);
       const data = event.detail;
       setVoiceChannelUsers(prev => ({
         ...prev,
@@ -152,11 +162,28 @@ function ChannelList() {
 
   const handleChannelClick = async (channel) => {
     console.log('[ChannelList] Clicking channel:', channel);
+    console.log('[ChannelList] Active voice channel:', activeVoiceChannel);
+    console.log('[ChannelList] Comparison:', {
+      activeId: activeVoiceChannel?.id,
+      activeIdMongo: activeVoiceChannel?._id,
+      channelId: channel.id,
+      channelIdMongo: channel._id,
+      isEqual: activeVoiceChannel?.id === channel.id || activeVoiceChannel?._id === channel._id
+    });
     
     // Handle voice channels differently
     if (channel.type === 'voice') {
+      // Check both id and _id for comparison
+      const isCurrentlyInChannel = activeVoiceChannel && (
+        activeVoiceChannel.id === channel.id || 
+        activeVoiceChannel._id === channel._id ||
+        activeVoiceChannel.id === channel._id ||
+        activeVoiceChannel._id === channel.id
+      );
+      
       // If already in this voice channel
-      if (activeVoiceChannel?.id === channel.id) {
+      if (isCurrentlyInChannel) {
+        console.log('[ChannelList] Leaving voice channel');
         // Leave the voice channel
         if (webrtcService && webrtcService.isInCall && webrtcService.isInCall()) {
           webrtcService.endCall();
@@ -178,11 +205,23 @@ function ChannelList() {
       }
       
       // Join voice channel
+      console.log('[ChannelList] Joining voice channel:', channel.name);
+      
+      // Leave previous voice channel if exists
+      if (activeVoiceChannel && activeVoiceChannel.id !== channel.id) {
+        const prevChannelId = activeVoiceChannel._id || activeVoiceChannel.id;
+        if (prevChannelId) {
+          socketService.emit('voice:leave', { channelId: prevChannelId });
+        }
+      }
+      
       setActiveVoiceChannel(channel);
       setShowVoiceCall(true); // Show Discord-style voice call interface
       const joinChannelId = channel._id || channel.id;
+      console.log('[ChannelList] Emitting voice:join with channelId:', joinChannelId);
       if (joinChannelId) {
         socketService.emit('voice:join', { channelId: joinChannelId });
+        toast.success(`Joined voice channel: ${channel.name}`);
       }
       
       // Add ourselves to users list
