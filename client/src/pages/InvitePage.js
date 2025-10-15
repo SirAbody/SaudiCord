@@ -11,6 +11,7 @@ function InvitePage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [serverInfo, setServerInfo] = useState(null);
 
   useEffect(() => {
     // Check if user is authenticated
