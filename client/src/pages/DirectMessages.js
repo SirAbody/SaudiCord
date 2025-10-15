@@ -126,10 +126,10 @@ function DirectMessages() {
       const currentSelectedConv = selectedConversationRef.current;
       
       // Parse sender and current user IDs properly - handle all formats
-      const msgSenderId = (message.senderId?._id || message.senderId || message.sender?._id || message.sender)?.toString();
-      const msgReceiverId = (message.receiverId?._id || message.receiverId || message.receiver?._id || message.receiver)?.toString();
-      const currentUserId = (user?.id || user?._id)?.toString();
-      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id)?.toString();
+      const msgSenderId = (message.senderId?._id || message.senderId || message.sender?._id || message.sender || '').toString();
+      const msgReceiverId = (message.receiverId?._id || message.receiverId || message.receiver?._id || message.receiver || '').toString();
+      const currentUserId = (user?.id || user?._id || '').toString();
+      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id || '').toString();
       
       console.log('[DM] Parsed IDs:', { 
         msgSenderId, 
@@ -275,20 +275,20 @@ function DirectMessages() {
     // Handle typing indicators
     socketService.on('dm:typing', (data) => {
       const currentSelectedConv = selectedConversationRef.current;
-      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id)?.toString();
-      const senderId = (data.senderId || data.userId)?.toString();
+      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id || '').toString();
+      const senderId = (data.senderId || data.userId || '').toString();
       
-      if (selectedId === senderId) {
+      if (selectedId && senderId && selectedId === senderId) {
         setIsTyping(true);
       }
     });
 
     socketService.on('dm:stop-typing', (data) => {
       const currentSelectedConv = selectedConversationRef.current;
-      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id)?.toString();
-      const senderId = (data.senderId || data.userId)?.toString();
+      const selectedId = (currentSelectedConv?.id || currentSelectedConv?._id || '').toString();
+      const senderId = (data.senderId || data.userId || '').toString();
       
-      if (selectedId === senderId) {
+      if (selectedId && senderId && selectedId === senderId) {
         setIsTyping(false);
       }
     });
@@ -1077,7 +1077,8 @@ function DirectMessages() {
             <div className="dm-messages-container flex-1 overflow-y-auto p-6 space-y-4" style={{ paddingBottom: '100px' }}>
               {messages.map((message, index) => {
                 const messageSenderId = (message.senderId || message.sender?._id || message.sender || '').toString();
-                const isOwnMessage = messageSenderId === user.id.toString();
+                const currentUserId = (user?.id || user?._id || '').toString();
+                const isOwnMessage = messageSenderId === currentUserId;
                   
                 // Get correct sender info
                   const senderName = message.senderName || 
