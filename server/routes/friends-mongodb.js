@@ -166,8 +166,8 @@ router.post('/accept/:friendshipId', auth, async (req, res) => {
   }
 });
 
-// Decline friend request
-router.post('/reject/:friendshipId', auth, async (req, res) => {
+// Reject friend request
+router.delete('/reject/:friendshipId', auth, async (req, res) => {
   try {
     const friendship = await Friendship.findById(req.params.friendshipId);
     
@@ -177,16 +177,45 @@ router.post('/reject/:friendshipId', auth, async (req, res) => {
     
     // Check if user is the recipient
     if (friendship.recipient.toString() !== req.userId.toString()) {
-      return res.status(403).json({ error: 'Cannot decline this friend request' });
+      return res.status(403).json({ error: 'Cannot reject this friend request' });
     }
     
-    // Decline friend request
-    await friendship.decline();
+    // Delete the friendship request
+    await friendship.deleteOne();
     
-    res.json({ message: 'Friend request declined' });
+    res.json({ message: 'Friend request rejected' });
   } catch (error) {
-    console.error('[Friends] Error declining friend request:', error);
-    res.status(500).json({ error: 'Failed to decline friend request' });
+    console.error('[Friends] Error rejecting friend request:', error);
+    res.status(500).json({ error: 'Failed to reject friend request' });
+  }
+});
+
+// Cancel outgoing friend request
+router.delete('/cancel/:friendshipId', auth, async (req, res) => {
+  try {
+    const friendship = await Friendship.findById(req.params.friendshipId);
+    
+    if (!friendship) {
+      return res.status(404).json({ error: 'Friend request not found' });
+    }
+    
+    // Check if user is the requester
+    if (friendship.requester.toString() !== req.userId.toString()) {
+      return res.status(403).json({ error: 'Cannot cancel this friend request' });
+    }
+    
+    // Check if request is still pending
+    if (friendship.status !== 'pending') {
+      return res.status(400).json({ error: 'Friend request is not pending' });
+    }
+    
+    // Delete the friendship request
+    await friendship.deleteOne();
+    
+    res.json({ message: 'Friend request cancelled' });
+  } catch (error) {
+    console.error('[Friends] Error cancelling friend request:', error);
+    res.status(500).json({ error: 'Failed to cancel friend request' });
   }
 });
 

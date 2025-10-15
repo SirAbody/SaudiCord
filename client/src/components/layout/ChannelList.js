@@ -73,8 +73,9 @@ function ChannelList() {
   const loadChannels = async () => {
     try {
       // If we have a current server with valid ID, load its channels
-      if (currentServer && currentServer.id) {
-        const response = await axios.get(`/channels/server/${currentServer.id}`);
+      if (currentServer && (currentServer._id || currentServer.id)) {
+        const serverId = currentServer._id || currentServer.id;
+        const response = await axios.get(`/channels/server/${serverId}`);
         const channelsData = response.data || [];
         
         // Separate text and voice channels
@@ -111,7 +112,7 @@ function ChannelList() {
       return;
     }
 
-    if (!currentServer || !currentServer.id) {
+    if (!currentServer || (!currentServer._id && !currentServer.id)) {
       // Don't show error toast if no server selected
       return;
     }
@@ -122,7 +123,7 @@ function ChannelList() {
         name: newChannelName.toLowerCase().replace(/\s+/g, '-'),
         type: channelType,
         description: newChannelDescription,
-        serverId: currentServer.id
+        serverId: currentServer._id || currentServer.id
       });
       
       toast.success(`${channelType === 'text' ? 'Text' : 'Voice'} channel created!`);

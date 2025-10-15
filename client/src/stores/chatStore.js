@@ -34,8 +34,8 @@ export const useChatStore = create((set, get) => ({
   setCurrentServer: (server) => {
     set({ currentServer: server, currentChannel: null });
     // Fetch channels for the new server
-    if (server) {
-      get().fetchChannels(server.id);
+    if (server && (server._id || server.id)) {
+      get().fetchChannels(server._id || server.id);
     }
   },
 

@@ -154,6 +154,26 @@ function DirectMessages() {
     }
   };
 
+  const rejectFriendRequest = async (friendshipId) => {
+    try {
+      await axios.delete(`/friends/reject/${friendshipId}`);
+      toast.success('Friend request rejected');
+      loadFriends();
+    } catch (error) {
+      toast.error('Failed to reject friend request');
+    }
+  };
+
+  const cancelFriendRequest = async (friendshipId) => {
+    try {
+      await axios.delete(`/friends/cancel/${friendshipId}`);
+      toast.success('Friend request cancelled');
+      loadFriends();
+    } catch (error) {
+      toast.error('Failed to cancel friend request');
+    }
+  };
+
   const blockUser = async (userId) => {
     if (!window.confirm('Are you sure you want to block this user?')) return;
     
@@ -401,18 +421,38 @@ function DirectMessages() {
                             </p>
                           </div>
                         </div>
-                        {request.isReceiver && (
+                        {request.isReceiver ? (
                           <div className="flex space-x-2">
                             <button
                               onClick={() => acceptFriendRequest(request.friendshipId)}
                               className="p-2 bg-green-500 hover:bg-green-600 rounded transition"
+                              title="Accept Request"
                             >
                               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                             </button>
                             <button
+                              onClick={() => rejectFriendRequest(request.friendshipId)}
                               className="p-2 bg-red-500 hover:bg-red-600 rounded transition"
+                              title="Reject Request"
+                            >
+                              <XMarkIcon className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => selectConversation(request)}
+                              className="p-2 bg-blue-500 hover:bg-blue-600 rounded transition"
+                              title="Send Message"
+                            >
+                              <ChatBubbleLeftIcon className="w-4 h-4 text-white" />
+                            </button>
+                            <button
+                              onClick={() => cancelFriendRequest(request.friendshipId)}
+                              className="p-2 bg-red-500 hover:bg-red-600 rounded transition"
+                              title="Cancel Request"
                             >
                               <XMarkIcon className="w-4 h-4 text-white" />
                             </button>
@@ -611,11 +651,11 @@ function DirectMessages() {
         ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <ChatBubbleLeftIcon className="w-20 h-20 text-primary-500/50 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-white mb-2">
+                  <ChatBubbleLeftIcon className="w-24 h-24 text-red-500/30 mx-auto mb-6" />
+                  <h3 className="text-3xl font-bold text-white mb-3">
                     Welcome to Direct Messages
                   </h3>
-                  <p className="text-gray-400">
+                  <p className="text-red-400/70 text-lg">
                     Select a friend to start chatting
                   </p>
                 </div>

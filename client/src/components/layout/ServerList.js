@@ -25,7 +25,7 @@ function ServerList() {
     if (fetchServers) {
       fetchServers();
     }
-  }, [fetchServers]);
+  }, []); // Only fetch on mount
 
   // Auto-select first server if no server is selected
   useEffect(() => {
@@ -69,10 +69,16 @@ function ServerList() {
       // IMPORTANT: Fetch servers first, then set current server
       await fetchServers(); // Reload servers list
       
-      // Wait a bit for state to update
-      setTimeout(() => {
-        setCurrentServer(response.data);
-      }, 100);
+      // Set the current server with proper ID
+      const newServer = response.data;
+      if (newServer) {
+        // Ensure we have the ID in the correct format
+        const serverWithId = {
+          ...newServer,
+          id: newServer._id || newServer.id
+        };
+        setCurrentServer(serverWithId);
+      }
       
       setShowCreateModal(false);
       setNewServerName('');
@@ -103,8 +109,8 @@ function ServerList() {
       <div className="w-8 h-0.5 bg-red-900/30 rounded-full mx-auto"></div>
       
       {/* Server Icons - Remove duplicates using Set */}
-      {[...new Map(servers?.map(server => [server.id, server])).values()]?.map((server) => (
-        <div key={server.id} className="relative group">
+      {[...new Map(servers?.map(server => [server._id || server.id, server])).values()]?.map((server) => (
+        <div key={server._id || server.id} className="relative group">
           <button
             onClick={() => handleServerClick(server)}
             onContextMenu={(e) => {
@@ -113,7 +119,7 @@ function ServerList() {
               setShowSettingsModal(true);
             }}
             className={`relative w-12 h-12 rounded-3xl hover:rounded-2xl transition-all duration-200 flex items-center justify-center ${
-              currentServer?.id === server.id
+              (currentServer?._id === server._id) || (currentServer?.id === server.id)
                 ? 'bg-red-500 text-white rounded-2xl'
                 : 'bg-black/50 border border-red-900/30 hover:bg-red-500'
             }`}

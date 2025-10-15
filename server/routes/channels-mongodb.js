@@ -68,7 +68,10 @@ router.post('/', authenticateToken, async (req, res) => {
     server.channels.push(channel._id);
     await server.save();
     
-    res.status(201).json(channel);
+    // Return channel with both _id and id for frontend compatibility
+    const channelResponse = channel.toObject();
+    channelResponse.id = channelResponse._id;
+    res.status(201).json(channelResponse);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create channel' });
   }
