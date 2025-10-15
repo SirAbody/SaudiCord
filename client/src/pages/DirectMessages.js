@@ -18,8 +18,8 @@ import toast from 'react-hot-toast';
 import socketService from '../services/socket';
 import MessageContextMenu from '../components/chat/MessageContextMenu';
 import UserProfilePopup from '../components/user/UserProfilePopup';
-import VoiceCallInterface from '../components/voice/VoiceCallInterface';
-import webrtcService from '../services/webrtc';
+// import VoiceCallInterface from '../components/voice/VoiceCallInterface';
+// import webrtcService from '../services/webrtc';
 
 function DirectMessages() {
   const { user } = useAuthStore();

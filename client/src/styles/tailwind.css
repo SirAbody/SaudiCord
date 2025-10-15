@@ -1,0 +1,205 @@
+/* Tailwind CSS Base - SaudiCord Custom Theme */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Dark Theme Root Variables */
+:root {
+  --background-primary: #0F0F0F;
+  --background-secondary: #1A1A1A;
+  --background-tertiary: #242424;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B3B3B3;
+  --text-muted: #808080;
+  --accent-primary: #DC2626;
+  --accent-hover: #EF4444;
+  --accent-dark: #991B1B;
+  --border-primary: rgba(220, 38, 38, 0.2);
+  --border-secondary: rgba(255, 255, 255, 0.1);
+}
+
+/* Base Styles */
+@layer base {
+  body {
+    @apply bg-background-primary text-text-primary;
+    font-family: 'Whitney', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    @apply border-border-primary;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-text-primary;
+  }
+
+  a {
+    @apply text-accent-primary hover:text-accent-hover transition-colors;
+  }
+
+  input, textarea {
+    @apply bg-background-secondary text-text-primary placeholder-text-muted;
+  }
+
+  button {
+    @apply transition-all;
+  }
+}
+
+/* Custom Components */
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-hover transition-all duration-200 font-medium;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-background-secondary text-text-primary rounded-lg hover:bg-background-tertiary transition-all duration-200;
+  }
+
+  .input-primary {
+    @apply w-full px-4 py-2 bg-background-secondary border border-border-secondary rounded-lg focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20;
+  }
+
+  .card {
+    @apply bg-background-secondary rounded-lg p-4 border border-border-secondary;
+  }
+
+  .sidebar {
+    @apply bg-background-secondary border-r border-border-secondary;
+  }
+
+  .message-container {
+    @apply hover:bg-background-tertiary/50 transition-colors rounded px-4 py-1;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .text-accent {
+    color: var(--accent-primary);
+  }
+
+  .bg-dark {
+    background-color: var(--background-primary);
+  }
+
+  .bg-dark-secondary {
+    background-color: var(--background-secondary);
+  }
+
+  .bg-dark-tertiary {
+    background-color: var(--background-tertiary);
+  }
+
+  .border-accent {
+    border-color: var(--accent-primary);
+  }
+
+  .shadow-accent {
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background-primary;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-accent-primary/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accent-primary/70;
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Discord-like Mention Styling */
+.mention {
+  @apply text-accent-primary bg-accent-primary/10 px-1 rounded cursor-pointer hover:bg-accent-primary/20 transition-colors;
+}
+
+/* Voice Channel Indicators */
+.voice-active {
+  @apply relative;
+}
+
+.voice-active::before {
+  content: '';
+  @apply absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-4 bg-green-500 rounded-full;
+}
+
+/* Status Indicators */
+.status-online {
+  @apply bg-green-500;
+}
+
+.status-idle {
+  @apply bg-yellow-500;
+}
+
+.status-dnd {
+  @apply bg-red-500;
+}
+
+.status-offline {
+  @apply bg-gray-500;
+}
+
+/* Message Timestamps */
+.timestamp {
+  @apply text-xs text-text-muted;
+}
+
+/* Context Menu */
+.context-menu {
+  @apply bg-background-secondary border border-border-secondary rounded-lg shadow-2xl py-1 min-w-[180px];
+}
+
+.context-menu-item {
+  @apply px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-background-tertiary transition-colors cursor-pointer;
+}
+
+.context-menu-item.danger {
+  @apply text-red-400 hover:text-red-300 hover:bg-red-500/10;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-40;
+}
+
+.modal-content {
+  @apply bg-background-secondary rounded-xl shadow-2xl border border-border-secondary;
+}
