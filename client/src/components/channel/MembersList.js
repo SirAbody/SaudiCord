@@ -51,7 +51,7 @@ function MembersList({ serverId, channelId }) {
 
   const loadServerMembers = async () => {
     try {
-      const response = await axios.get(`/servers/${serverId}/members`);
+      const response = await axios.get(`/api/servers/${serverId}/members`);
       const membersData = response.data || [];
       
       // Sort members by role and status
@@ -80,7 +80,7 @@ function MembersList({ serverId, channelId }) {
 
   const loadServerRoles = async () => {
     try {
-      const response = await axios.get(`/servers/${serverId}/roles`);
+      const response = await axios.get(`/api/servers/${serverId}/roles`);
       setRoles(response.data || []);
     } catch (error) {
       console.error('Failed to load server roles:', error);

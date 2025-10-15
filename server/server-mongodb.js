@@ -75,6 +75,7 @@ app.use('/api/messages', require('./routes/messages-mongodb'));
 app.use('/api/friends', require('./routes/friends-mongodb'));
 app.use('/api/dm', require('./routes/dm-mongodb'));
 app.use('/api/voice', require('./routes/voice-mongodb'));
+app.use('/api', require('./routes/members-mongodb')); // Members & Roles routes
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
