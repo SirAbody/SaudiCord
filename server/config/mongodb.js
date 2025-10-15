@@ -10,17 +10,15 @@ if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI) {
   console.warn('[MongoDB] Warning: Using default connection string. Set MONGODB_URI in production!');
 }
 
-// Connection options - OPTIMIZED FOR STABILITY
+// Connection options - FIXED FOR MONGODB DRIVER
 const mongoOptions = {
   serverSelectionTimeoutMS: 15000, // 15 seconds timeout
   socketTimeoutMS: 45000, // 45 seconds
   maxPoolSize: 10, // Reduce pool size for free tier
   minPoolSize: 2, // Minimum connections
   retryWrites: true,
-  w: 'majority',
-  heartbeatFrequencyMS: 30000, // Check connection every 30s
-  keepAlive: true,
-  keepAliveInitialDelay: 300000 // 5 minutes
+  w: 'majority'
+  // Removed keepAlive - not supported by MongoDB driver
 };
 
 // Connect to MongoDB
