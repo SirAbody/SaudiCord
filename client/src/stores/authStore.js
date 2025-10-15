@@ -84,12 +84,27 @@ export const useAuthStore = create((set, get) => ({
 
     // Check if already checking to prevent loops
     const store = get();
+    if (store.loading) {
+      console.log('[AuthStore] Already checking auth - skipping');
+      return;
+    }
+    
     set({ loading: true });
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log('[AuthStore] Auth verify timeout - aborting');
+      controller.abort();
+    }, 10000);
+    
     try {
       const response = await axios.get('/auth/verify', {
         signal: controller.signal,
         timeout: 10000
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.data.valid && response.data.user) {
         console.log('[AuthStore] Token valid - setting user:', response.data.user.username);
