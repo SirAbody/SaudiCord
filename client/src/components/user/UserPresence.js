@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import socketService from '../../services/socket';
+import UserProfile from './UserProfile';
 
 function UserPresence() {
   const { user } = useAuthStore();
   const [status, setStatus] = useState('online');
   const [customStatus, setCustomStatus] = useState('');
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   
   const statusOptions = [
     { value: 'online', label: 'Online', color: 'bg-green-500' },
@@ -72,38 +74,42 @@ function UserPresence() {
   if (!user) return null;
   
   return (
-    <div className="p-2 bg-black border-t border-red-900/30">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            {user.avatar ? (
-              <img 
-                src={user.avatar} 
-                alt={user.username}
-                className="w-8 h-8 rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
-                <span className="text-sm text-white font-semibold">
-                  {user.username?.[0]?.toUpperCase()}
-                </span>
-              </div>
-            )}
+    <>
+      <div className="p-2 bg-black border-t border-red-900/30">
+        <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center space-x-3 cursor-pointer hover:bg-red-900/10 rounded p-1 -m-1"
+            onClick={() => setShowUserProfile(true)}
+          >
+            <div className="relative">
+              {user.avatar ? (
+                <img 
+                  src={user.avatar} 
+                  alt={user.username}
+                  className="w-8 h-8 rounded-full"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="text-sm text-white font-semibold">
+                    {user.username?.[0]?.toUpperCase()}
+                  </span>
+                </div>
+              )}
+              
+              {/* Status indicator */}
+              <div className={`absolute bottom-0 right-0 w-3 h-3 ${currentStatusOption.color} rounded-full border-2 border-black`} />
+            </div>
             
-            {/* Status indicator */}
-            <div className={`absolute bottom-0 right-0 w-3 h-3 ${currentStatusOption.color} rounded-full border-2 border-black`} />
+            <div>
+              <p className="text-white text-sm font-medium">{user.displayName || user.username}</p>
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowStatusMenu(!showStatusMenu); }}
+                className="text-xs text-gray-400 hover:text-white"
+              >
+                {currentStatusOption.label}
+              </button>
+            </div>
           </div>
-          
-          <div>
-            <p className="text-white text-sm font-medium">{user.displayName || user.username}</p>
-            <button
-              onClick={() => setShowStatusMenu(!showStatusMenu)}
-              className="text-xs text-gray-400 hover:text-white"
-            >
-              {currentStatusOption.label}
-            </button>
-          </div>
-        </div>
         
         {/* Settings button */}
         <button className="p-1 hover:bg-red-900/20 rounded">
@@ -140,6 +146,12 @@ function UserPresence() {
         </div>
       )}
     </div>
+    
+    {/* User Profile Modal */}
+    {showUserProfile && (
+      <UserProfile onClose={() => setShowUserProfile(false)} />
+    )}
+    </>
   );
 }
 

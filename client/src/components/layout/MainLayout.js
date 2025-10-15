@@ -59,38 +59,8 @@ function MainLayout() {
         <Route path="/*" element={
           <>
             {/* Channel List */}
-            <div className="w-60 bg-background-secondary flex-shrink-0 flex flex-col">
+            <div className="w-60 bg-background-secondary flex-shrink-0">
               <ChannelList />
-              
-              {/* User Info Bar at Bottom */}
-              <div className="p-2 bg-dark-200 border-t border-dark-400">
-                <div 
-                  className="flex items-center p-2 rounded hover:bg-dark-300 cursor-pointer transition-colors"
-                  onClick={() => setShowUserProfile(true)}
-                >
-                  <div className="relative">
-                    <img
-                      src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&background=FF0000&color=fff`}
-                      alt={user?.username}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-dark-200 ${
-                      user?.status === 'online' ? 'bg-green-500' :
-                      user?.status === 'idle' ? 'bg-yellow-500' :
-                      user?.status === 'dnd' ? 'bg-red-500' :
-                      'bg-gray-500'
-                    }`}></div>
-                  </div>
-                  <div className="ml-2 flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary truncate">
-                      {user?.displayName || user?.username}
-                    </p>
-                    <p className="text-xs text-text-tertiary truncate">
-                      #{user?.username}
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Main Chat Area */}

@@ -1,5 +1,5 @@
 // Direct Messages Page Component
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   MagnifyingGlassIcon, 
   UserPlusIcon, 
@@ -24,6 +24,7 @@ function DirectMessages() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
+  const messagesEndRef = useRef(null);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [friendUsername, setFriendUsername] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +63,11 @@ function DirectMessages() {
       socketService.off('call:ended');
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const setupSocketListeners = () => {
     // Handle incoming DM - ENHANCED
@@ -868,46 +874,79 @@ function DirectMessages() {
               </div>
             </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {messages.map((message, index) => {
-                const isOwnMessage = message.senderId === user.id || message.sender?._id === user.id;
-                const senderName = isOwnMessage 
-                  ? (user.displayName || user.username) 
-                  : (message.senderName || message.sender?.displayName || message.sender?.username || selectedConversation?.displayName || selectedConversation?.username);
-                
-                return (
-                  <div
-                    key={message.id || message._id || index}
-                    className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}
-                  >
-                    <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-start space-x-3 max-w-[70%]`}>
-                      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-sm font-bold">
-                          {senderName?.[0]?.toUpperCase() || '?'}
-                        </span>
-                      </div>
-                      <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}`}>
-                        <div className="flex items-baseline space-x-2 mb-1 px-1">
-                          <span className={`text-sm font-semibold ${isOwnMessage ? 'text-red-300' : 'text-red-400'}`}>
-                            {senderName}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(message.createdAt || message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <div className={`px-4 py-2 rounded-2xl ${
-                          isOwnMessage 
-                            ? 'bg-red-500 text-white rounded-tr-md' 
-                            : 'bg-gray-900 text-white rounded-tl-md border border-gray-800'
-                        }`}>
-                          <p className="break-words">{message.content || message.message}</p>
+            {/* Messages Area - Discord Style */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex flex-col">
+                {messages.map((message, index) => {
+                  // Fix comparison for MongoDB IDs - use toString() for proper comparison
+                  const currentUserId = (user?.id || user?._id || '').toString();
+                  const messageSenderId = (message.senderId || message.sender?._id || message.sender || '').toString();
+                  const isOwnMessage = currentUserId && messageSenderId && currentUserId === messageSenderId;
+                  
+                  // Get correct sender info
+                  const senderName = message.senderName || 
+                    message.sender?.displayName || 
+                    message.sender?.username || 
+                    (isOwnMessage 
+                      ? (user.displayName || user.username) 
+                      : (selectedConversation?.displayName || selectedConversation?.username));
+                  
+                  const senderAvatar = isOwnMessage 
+                    ? (user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=DC2626&color=fff`)
+                    : (message.sender?.avatar || selectedConversation?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&background=4B5563&color=fff`);
+                  
+                  // Check if we should show header (first message or different sender from previous)
+                  const prevMessage = messages[index - 1];
+                  const prevSenderId = (prevMessage?.senderId || prevMessage?.sender?._id || '').toString();
+                  const showHeader = index === 0 || prevSenderId !== messageSenderId;
+                  
+                  return (
+                    <div key={message.id || message._id || `msg-${index}`} 
+                         className="group hover:bg-gray-950/30 px-4 py-0.5 -mx-4">
+                      <div className="flex items-start gap-4">
+                        {/* Avatar or spacer */}
+                        {showHeader ? (
+                          <img
+                            src={senderAvatar}
+                            alt={senderName}
+                            className="w-10 h-10 rounded-full mt-1"
+                          />
+                        ) : (
+                          <div className="w-10 flex-shrink-0 text-center text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 mt-1">
+                            {new Date(message.createdAt || message.timestamp).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
+                        )}
+                        
+                        {/* Message Content */}
+                        <div className="flex-1 min-w-0">
+                          {showHeader && (
+                            <div className="flex items-baseline gap-2 mb-0.5">
+                              <span className={`text-sm font-medium ${isOwnMessage ? 'text-red-400' : 'text-gray-300'}`}>
+                                {senderName}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(message.createdAt || message.timestamp).toLocaleString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  hour: '2-digit', 
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          )}
+                          <div className="text-gray-100 break-words">
+                            {message.content || message.message}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
 
             {/* Message Input */}
