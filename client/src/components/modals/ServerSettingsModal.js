@@ -21,7 +21,7 @@ import { useChatStore } from '../../stores/chatStore';
 
 function ServerSettingsModal({ show, onClose, server }) {
   const { user } = useAuthStore();
-  const { fetchChannels } = useChatStore();
+  const { fetchChannels, fetchServers } = useChatStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [serverName, setServerName] = useState('');
   const [serverDescription, setServerDescription] = useState('');
@@ -42,6 +42,9 @@ function ServerSettingsModal({ show, onClose, server }) {
       loadServerData();
     }
   }, [show, server]);
+  // Check if user is server owner
+  const isOwner = server?.ownerId === user?.id;
+
   const loadServerData = async () => {
     if (!server) return;
 
@@ -81,6 +84,83 @@ function ServerSettingsModal({ show, onClose, server }) {
   };
 
   const isAdmin = isOwner || user?.isAdmin;
+
+  // Handler functions
+  const handleSaveOverview = async () => {
+    if (!server) return;
+    
+    setSaving(true);
+    try {
+      await axios.patch(`/servers/${server.id}`, {
+        name: serverName,
+        description: serverDescription
+      });
+      toast.success('Server updated successfully!');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to update server');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateChannel = async () => {
+    if (!newChannelName.trim()) {
+      toast.error('Channel name is required');
+      return;
+    }
+
+    try {
+      await axios.post('/channels', {
+        name: newChannelName,
+        type: newChannelType,
+        serverId: server.id
+      });
+      toast.success('Channel created!');
+      setNewChannelName('');
+      loadServerData();
+      if (fetchChannels) fetchChannels(server.id);
+    } catch (error) {
+      toast.error('Failed to create channel');
+    }
+  };
+
+  const handleDeleteChannel = async (channelId) => {
+    try {
+      await axios.delete(`/channels/${channelId}`);
+      toast.success('Channel deleted');
+      loadServerData();
+      if (fetchChannels) fetchChannels(server.id);
+    } catch (error) {
+      toast.error('Failed to delete channel');
+    }
+  };
+
+  const handleKickMember = async (memberId) => {
+    try {
+      await axios.delete(`/servers/${server.id}/members/${memberId}`);
+      toast.success('Member kicked');
+      loadServerData();
+    } catch (error) {
+      toast.error('Failed to kick member');
+    }
+  };
+
+  const handleDeleteServer = async () => {
+    if (deleteConfirmInput !== server.name) {
+      toast.error('Server name does not match');
+      return;
+    }
+
+    try {
+      await axios.delete(`/servers/${server.id}`);
+      toast.success('Server deleted');
+      onClose();
+      window.location.href = '/dashboard';
+    } catch (error) {
+      toast.error('Failed to delete server');
+    }
+  };
 
   if (!show) return null;
 
