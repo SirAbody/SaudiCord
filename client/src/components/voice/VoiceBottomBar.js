@@ -176,15 +176,16 @@ function VoiceBottomBar() {
 
           {/* Center Section - Voice Controls */}
           <div className="flex items-center space-x-2">
-            {/* Microphone Toggle */}
+            {/* Microphone Toggle - RED when muted */}
             <button
               onClick={toggleMute}
               disabled={isDeafened}
               className={`relative p-3 rounded transition-all group ${
-                isMuted || isDeafened
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-gray-700 hover:bg-gray-600'
-              } ${speakingUsers.has('self') && !isMuted ? 'ring-2 ring-primary-500 ring-opacity-50' : ''}`}
+                speakingUsers.has('self') && !isMuted ? 'ring-2 ring-primary-500 ring-opacity-50' : ''
+              }`}
+              style={{ 
+                backgroundColor: (isMuted || isDeafened) ? '#F23F42' : '#374151'
+              }}
             >
               {isMuted || isDeafened ? (
                 <div className="relative">
@@ -201,14 +202,13 @@ function VoiceBottomBar() {
               </div>
             </button>
 
-            {/* Deafen Toggle */}
+            {/* Deafen Toggle - RED when deafened */}
             <button
               onClick={toggleDeafen}
-              className={`relative p-3 rounded transition-all group ${
-                isDeafened 
-                  ? 'bg-red-500 hover:bg-red-600' 
-                  : 'bg-gray-700 hover:bg-gray-600'
-              }`}
+              className="relative p-3 rounded transition-all group"
+              style={{ 
+                backgroundColor: isDeafened ? '#F23F42' : '#374151'
+              }}
             >
               {isDeafened ? (
                 <div className="relative">
@@ -239,10 +239,11 @@ function VoiceBottomBar() {
 
           {/* Right Section - Leave/Minimize */}
           <div className="flex items-center space-x-2">
-            {/* Disconnect */}
+            {/* Disconnect - RED for danger action */}
             <button
               onClick={leaveVoiceChannel}
-              className="relative p-3 bg-red-500 hover:bg-red-600 rounded transition-all group flex items-center space-x-2"
+              className="btn-disconnect relative p-3 rounded transition-all group flex items-center space-x-2"
+              style={{ backgroundColor: '#F23F42' }}
             >
               <PhoneXMarkIcon className="w-5 h-5 text-white" />
               <span className="text-white text-sm font-medium hidden sm:block">Leave</span>

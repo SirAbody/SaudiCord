@@ -755,7 +755,7 @@ function DirectMessages() {
             >
               Pending
               {pendingRequests.length > 0 && (
-                <span className="absolute -top-1 -right-2 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="notification-badge absolute -top-1 -right-2 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style={{ backgroundColor: '#F23F42' }}>
                   {pendingRequests.length}
                 </span>
               )}
@@ -842,16 +842,18 @@ function DirectMessages() {
                           <div className="flex space-x-2">
                             <button
                               onClick={() => acceptFriendRequest(request.friendshipId)}
-                              className="p-2 bg-green-500 hover:bg-green-600 rounded transition"
+                              className="accept-btn p-2 rounded transition"
+                              style={{ backgroundColor: '#53FC18' }}
                               title="Accept Request"
                             >
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                             </button>
                             <button
                               onClick={() => rejectFriendRequest(request.friendshipId)}
-                              className="p-2 bg-primary-500 hover:bg-primary-600 rounded transition"
+                              className="decline-btn p-2 rounded transition"
+                              style={{ backgroundColor: '#F23F42' }}
                               title="Reject Request"
                             >
                               <XMarkIcon className="w-4 h-4 text-white" />
@@ -953,8 +955,8 @@ function DirectMessages() {
             )}
           </div>
 
-          {/* Chat Area - Full Remaining Width (Discord Style) */}
-          <div className="flex-1 flex flex-col min-w-0 bg-gray-700">
+          {/* Chat Area - Full Remaining Width (Discord Style) - NO RIGHT SIDEBAR */}
+          <div className="dm-chat-area flex-1 flex flex-col min-w-0 bg-gray-700" style={{ width: 'calc(100vw - 332px)' }}>
             {selectedConversation ? (
           <>
             {/* Chat Header - Modern Design */}
@@ -1029,19 +1031,10 @@ function DirectMessages() {
                     >
                       Block User
                     </button>
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Messages Area - Discord Style */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="flex flex-col">
-                {messages.map((message, index) => {
-                  // Fix comparison for MongoDB IDs - use toString() for proper comparison
-                  const currentUserId = (user?.id || user?._id || '').toString();
-                  const messageSenderId = (message.senderId || message.sender?._id || message.sender || '').toString();
-                  const isOwnMessage = currentUserId && messageSenderId && currentUserId === messageSenderId;
+            {/* Messages Container - Proper Scrolling */}
+            <div className="dm-messages-container flex-1 overflow-y-auto p-6 space-y-4" style={{ paddingBottom: '100px', height: 'calc(100vh - 200px)' }}>
                   
                   // Get correct sender info
                   const senderName = message.senderName || 
@@ -1152,8 +1145,8 @@ function DirectMessages() {
               )}
             </div>
 
-            {/* Message Input */}
-            <div className="p-4 border-t border-primary-900/30 bg-black/50">
+            {/* Message Input - FIXED at Bottom */}
+            <div className="message-input-container p-4 border-t border-gray-600 bg-gray-800" style={{ position: 'sticky', bottom: 0 }}>
               <div className="flex items-center space-x-3">
                 <input
                   type="text"

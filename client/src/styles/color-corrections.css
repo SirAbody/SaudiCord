@@ -1,0 +1,470 @@
+/* ============================================
+   COLOR CORRECTIONS - Red for Danger/Warnings
+   ============================================ */
+
+/* Notification Badges - MUST BE RED */
+.notification-badge,
+.unread-count,
+.mention-badge,
+.dm-notification,
+.server-notification-dot {
+  background-color: #F23F42 !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+/* Do Not Disturb Status - RED */
+.status-dnd,
+.status-dot.dnd,
+.user-status-dnd {
+  background-color: #F23F42 !important;
+}
+
+.status-dnd::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #2a2a2a;
+  border-radius: 50%;
+  right: -2px;
+  top: 1px;
+}
+
+/* Destructive Action Buttons - RED */
+.btn-disconnect,
+.btn-leave-voice,
+.btn-block,
+.btn-report,
+.btn-delete,
+.btn-remove,
+.btn-kick,
+.btn-ban,
+.btn-leave-server,
+button[class*="disconnect"],
+button[class*="leave"],
+button[class*="block"],
+button[class*="delete"] {
+  background-color: #F23F42 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.btn-disconnect:hover,
+.btn-leave-voice:hover,
+.btn-block:hover,
+.btn-report:hover,
+.btn-delete:hover {
+  background-color: #C41E3A !important;
+  box-shadow: 0 0 10px rgba(242, 63, 66, 0.5) !important;
+}
+
+/* Muted/Disabled Audio States - RED */
+.mic-muted,
+.microphone-muted,
+.muted-icon,
+[class*="muted"] svg {
+  color: #F23F42 !important;
+}
+
+.mic-muted::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: #F23F42;
+  transform: rotate(45deg);
+  top: 50%;
+  left: 50%;
+  margin-left: -1px;
+  margin-top: -10px;
+}
+
+/* Error States & Alerts - RED */
+.error-message,
+.error-toast,
+.validation-error,
+.connection-error,
+.warning-banner,
+.alert-error {
+  color: #F23F42 !important;
+  border-color: #F23F42 !important;
+}
+
+.error-toast {
+  background: rgba(242, 63, 66, 0.1) !important;
+  border-left: 4px solid #F23F42 !important;
+}
+
+input.error,
+.input-error {
+  border-color: #F23F42 !important;
+  box-shadow: 0 0 5px rgba(242, 63, 66, 0.3) !important;
+}
+
+/* Specific Component Overrides */
+.bg-red-500 {
+  background-color: #F23F42 !important;
+}
+
+.bg-red-600 {
+  background-color: #C41E3A !important;
+}
+
+.text-red-400,
+.text-red-500 {
+  color: #F23F42 !important;
+}
+
+.border-red-500 {
+  border-color: #F23F42 !important;
+}
+
+.hover\:bg-red-600:hover {
+  background-color: #C41E3A !important;
+}
+
+/* Keep These Elements GREEN */
+.btn-primary,
+.btn-send,
+.btn-join,
+.btn-create,
+.btn-accept,
+.btn-confirm,
+.status-online,
+.speaking-indicator,
+.voice-connected,
+.success-message {
+  background-color: #53FC18 !important;
+  color: black !important;
+}
+
+/* ============================================
+   LAYOUT FIXES - Message Input & Chat Area
+   ============================================ */
+
+/* Fix Message Input Position - ALWAYS at Bottom */
+.message-input-container,
+.chat-input-wrapper,
+.dm-input-wrapper {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 342px; /* 72px servers + 270px sidebar */
+  right: 0;
+  background: #2a2a2a !important;
+  padding: 16px 20px !important;
+  z-index: 100 !important;
+  border-top: 1px solid #1e1e1e !important;
+}
+
+/* DM Input (Full Width) */
+.dm-page .message-input-container,
+.dm-page .dm-input-wrapper {
+  left: 342px !important; /* 72px servers + 270px friends */
+  right: 0 !important;
+}
+
+/* Message Input Field */
+.message-input,
+textarea[placeholder*="Message"] {
+  width: 100% !important;
+  background: #383838 !important;
+  border: 1px solid #484848 !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  color: white !important;
+  font-size: 15px !important;
+  resize: none !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
+}
+
+.message-input:focus {
+  border-color: #53FC18 !important;
+  outline: none !important;
+}
+
+/* Chat Messages Area - Proper Scrolling */
+.chat-container,
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px); /* minus header */
+  overflow: hidden;
+}
+
+.messages-scroll-area,
+.chat-messages {
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 20px !important;
+  padding-bottom: 100px !important; /* Space for fixed input */
+}
+
+/* Individual Messages */
+.message-item {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+}
+
+.message-content {
+  color: #dcddde;
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ============================================
+   SCROLLBAR FIXES - Dark Gray, NOT Green
+   ============================================ */
+
+/* Global Scrollbar Reset - NO GREEN! */
+::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a !important;
+  border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a !important;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: #2a2a2a transparent !important;
+}
+
+/* Remove any green scrollbar overrides */
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #2a2a2a !important;
+}
+
+/* ============================================
+   DM LAYOUT - Full Width Chat
+   ============================================ */
+
+.dm-page-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Left Sidebar - Friends List */
+.dm-sidebar,
+.friends-sidebar {
+  width: 270px !important;
+  min-width: 270px !important;
+  background: #1e1e1e !important;
+  border-right: 1px solid #2a2a2a !important;
+  overflow-y: auto;
+}
+
+/* DM Chat Area - FULL WIDTH */
+.dm-chat-area {
+  flex: 1 !important;
+  width: calc(100vw - 342px) !important; /* minus servers + sidebar */
+  display: flex;
+  flex-direction: column;
+  background: #2a2a2a !important;
+}
+
+/* Remove Right Sidebar in DMs */
+.dm-chat-area .right-sidebar,
+.dm-page .members-list {
+  display: none !important;
+}
+
+/* DM Messages Container */
+.dm-messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 40px !important;
+  padding-bottom: 100px !important;
+}
+
+/* ============================================
+   FRIENDS LIST UI POLISH
+   ============================================ */
+
+/* Friends Header */
+.friends-header {
+  padding: 20px;
+  border-bottom: 1px solid #2a2a2a;
+  background: #1e1e1e;
+}
+
+.friends-tabs {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.tab {
+  padding: 8px 16px;
+  background: transparent;
+  color: #b9bbbe;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tab.active {
+  color: white;
+  background: #383838;
+}
+
+.tab.add-friend {
+  color: #53FC18;
+  background: transparent;
+  border: 1px solid #53FC18;
+}
+
+/* Friend Item */
+.friend-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.friend-item:hover {
+  background: #383838;
+}
+
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+  position: relative;
+}
+
+/* Online Status Dot - Keep GREEN */
+.friend-avatar.online::after,
+.status-online::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #53FC18 !important;
+  border-radius: 50%;
+  bottom: 0;
+  right: 0;
+  border: 2px solid #1e1e1e;
+}
+
+/* Friend Actions */
+.friend-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.friend-item:hover .friend-actions {
+  opacity: 1;
+}
+
+/* Pending Requests */
+.request-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.accept-btn {
+  background: #53FC18 !important;
+  color: #1e1e1e !important;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.accept-btn:hover {
+  background: #3DD80A !important;
+}
+
+.decline-btn {
+  background: transparent !important;
+  color: #F23F42 !important;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid #F23F42 !important;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.decline-btn:hover {
+  background: rgba(242, 63, 66, 0.1) !important;
+}
+
+/* ============================================
+   RESPONSIVE FIXES
+   ============================================ */
+
+/* Prevent body overflow */
+html, body {
+  overflow-x: hidden !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Main App Container */
+.App {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .dm-sidebar,
+  .friends-sidebar {
+    width: 240px !important;
+    min-width: 240px !important;
+  }
+  
+  .message-input-container,
+  .dm-input-wrapper {
+    left: 312px !important;
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 768px) {
+  .dm-sidebar,
+  .friends-sidebar {
+    width: 200px !important;
+    min-width: 200px !important;
+  }
+  
+  .message-input-container,
+  .dm-input-wrapper {
+    left: 272px !important;
+  }
+  
+  .dm-messages-container {
+    padding: 15px 20px !important;
+  }
+}

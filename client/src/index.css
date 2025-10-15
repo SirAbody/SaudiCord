@@ -6,6 +6,8 @@
 @import './styles/discord.css';
 /* Import Kick-style green theme */
 @import './styles/theme-green.css';
+/* Import color corrections for danger/warning elements */
+@import './styles/color-corrections.css';
 
 /* Custom scrollbar for dark theme */
 @layer utilities {
