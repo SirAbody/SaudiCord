@@ -67,22 +67,43 @@ export const useChatStore = create((set, get) => ({
 
   // Fetch messages for a channel
   fetchMessages: async (channelId) => {
+    if (!channelId) {
+      console.warn('[ChatStore] No channelId provided for fetchMessages');
+      return;
+    }
+    
     try {
+      console.log('[ChatStore] Fetching messages for channel:', channelId);
       const response = await axios.get(`/messages/channel/${channelId}`);
+      
+      // Clear existing messages for the channel first
       set((state) => ({
         messages: {
           ...state.messages,
-          [channelId]: response.data
+          [channelId]: response.data || []
         }
       }));
+      
+      console.log(`[ChatStore] Loaded ${response.data?.length || 0} messages for channel ${channelId}`);
     } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      toast.error('Failed to load messages');
+      console.error('[ChatStore] Failed to fetch messages:', error);
+      if (error.response?.status === 404) {
+        toast.error('Channel not found');
+      } else if (error.response?.status === 403) {
+        toast.error('You do not have access to this channel');
+      } else {
+        toast.error('Failed to load messages');
+      }
     }
   },
 
   // Add new message
   addMessage: (channelId, message) => {
+    if (!channelId) {
+      console.warn('[ChatStore] No channelId provided for addMessage');
+      return;
+    }
+    
     set((state) => {
       const currentMessages = state.messages[channelId] || [];
       // Check if message already exists (by ID)

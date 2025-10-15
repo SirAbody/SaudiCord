@@ -251,6 +251,9 @@ module.exports = (io) => {
         const messageWithTempId = { ...fullMessage.toJSON(), tempId };
         io.to(`channel-${channelId}`).emit('message:receive', messageWithTempId);
         
+        // Also emit to sender for confirmation
+        socket.emit('message:sent', { tempId, messageId: message.id });
+        
         logger.debug('Message sent successfully', { 
           messageId: message.id, 
           channelId: data.channelId, 

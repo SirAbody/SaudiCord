@@ -182,7 +182,7 @@ class SocketService {
 
     // Message events with store integration
     this.socket.on('message:receive', (message) => {
-      console.log('Received message:', message);
+      console.log('[Socket] Received message:', message);
       
       // Get chat store
       const chatStore = useChatStore.getState();
@@ -193,33 +193,40 @@ class SocketService {
       const channelId = message.channelId;
       if (message.tempId && currentUser && message.userId === currentUser.id) {
         // Replace optimistic message with real one
-        const currentMessages = chatStore.messages[channelId] || [];
-        const updatedMessages = currentMessages.map(msg => 
-          msg.id === message.tempId 
-            ? { ...message, pending: false } 
-            : msg
-        );
-        
-        // Only update if we found the temp message
-        if (currentMessages.some(msg => msg.id === message.tempId)) {
-          chatStore.set((state) => ({
-            messages: {
-              ...state.messages,
-              [channelId]: updatedMessages
-            }
-          }));
-          return; // Don't add duplicate
-        }
+        chatStore.updateMessage(channelId, message.tempId, {
+          ...message,
+          id: message.id,
+          pending: false
+        });
+        return; // Don't add duplicate
       }
       
-      // Add message to store (for messages from others or if no tempId)
+      // Add message to store (for messages from others)
       chatStore.addMessage(channelId, message);
       
-      // Show notification if not in current channel
+      // Play sound and show notification if not in current channel
       const currentChannel = chatStore.currentChannel;
       if (!currentChannel || currentChannel.id !== channelId) {
-        toast(`New message from ${message.author.username}`, {
+        // Import sound service
+        import('../services/soundService').then(module => {
+          module.default.playMessage();
+        });
+        
+        toast(`New message from ${message.author?.username || 'Unknown'}`, {
           icon: '💬'
+        });
+      }
+    });
+    
+    // Handle message sent confirmation
+    this.socket.on('message:sent', (data) => {
+      console.log('[Socket] Message sent confirmation:', data);
+      const chatStore = useChatStore.getState();
+      // Update the temp message with real ID
+      if (data.tempId && data.messageId) {
+        chatStore.updateMessage(null, data.tempId, {
+          id: data.messageId,
+          pending: false
         });
       }
     });
@@ -306,18 +313,23 @@ class SocketService {
   // Emit events
   joinChannel(channelId) {
     if (this.socket && typeof this.socket.emit === 'function') {
+      console.log('[Socket] Joining channel:', channelId);
       this.socket.emit('join:channel', channelId);
+    } else {
+      console.warn('[Socket] Cannot join channel - socket not ready');
     }
   }
-
+  
   leaveChannel(channelId) {
     if (this.socket && typeof this.socket.emit === 'function') {
+      console.log('[Socket] Leaving channel:', channelId);
       this.socket.emit('leave:channel', channelId);
     }
   }
 
   sendMessage(channelId, content, attachments = []) {
     if (this.socket && typeof this.socket.emit === 'function') {
+      console.log('[Socket] Sending message to channel:', channelId);
       this.socket.emit('message:send', {
         channelId,
         content,

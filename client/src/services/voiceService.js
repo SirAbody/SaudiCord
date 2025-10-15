@@ -46,6 +46,11 @@ class VoiceService {
     // Handle when another user joins the voice channel
     socketService.on('voice:user:joined', async (data) => {
       console.log('[Voice] User joined:', data);
+      // Don't create connection for ourselves
+      if (data.userId === localStorage.getItem('userId')) {
+        return;
+      }
+      
       if (this.currentChannelId && this.localStream) {
         // Create offer for the new user
         await this.createPeerConnection(data.userId, true);
@@ -114,9 +119,27 @@ class VoiceService {
   async createPeerConnection(userId, createOffer = false) {
     console.log('[Voice] Creating peer connection for:', userId, 'createOffer:', createOffer);
     
+    // Close existing connection if any
+    if (this.peers.has(userId)) {
+      this.removePeerConnection(userId);
+    }
+    
     // Create new peer connection
     const pc = new RTCPeerConnection(this.iceServers);
     this.peers.set(userId, pc);
+    
+    // Add error handlers
+    pc.onerror = (error) => {
+      console.error('[Voice] Peer connection error:', error);
+    };
+    
+    pc.oniceconnectionstatechange = () => {
+      console.log(`[Voice] ICE connection state with ${userId}:`, pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed') {
+        console.error('[Voice] ICE connection failed, attempting restart');
+        this.restartIce(userId);
+      }
+    };
     
     // Add local stream tracks
     if (this.localStream) {
@@ -268,6 +291,24 @@ class VoiceService {
     return false;
   }
   
+  async restartIce(userId) {
+    const pc = this.peers.get(userId);
+    if (!pc) return;
+    
+    try {
+      // Create new offer with ice restart
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      
+      socketService.emit('webrtc:ice-restart', {
+        targetUserId: userId,
+        offer: offer
+      });
+    } catch (error) {
+      console.error('[Voice] Failed to restart ICE:', error);
+    }
+  }
+  
   isInVoiceChannel() {
     return this.isConnected && this.currentChannelId !== null;
   }
@@ -278,6 +319,17 @@ class VoiceService {
   
   getRemoteStreams() {
     return this.remoteStreams;
+  }
+  
+  getConnectionStats(userId) {
+    const pc = this.peers.get(userId);
+    if (!pc) return null;
+    
+    return {
+      connectionState: pc.connectionState,
+      iceConnectionState: pc.iceConnectionState,
+      iceGatheringState: pc.iceGatheringState
+    };
   }
 }
 
