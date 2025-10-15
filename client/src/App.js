@@ -11,50 +11,29 @@ import NotificationManager from './components/notifications/NotificationManager'
 
 function App() {
   console.log('[App] Component mounting...');
-  const authStore = useAuthStore();
+  const { user, checkAuth } = useAuthStore();
   const [initialLoad, setInitialLoad] = useState(true);
   
-  // Get user from store (might be undefined initially)
-  const user = authStore?.user;
-  const isAuthenticated = !!user;
+  // Simple auth check - trust the token!
+  const token = localStorage.getItem('token');
+  const isAuthenticated = !!(user || token);
   
   console.log('[App] Auth state:', {
-    authStore: !!authStore,
     user: !!user,
+    token: !!token,
     isAuthenticated,
     initialLoad
   });
 
   useEffect(() => {
-    console.log('[App] useEffect running - checking auth...');
-    // Auth check with reasonable timeout - ONLY RUN ONCE
-    const token = localStorage.getItem('token');
-    console.log('[App] Token exists:', !!token);
+    console.log('[App] Running auth check...');
     
-    if (token && authStore?.checkAuth) {
-      console.log('[App] Starting auth check...');
-      // Reasonable timeout for slow connections
-      const timeout = setTimeout(() => {
-        console.log('[App] Auth check timeout - setting initialLoad to false');
+    // Simple and fast auth check
+    checkAuth()
+      .finally(() => {
+        console.log('[App] Auth check complete');
         setInitialLoad(false);
-      }, 3500);
-      
-      authStore.checkAuth()
-        .then(() => {
-          console.log('[App] Auth check succeeded');
-        })
-        .catch((error) => {
-          console.error('[App] Auth check failed:', error);
-        })
-        .finally(() => {
-          clearTimeout(timeout);
-          console.log('[App] Auth check complete - setting initialLoad to false');
-          setInitialLoad(false);
-        });
-    } else {
-      console.log('[App] No token or authStore - setting initialLoad to false');
-      setInitialLoad(false);
-    }
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency array - run only once on mount
 

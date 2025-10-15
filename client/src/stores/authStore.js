@@ -70,7 +70,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Check authentication status - ENHANCED WITH BETTER PERSISTENCE
+  // Check authentication status - FULLY FIXED FOR REFRESH ISSUE
   checkAuth: async () => {
     console.log('[AuthStore] checkAuth called');
     const token = localStorage.getItem('token');
@@ -82,14 +82,16 @@ export const useAuthStore = create((set, get) => ({
       return null;
     }
 
-    // Check if already checking to prevent loops
-    const store = get();
-    if (store.loading) {
-      console.log('[AuthStore] Already checking auth - skipping');
-      return;
+    // CRITICAL: Check if already have a user - don't clear it!
+    const currentStore = get();
+    if (currentStore.user) {
+      console.log('[AuthStore] User already exists in store - keeping it');
+      set({ loading: false });
+      return currentStore.user;
     }
     
-    // Try to decode token locally first for immediate UI update
+    // Decode token locally FIRST - this is instant and reliable
+    let localUser = null;
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -100,14 +102,14 @@ export const useAuthStore = create((set, get) => ({
       
       // Check if token is expired
       if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-        console.log('[AuthStore] Token expired locally - removing');
+        console.log('[AuthStore] Token expired - removing');
         localStorage.removeItem('token');
         set({ user: null, loading: false });
         return null;
       }
       
-      // Set user immediately from token while we verify with server
-      const localUser = decoded.user || {
+      // Extract user from token
+      localUser = decoded.user || {
         id: decoded.userId || decoded.id,
         _id: decoded.userId || decoded.id,
         username: decoded.username,
@@ -116,104 +118,53 @@ export const useAuthStore = create((set, get) => ({
         isAdmin: decoded.isAdmin
       };
       
-      console.log('[AuthStore] Setting user from token:', localUser.username);
-      set({ user: localUser, loading: true }); // Set user but keep loading
+      console.log('[AuthStore] Token valid - user:', localUser.username);
+      // IMMEDIATELY set user - don't wait for backend!
+      set({ user: localUser, loading: false });
+      
     } catch (decodeError) {
-      console.error('[AuthStore] Failed to decode token locally:', decodeError);
+      console.error('[AuthStore] Failed to decode token:', decodeError);
+      // Token is corrupt - remove it
+      localStorage.removeItem('token');
+      set({ user: null, loading: false });
+      return null;
     }
     
-    set({ loading: true });
-    
-    // Create AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log('[AuthStore] Auth verify timeout - using local token');
-      controller.abort();
-    }, 5000); // Reduced timeout
-    
-    try {
-      const response = await axios.get('/auth/verify', {
-        signal: controller.signal,
-        timeout: 10000
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.data.valid && response.data.user) {
-        console.log('[AuthStore] Token valid - setting user:', response.data.user.username);
-        set({ user: response.data.user, loading: false });
-      } else {
-        console.log('[AuthStore] Token invalid - removing and setting user to null');
-        localStorage.removeItem('token');
-        set({ user: null, loading: false });
-      }
-    } catch (error) {
-      console.error('[AuthStore] Auth check error:', error.message, error);
-      clearTimeout(timeoutId);
-      
-      // Only remove token and logout on 401 (invalid token)
-      if (error.response?.status === 401) {
-        console.log('[AuthStore] Got 401 - invalid token, logging out');
-        localStorage.removeItem('token');
-        set({ user: null, loading: false });
-      } else if (error.name === 'AbortError' || !error.response) {
-        // Network timeout or abort - keep current user state
-        console.log('[AuthStore] Network timeout/abort - keeping current user state');
-        const currentUser = get().user;
-        if (currentUser) {
-          // We already have user from token decode, keep it
-          set({ loading: false });
-        } else if (token) {
-          // Try to decode token locally as fallback
-          console.log('[AuthStore] Falling back to local token decode');
-          try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => 
-              '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-            ).join(''));
-            const decoded = JSON.parse(jsonPayload);
-            
-            // Check if token is expired
-            if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-              console.log('[AuthStore] Token expired locally');
-              localStorage.removeItem('token');
-              set({ user: null, loading: false });
-            } else {
-              // Token seems valid, keep user logged in
-              console.log('[AuthStore] Token valid locally, keeping user logged in');
-              set({ 
-                user: decoded.user || { 
-                  id: decoded.userId || decoded.id,
-                  _id: decoded.userId || decoded.id,
-                  username: decoded.username,
-                  displayName: decoded.displayName,
-                  email: decoded.email,
-                  isAdmin: decoded.isAdmin
-                }, 
-                loading: false 
-              });
-            }
-          } catch (decodeError) {
-            console.error('[AuthStore] Failed to decode token locally:', decodeError);
-            set({ user: null, loading: false });
-          }
-        } else {
-          set({ user: null, loading: false });
+    // OPTIONAL: Try to verify with backend in background (non-blocking)
+    // This runs AFTER we've already set the user
+    setTimeout(async () => {
+      try {
+        console.log('[AuthStore] Background verification starting...');
+        const response = await axios.get('/auth/verify', {
+          timeout: 3000 // Short timeout, this is just a bonus check
+        });
+        
+        if (response.data.valid && response.data.user) {
+          console.log('[AuthStore] Backend verification successful - updating user data');
+          // Update with fresh data from backend
+          set({ user: response.data.user });
+        } else if (!response.data.valid) {
+          // Only logout if backend explicitly says token is invalid
+          console.log('[AuthStore] Backend says token invalid - logging out');
+          localStorage.removeItem('token');
+          set({ user: null });
         }
-      } else {
-        // Other errors - log but keep user if we have one
-        console.error('[AuthStore] Auth check error:', error.message);
-        const currentUser = get().user;
-        if (currentUser) {
-          set({ loading: false });
+      } catch (error) {
+        // IMPORTANT: Ignore ALL errors - don't logout on network issues!
+        if (error.response?.status === 401) {
+          // Only on explicit 401 we logout
+          console.log('[AuthStore] Got 401 - token rejected by server');
+          localStorage.removeItem('token');
+          set({ user: null });
         } else {
-          set({ user: null, loading: false });
+          // Any other error - KEEP THE USER LOGGED IN
+          console.log('[AuthStore] Backend verification failed (network?) - keeping user logged in');
         }
       }
-    } finally {
-      console.log('[AuthStore] Auth check finished');
-    }
+    }, 100); // Small delay to not block UI
+    
+    // Return the user we found
+    return localUser;
   },
 
   // Update user profile

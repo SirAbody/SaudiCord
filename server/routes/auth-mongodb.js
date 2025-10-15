@@ -127,35 +127,61 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Verify token
+// Verify token - FIXED TO NOT FAIL ON NETWORK ISSUES
 router.get('/verify', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      return res.status(401).json({ valid: false, error: 'No token provided' });
     }
     
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Find user
-    const user = await User.findById(decoded.userId);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (jwtError) {
+      console.log('[Auth] JWT verification failed:', jwtError.message);
+      return res.status(401).json({ valid: false, error: 'Invalid token' });
     }
     
-    // Update last seen
-    await user.updateLastSeen();
-    
-    // Return user data
-    res.json({
-      user: user.toSafeObject()
-    });
+    // Find user - but don't fail if DB is slow
+    try {
+      const user = await User.findById(decoded.userId);
+      
+      if (!user) {
+        // User deleted? Token is technically valid but user doesn't exist
+        return res.status(404).json({ valid: false, error: 'User not found' });
+      }
+      
+      // Update last seen (non-blocking)
+      user.updateLastSeen().catch(err => 
+        console.log('[Auth] Failed to update last seen:', err)
+      );
+      
+      // Return success with user data
+      res.json({
+        valid: true,
+        user: user.toSafeObject()
+      });
+    } catch (dbError) {
+      // Database error - but token is valid!
+      console.error('[Auth] Database error during verify:', dbError);
+      // Return basic user info from token since DB failed
+      res.json({
+        valid: true,
+        user: {
+          id: decoded.userId,
+          _id: decoded.userId,
+          username: decoded.username || 'User',
+          email: decoded.email,
+          isAdmin: decoded.isAdmin || false
+        }
+      });
+    }
   } catch (error) {
-    console.error('[Auth] Token verification error:', error);
-    res.status(401).json({ error: 'Invalid token' });
+    console.error('[Auth] Unexpected error during verification:', error);
+    res.status(500).json({ valid: false, error: 'Server error' });
   }
 });
 
