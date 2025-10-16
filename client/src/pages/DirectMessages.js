@@ -22,7 +22,7 @@ import socketService from '../services/socket';
 import MessageContextMenu from '../components/chat/MessageContextMenu';
 import UserProfilePopup from '../components/user/UserProfilePopup';
 import CallInterface from '../components/call/CallInterface';
-import notificationService from '../services/notificationService';
+// import notificationService from '../services/notificationService';
 import messageCache from '../services/messageCache';
 // import webrtcService from '../services/webrtc';
 
@@ -1648,102 +1648,102 @@ function DirectMessages() {
     </div>
   </div>
 
-    {/* Add Friend Modal */}
-    {showAddFriend && (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-text-primary">Add Friend</h2>
-            <button
-              onClick={() => setShowAddFriend(false)}
-              className="text-text-secondary hover:text-text-primary"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
-          </div>
-          <p className="text-text-secondary mb-4">
-            You can add a friend with their username. It's case sensitive!
-          </p>
-          <input
-            type="text"
-            value={friendUsername}
-            onChange={(e) => setFriendUsername(e.target.value)}
-            placeholder="Enter username"
-            className="w-full bg-black/50 border border-primary-900/30 text-white px-3 py-2 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-          <div className="flex space-x-3">
-            <button
-              onClick={() => setShowAddFriend(false)}
-              className="flex-1 px-4 py-2 bg-black/50 border border-primary-900/30 text-white rounded hover:bg-primary-500/20 transition"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={sendFriendRequest}
-              className="flex-1 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
-            >
-              Send Friend Request
-            </button>
-          </div>
+  {/* Add Friend Modal */}
+  {showAddFriend && (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-text-primary">Add Friend</h2>
+          <button
+            onClick={() => setShowAddFriend(false)}
+            className="text-text-secondary hover:text-text-primary"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+        <p className="text-text-secondary mb-4">
+          You can add a friend with their username. It's case sensitive!
+        </p>
+        <input
+          type="text"
+          value={friendUsername}
+          onChange={(e) => setFriendUsername(e.target.value)}
+          placeholder="Enter username"
+          className="w-full bg-black/50 border border-primary-900/30 text-white px-3 py-2 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowAddFriend(false)}
+            className="flex-1 px-4 py-2 bg-black/50 border border-primary-900/30 text-white rounded hover:bg-primary-500/20 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={sendFriendRequest}
+            className="flex-1 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
+          >
+            Send Friend Request
+          </button>
         </div>
       </div>
-    )}
+    </div>
+  )}
 
-      {/* Message Context Menu */}
-      {contextMenu && (
-        <MessageContextMenu
-          message={contextMenu.message}
-          position={contextMenu.position}
-          isOwnMessage={contextMenu.isOwnMessage}
-          onClose={() => setContextMenu(null)}
-          onAction={(action, message) => {
-            console.log('Context menu action:', action, message);
-            // Handle actions here
-            if (action === 'delete' && contextMenu.isOwnMessage) {
-              // Implement delete message
-              console.log('Deleting message:', message);
-            }
-          }}
-        />
-      )}
+  {/* Message Context Menu */}
+  {contextMenu && (
+    <MessageContextMenu
+      message={contextMenu.message}
+      position={contextMenu.position}
+      isOwnMessage={contextMenu.isOwnMessage}
+      onClose={() => setContextMenu(null)}
+      onAction={(action, message) => {
+        console.log('Context menu action:', action, message);
+        // Handle actions here
+        if (action === 'delete' && contextMenu.isOwnMessage) {
+          // Implement delete message
+          console.log('Deleting message:', message);
+        }
+      }}
+    />
+  )}
 
-      {/* User Profile Popup */}
-      {userProfilePopup && (
-        <UserProfilePopup
-          user={userProfilePopup.user}
-          position={userProfilePopup.position}
-          onClose={() => setUserProfilePopup(null)}
-          onMessage={(user) => {
-            // Handle opening conversation with user
-            setSelectedConversation(user);
-            setUserProfilePopup(null);
-          }}
-        />
-      )}
+  {/* User Profile Popup */}
+  {userProfilePopup && (
+    <UserProfilePopup
+      user={userProfilePopup.user}
+      position={userProfilePopup.position}
+      onClose={() => setUserProfilePopup(null)}
+      onMessage={(user) => {
+        // Handle opening conversation with user
+        setSelectedConversation(user);
+        setUserProfilePopup(null);
+      }}
+    />
+  )}
 
-      {/* Call Interface */}
-      {(inCall || incomingCall) && (
-        <>
-          <CallInterface
-            callType={callType || incomingCall?.type}
-            targetUser={callTarget || (incomingCall && {
-              id: incomingCall.callerId,
-              username: incomingCall.callerName,
-              displayName: incomingCall.callerName
-            })}
-            onEndCall={endCall}
-            isIncoming={!!incomingCall}
-            isCallConnected={isCallConnected}
-            onAccept={() => acceptCall(incomingCall)}
-            onReject={() => rejectCall(incomingCall)}
-          />
-          {/* Hidden audio/video elements for WebRTC */}
-          <audio id="remote-audio" autoPlay style={{ display: 'none' }} />
-          {callType === 'video' && (
-            <video id="remote-video" autoPlay style={{ display: 'none' }} />
-          )}
-        </>
+  {/* Call Interface */}
+  {(inCall || incomingCall) && (
+    <>
+      <CallInterface
+        callType={callType || incomingCall?.type}
+        targetUser={callTarget || (incomingCall && {
+          id: incomingCall.callerId,
+          username: incomingCall.callerName,
+          displayName: incomingCall.callerName
+        })}
+        onEndCall={endCall}
+        isIncoming={!!incomingCall}
+        isCallConnected={isCallConnected}
+        onAccept={() => acceptCall(incomingCall)}
+        onReject={() => rejectCall(incomingCall)}
+      />
+      {/* Hidden audio/video elements for WebRTC */}
+      <audio id="remote-audio" autoPlay style={{ display: 'none' }} />
+      {callType === 'video' && (
+        <video id="remote-video" autoPlay style={{ display: 'none' }} />
       )}
+    </>
+  )}
     </>
   );
 }
