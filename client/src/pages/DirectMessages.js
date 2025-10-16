@@ -1,6 +1,6 @@
 // Direct Messages Page Component
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   MagnifyingGlassIcon, 
   UserPlusIcon, 
@@ -29,7 +29,6 @@ import messageCache from '../services/messageCache';
 function DirectMessages() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation();
   const selectedConversationRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -1028,9 +1027,8 @@ function DirectMessages() {
   );
 
   return (
-    <>
-      <div className="flex h-full bg-[#36393f]">
-        {/* Discord-style DM Sidebar */}
+    <div className="flex h-full bg-[#36393f]">
+      {/* Discord-style DM Sidebar */}
         <div className="w-60 bg-[#2f3136] flex flex-col">
         {/* Search/Find Conversation */}
         <div className="px-2 pt-2">
@@ -1386,6 +1384,8 @@ function DirectMessages() {
               </>
             )}
           </div>
+        </div>
+      </div>
         ) : (
           /* Chat Area - Full Remaining Width (Discord Style) - NO RIGHT SIDEBAR */
           <div className="dm-chat-area flex-1 flex flex-col min-w-0 bg-gray-700" style={{ width: 'calc(100vw - 332px)' }}>
@@ -1646,11 +1646,10 @@ function DirectMessages() {
         </div>
       )}
     </div>
-  </div>
 
-  {/* Add Friend Modal */}
-  {showAddFriend && (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    {/* Add Friend Modal */}
+    {showAddFriend && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-text-primary">Add Friend</h2>
@@ -1744,7 +1743,7 @@ function DirectMessages() {
       )}
     </>
   )}
-    </>
+    </div>
   );
 }
 
