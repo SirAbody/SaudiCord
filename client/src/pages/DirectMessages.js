@@ -33,6 +33,7 @@ function DirectMessages() {
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
   const remoteStreamRef = useRef(null);
+  const iceCandidatesQueue = useRef([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
@@ -129,6 +130,13 @@ function DirectMessages() {
         const pc = peerConnectionRef.current;
         await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
         
+        // Process any queued ICE candidates
+        while (iceCandidatesQueue.current.length > 0) {
+          const candidate = iceCandidatesQueue.current.shift();
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log('[WebRTC] Applied queued ICE candidate');
+        }
+        
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         
@@ -152,6 +160,13 @@ function DirectMessages() {
             new RTCSessionDescription(data.answer)
           );
           console.log('[WebRTC] Remote description set successfully');
+          
+          // Process any queued ICE candidates
+          while (iceCandidatesQueue.current.length > 0) {
+            const candidate = iceCandidatesQueue.current.shift();
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+            console.log('[WebRTC] Applied queued ICE candidate');
+          }
         }
       } catch (error) {
         console.error('[WebRTC] Error handling answer:', error);
@@ -160,7 +175,8 @@ function DirectMessages() {
     
     // Handle ICE candidates
     socketService.on('webrtc:ice-candidate', async (data) => {
-      console.log('[WebRTC] Received ICE candidate from:', data.senderId);
+      const senderId = data.senderId || data.userId;
+      console.log('[WebRTC] Received ICE candidate from:', senderId);
       
       try {
         if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
@@ -169,7 +185,8 @@ function DirectMessages() {
           );
           console.log('[WebRTC] ICE candidate added successfully');
         } else {
-          console.warn('[WebRTC] Cannot add ICE candidate - no remote description');
+          console.log('[WebRTC] Queueing ICE candidate - no remote description yet');
+          iceCandidatesQueue.current.push(data.candidate);
         }
       } catch (error) {
         console.error('[WebRTC] Error adding ICE candidate:', error);
@@ -806,6 +823,9 @@ function DirectMessages() {
     if (remoteAudio) remoteAudio.srcObject = null;
     if (remoteVideo) remoteVideo.srcObject = null;
     
+    // Clear ICE candidates queue
+    iceCandidatesQueue.current = [];
+    
     // Notify other user
     if (callTarget) {
       socketService.emit('call:end', {
@@ -824,6 +844,9 @@ function DirectMessages() {
   const initializeWebRTC = async (data) => {
     try {
       console.log('[WebRTC] Initializing WebRTC for call:', data);
+      
+      // Clear any existing ICE candidates queue
+      iceCandidatesQueue.current = [];
       
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({

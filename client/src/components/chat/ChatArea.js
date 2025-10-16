@@ -59,9 +59,9 @@ function ChatArea() {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col h-full">
       {/* Channel Header */}
-      <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-dark-400 bg-background-secondary">
+      <div className="h-12 px-4 flex items-center justify-between shadow-md border-b border-dark-400 bg-background-secondary flex-shrink-0">
         <div className="flex items-center">
           <HashtagIcon className="w-5 h-5 text-text-tertiary mr-2" />
           <h2 className="font-semibold text-text-primary">{currentChannel.name}</h2>
@@ -127,11 +127,15 @@ function ChatArea() {
         </div>
       </div>
       
-      {/* Messages Area */}
-      <MessageList />
+      {/* Messages Area - Takes all available space */}
+      <div className="flex-1 min-h-0">
+        <MessageList />
+      </div>
       
-      {/* Message Input */}
-      <MessageInput />
+      {/* Message Input - Fixed at bottom */}
+      <div className="flex-shrink-0">
+        <MessageInput />
+      </div>
     </div>
   );
 }

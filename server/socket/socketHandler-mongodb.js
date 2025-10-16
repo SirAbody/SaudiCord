@@ -61,7 +61,7 @@ module.exports = (io) => {
       const userIdStr = socket.userId || socket.userIdString;
       activeUsers.set(userIdStr, socket.user);
       userSockets.set(userIdStr, socket);
-      userSockets.set(socket.userId.toString(), socket.id);
+      userSockets.set(socket.userId.toString(), socket);
       
       // Join user room
       socket.join(`user-${socket.userId}`);
@@ -95,8 +95,8 @@ module.exports = (io) => {
           
           // Store in active users and sockets map
           activeUsers.set(socket.userId, user.toSafeObject());
-          userSockets.set(socket.userId.toString(), socket.id);
-          console.log(`[Socket] Stored socket ID ${socket.id} for user ${socket.userId}`);
+          userSockets.set(socket.userId.toString(), socket);
+          console.log(`[Socket] Stored socket for user ${socket.userId}`);
       
           // Join user room for DMs and notifications - MUST BE INSIDE IF BLOCK
           socket.join(`user-${socket.userId}`);
@@ -498,16 +498,16 @@ module.exports = (io) => {
       console.log(`[Socket] WebRTC offer from ${socket.userId} to ${targetUserId}`);
       
       // Try multiple ways to find the target socket
-      let targetSocketId = userSockets.get(targetUserId?.toString());
+      let targetSocket = userSockets.get(targetUserId?.toString());
       
       // If not found, try without toString
-      if (!targetSocketId) {
-        targetSocketId = userSockets.get(targetUserId);
+      if (!targetSocket) {
+        targetSocket = userSockets.get(targetUserId);
       }
       
-      if (targetSocketId) {
+      if (targetSocket) {
         console.log(`[Socket] Found target socket for ${targetUserId}`);
-        io.to(targetSocketId).emit('webrtc:offer', {
+        targetSocket.emit('webrtc:offer', {
           senderId: socket.userId,
           userId: socket.userId, // Keep for backwards compatibility
           offer
@@ -515,11 +515,11 @@ module.exports = (io) => {
       } else {
         console.log(`[Socket] Target socket not found for ${targetUserId}`);
         // Try to find socket by iterating
-        const targetSocket = Array.from(io.sockets.sockets.values())
+        const targetSocketFromAll = Array.from(io.sockets.sockets.values())
           .find(s => s.userId?.toString() === targetUserId?.toString());
         
-        if (targetSocket) {
-          targetSocket.emit('webrtc:offer', {
+        if (targetSocketFromAll) {
+          targetSocketFromAll.emit('webrtc:offer', {
             senderId: socket.userId,
             userId: socket.userId,
             offer
@@ -533,24 +533,24 @@ module.exports = (io) => {
       const { targetUserId, answer } = data;
       console.log(`[Socket] WebRTC answer from ${socket.userId} to ${targetUserId}`);
       
-      let targetSocketId = userSockets.get(targetUserId?.toString());
-      if (!targetSocketId) {
-        targetSocketId = userSockets.get(targetUserId);
+      let targetSocket = userSockets.get(targetUserId?.toString());
+      if (!targetSocket) {
+        targetSocket = userSockets.get(targetUserId);
       }
       
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('webrtc:answer', {
+      if (targetSocket) {
+        targetSocket.emit('webrtc:answer', {
           senderId: socket.userId,
           userId: socket.userId, // Keep for backwards compatibility
           answer
         });
       } else {
         // Try to find socket by iterating
-        const targetSocket = Array.from(io.sockets.sockets.values())
+        const targetSocketFromAll = Array.from(io.sockets.sockets.values())
           .find(s => s.userId?.toString() === targetUserId?.toString());
         
-        if (targetSocket) {
-          targetSocket.emit('webrtc:answer', {
+        if (targetSocketFromAll) {
+          targetSocketFromAll.emit('webrtc:answer', {
             senderId: socket.userId,
             userId: socket.userId,
             answer
@@ -561,14 +561,34 @@ module.exports = (io) => {
     
     // Handle ICE candidates
     socket.on('webrtc:ice-candidate', (data) => {
-      const { targetUserId, candidate } = data;
-      const targetSocketId = userSockets.get(targetUserId?.toString());
+      if (!socket.userId) return;
       
-      if (targetSocketId) {
-        io.to(targetSocketId).emit('webrtc:ice-candidate', {
+      const { targetUserId, candidate } = data;
+      let targetSocket = userSockets.get(targetUserId?.toString());
+      
+      if (!targetSocket) {
+        targetSocket = userSockets.get(targetUserId);
+      }
+      
+      if (targetSocket) {
+        targetSocket.emit('webrtc:ice-candidate', {
+          senderId: socket.userId,
           userId: socket.userId,
           candidate
         });
+      } else {
+        console.log(`[Socket] Target socket not found for ICE candidate to ${targetUserId}`);
+        // Try to find socket by iterating
+        const targetSocketFromAll = Array.from(io.sockets.sockets.values())
+          .find(s => s.userId?.toString() === targetUserId?.toString());
+        
+        if (targetSocketFromAll) {
+          targetSocketFromAll.emit('webrtc:ice-candidate', {
+            senderId: socket.userId,
+            userId: socket.userId,
+            candidate
+          });
+        }
       }
     });
     
@@ -609,17 +629,7 @@ module.exports = (io) => {
 
     // REMOVED DUPLICATE - Already handled above
 
-    socket.on('webrtc:ice-candidate', (data) => {
-      const { targetUserId, candidate } = data;
-      const targetSocket = userSockets.get(targetUserId);
-      
-      if (targetSocket) {
-        targetSocket.emit('webrtc:ice-candidate', {
-          senderId: socket.userId,
-          candidate
-        });
-      }
-    });
+    // REMOVED DUPLICATE - ICE candidate handler already exists above
 
     // Typing indicators
     socket.on('typing:start', (data) => {
@@ -650,8 +660,9 @@ module.exports = (io) => {
       }
 
       try {
-        const { targetUserId, type, callerName } = data;
-        console.log(`[Socket] ${socket.username} initiating ${type} call to user ${targetUserId}`);
+        const { targetUserId, callType, type, callerName } = data;
+        const callTypeToUse = callType || type || 'voice';
+        console.log(`[Socket] ${socket.username} initiating ${callTypeToUse} call to user ${targetUserId}`);
         
         // Find target user's socket(s)
         const targetSocketIds = [];
@@ -666,7 +677,7 @@ module.exports = (io) => {
           const callData = {
             callerId: socket.userId,
             callerName: callerName || socket.username,
-            type: type,
+            type: callTypeToUse,
             timestamp: new Date()
           };
           

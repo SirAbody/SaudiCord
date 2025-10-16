@@ -66,7 +66,7 @@ function MessageInput() {
   }, [message, currentChannel, isTyping]);
 
   return (
-    <form onSubmit={handleSubmit} className="relative px-4 py-4 border-t border-dark-400">
+    <form onSubmit={handleSubmit} className="relative px-4 py-4 border-t border-dark-400 bg-background-secondary">
       <div className="flex items-center bg-background-tertiary rounded-lg px-3">
         {/* File/Attachment button */}
         <button

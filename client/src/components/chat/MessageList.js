@@ -101,7 +101,7 @@ function MessageList() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto h-full">
       <div className="flex flex-col">
         {/* Welcome message for empty channel */}
         {channelMessages.length === 0 && (

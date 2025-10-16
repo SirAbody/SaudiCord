@@ -58,18 +58,18 @@ function MainLayout() {
       <Routes>
         <Route path="/dashboard" element={<DirectMessages />} />
         <Route path="/*" element={
-          <>
+          <div className="flex flex-1 h-full">
             {/* Channel List */}
-            <div className="w-60 bg-background-secondary flex-shrink-0">
+            <div className="w-60 bg-background-secondary flex-shrink-0 h-full">
               <ChannelList />
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex">
+            <div className="flex-1 flex h-full">
               {currentChannel ? (
                 <>
                   {/* Chat Area - Takes remaining space */}
-                  <div className="flex-1">
+                  <div className="flex-1 flex h-full">
                     <ChatArea />
                   </div>
                   {/* Members List - Right Sidebar */}
@@ -96,7 +96,7 @@ function MainLayout() {
                 </div>
               )}
             </div>
-          </>
+          </div>
         } />
       </Routes>
 
