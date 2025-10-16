@@ -12,7 +12,8 @@ import {
   EllipsisVerticalIcon,
   PaperAirplaneIcon,
   XMarkIcon,
-  ChatBubbleLeftIcon 
+  ChatBubbleLeftIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../stores/authStore';
 import axios from 'axios';
@@ -1629,85 +1630,19 @@ function DirectMessages() {
             </div>
           </React.Fragment>
         ) : (
-          /* Not in friends tab - show DM conversation */
-          selectedConversation ? (
-            <div className="flex-1 flex flex-col">
-              {/* DM Header */}
-              <div className="h-12 bg-[#36393f] border-b border-[#202225] flex items-center px-4">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-[#36393f] mr-3">
-                    {selectedConversation.avatar ? (
-                      <img src={selectedConversation.avatar} alt="" className="w-full h-full rounded-full" />
-                    ) : (
-                      <span className="flex items-center justify-center w-full h-full text-white">
-                        {selectedConversation.username?.[0]?.toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-white font-semibold">
-                    {selectedConversation.displayName || selectedConversation.username}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {messages.map(message => (
-                  <div key={message.id || message._id} className="mb-4">
-                    <div className="flex items-start">
-                      <div className="w-10 h-10 rounded-full bg-[#36393f] mr-3">
-                        <span className="flex items-center justify-center w-full h-full text-white">
-                          {message.senderName?.[0]?.toUpperCase()}
-                        </span>
-                      </div>
-                      <div>
-                        <div className="flex items-baseline">
-                          <span className="text-white font-medium mr-2">{message.senderName}</span>
-                          <span className="text-[#72767d] text-xs">
-                            {new Date(message.createdAt).toLocaleTimeString()}
-                          </span>
-                        </div>
-                        <p className="text-[#dcddde]">{message.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-              
-              {/* Message Input */}
-              <div className="p-4 border-t border-[#202225]">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={`Message @${selectedConversation?.username}`}
-                    className="flex-1 bg-[#40444b] text-[#dcddde] rounded px-3 py-2 outline-none"
-                  />
-                  <button
-                    onClick={sendMessage}
-                    className="p-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
-                  >
-                    <PaperAirplaneIcon className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+          /* Not in friends tab - show DM conversation fallback */
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <ChatBubbleLeftIcon className="w-24 h-24 text-primary-500/30 mx-auto mb-6" />
+              <h3 className="text-3xl font-bold text-white mb-3">
+                Welcome to Direct Messages
+              </h3>
+              <p className="text-primary-400/70 text-lg">
+                Select a friend to start chatting
+              </p>
             </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <ChatBubbleLeftIcon className="w-24 h-24 text-primary-500/30 mx-auto mb-6" />
-                <h3 className="text-3xl font-bold text-white mb-3">
-                  Welcome to Direct Messages
-                </h3>
-                <p className="text-primary-400/70 text-lg">
-                  Select a friend to start chatting
-                </p>
-              </div>
-            </div>
-          )}
+          </div>
+        )}
         </div>
       )}
     </div>
@@ -1715,46 +1650,44 @@ function DirectMessages() {
 
     {/* Add Friend Modal */}
     {showAddFriend && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
-              <h2 className="text-xl font-bold text-text-primary">Add Friend</h2>
-              <button
-                onClick={() => setShowAddFriend(false)}
-                className="text-text-secondary hover:text-text-primary"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <p className="text-text-secondary mb-4">
-              You can add a friend with their username. It's case sensitive!
-            </p>
-            
-            <input
-              type="text"
-              value={friendUsername}
-              onChange={(e) => setFriendUsername(e.target.value)}
-              placeholder="Enter username"
-              className="w-full bg-black/50 border border-primary-900/30 text-white px-3 py-2 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowAddFriend(false)}
-                className="flex-1 px-4 py-2 bg-black/50 border border-primary-900/30 text-white rounded hover:bg-primary-500/20 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={sendFriendRequest}
-                className="flex-1 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
-              >
-                Send Friend Request
-              </button>
-            </div>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-text-primary">Add Friend</h2>
+            <button
+              onClick={() => setShowAddFriend(false)}
+              className="text-text-secondary hover:text-text-primary"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+          <p className="text-text-secondary mb-4">
+            You can add a friend with their username. It's case sensitive!
+          </p>
+          <input
+            type="text"
+            value={friendUsername}
+            onChange={(e) => setFriendUsername(e.target.value)}
+            placeholder="Enter username"
+            className="w-full bg-black/50 border border-primary-900/30 text-white px-3 py-2 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowAddFriend(false)}
+              className="flex-1 px-4 py-2 bg-black/50 border border-primary-900/30 text-white rounded hover:bg-primary-500/20 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={sendFriendRequest}
+              className="flex-1 px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 transition"
+            >
+              Send Friend Request
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* Message Context Menu */}
       {contextMenu && (
