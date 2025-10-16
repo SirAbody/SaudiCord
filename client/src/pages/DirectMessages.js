@@ -1811,7 +1811,6 @@ function DirectMessages() {
           )}
         </>
       )}
-      </div>
     </React.Fragment>
   );
 }
