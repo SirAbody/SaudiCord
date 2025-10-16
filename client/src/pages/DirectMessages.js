@@ -1027,9 +1027,10 @@ function DirectMessages() {
   );
 
   return (
-    <div className="flex h-full bg-[#36393f]">
-      {/* Discord-style DM Sidebar */}
-      <div className="w-60 bg-[#2f3136] flex flex-col">
+    <React.Fragment>
+      <div className="flex h-full bg-[#36393f]">
+        {/* Discord-style DM Sidebar */}
+        <div className="w-60 bg-[#2f3136] flex flex-col">
         {/* Search/Find Conversation */}
         <div className="px-2 pt-2">
           <button className="w-full px-2 py-1 text-[#dcddde] text-sm text-left bg-[#202225] rounded hover:bg-[#40444b] transition">
@@ -1810,7 +1811,7 @@ function DirectMessages() {
           )}
         </>
       )}
-    </div>
+    </React.Fragment>
   );
 }
 
