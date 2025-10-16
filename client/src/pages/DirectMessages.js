@@ -1027,7 +1027,7 @@ function DirectMessages() {
   );
 
   return (
-    <React.Fragment>
+    <>
       <div className="flex h-full bg-[#36393f]">
         {/* Discord-style DM Sidebar */}
         <div className="w-60 bg-[#2f3136] flex flex-col">
@@ -1385,8 +1385,8 @@ function DirectMessages() {
               </>
             )}
           </div>
-
-          {/* Chat Area - Full Remaining Width (Discord Style) - NO RIGHT SIDEBAR */}
+        ) : (
+          /* Chat Area - Full Remaining Width (Discord Style) - NO RIGHT SIDEBAR */
           <div className="dm-chat-area flex-1 flex flex-col min-w-0 bg-gray-700" style={{ width: 'calc(100vw - 332px)' }}>
             {selectedConversation ? (
               <React.Fragment>
@@ -1707,16 +1707,16 @@ function DirectMessages() {
                 </p>
               </div>
             </div>
-          )
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
+  </div>
 
     {/* Add Friend Modal */}
     {showAddFriend && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-black/90 border border-primary-900/30 rounded-lg p-6 w-96">
-            <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-text-primary">Add Friend</h2>
               <button
                 onClick={() => setShowAddFriend(false)}
@@ -1811,8 +1811,7 @@ function DirectMessages() {
           )}
         </>
       )}
-    </div>
-    </React.Fragment>
+    </>
   );
 }
 
