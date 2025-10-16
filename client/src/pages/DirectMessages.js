@@ -279,9 +279,9 @@ function DirectMessages() {
       // Show notification for messages from others
       const isOwnMessage = msgSenderId === currentUserId;
       if (!isOwnMessage) {
-        // Play notification sound
-        const audio = new Audio('/sounds/notification.mp3');
-        audio.play().catch(e => console.log('Could not play sound:', e));
+        // Play notification sound (if file exists)
+        // const audio = new Audio('/sounds/notification.mp3');
+        // audio.play().catch(e => console.log('Could not play sound:', e));
         
         // Show toast notification
         toast(`💬 ${message.senderName || 'Someone'} sent you a message`, {
@@ -447,12 +447,26 @@ function DirectMessages() {
       );
     });
     
-    // Handle call accepted
-    socketService.on('call:accepted', (data) => {
+    // Handle call accepted (for the caller)
+    socketService.on('call:accepted', async (data) => {
       console.log('[DM] Call accepted:', data);
+      console.log('[DM] Current callTarget:', callTarget);
       toast.success('Call connected!');
-      // Initialize WebRTC connection
-      initializeWebRTC(data);
+      
+      // The caller should already have callTarget set from startCall
+      const target = selectedConversationRef.current || callTarget;
+      if (!target) {
+        console.error('[DM] No callTarget set for caller!');
+        return;
+      }
+      
+      // Initialize WebRTC connection for the caller
+      await initializeWebRTC({ 
+        ...data,
+        accepterId: data.accepterId,
+        targetId: target.id || target._id,
+        isCaller: true 
+      });
     });
     
     // Handle call rejected
@@ -661,23 +675,30 @@ function DirectMessages() {
     }
   };
 
+  const startCall = (type, target) => {
+    console.log(`[DM] Starting ${type} call with:`, target);
+    
+    // Set call target BEFORE initiating
+    setCallTarget(target);
+    setInCall(true);
+    setCallType(type);
+    
+    // Send call invitation
+    socketService.emit('call:initiate', {
+      targetUserId: target.id || target._id,
+      callType: type,
+      channelId: null // For DMs
+    });
+    
+    toast(`Calling ${target.username || target.displayName}...`);
+  };
+
   const startVoiceCall = async () => {
     if (!selectedConversation) {
       toast.error('Please select a friend first');
       return;
     }
-    
-    console.log('[DM] Starting voice call with:', selectedConversation);
-    setInCall(true);
-    setCallType('voice');
-    setCallTarget(selectedConversation);
-    
-    // Emit call initiation
-    socketService.emit('call:initiate', {
-      targetUserId: selectedConversation.id,
-      type: 'voice',
-      callerName: user.displayName || user.username
-    });
+    startCall('voice', selectedConversation);
   };
 
   const startVideoCall = async () => {
@@ -685,18 +706,7 @@ function DirectMessages() {
       toast.error('Please select a friend first');
       return;
     }
-    
-    console.log('[DM] Starting video call with:', selectedConversation);
-    setInCall(true);
-    setCallType('video');
-    setCallTarget(selectedConversation);
-    
-    // Emit call initiation  
-    socketService.emit('call:initiate', {
-      targetUserId: selectedConversation.id,
-      type: 'video',
-      callerName: user.displayName || user.username
-    });
+    startCall('video', selectedConversation);
   };
 
   const startScreenShare = async () => {
@@ -727,25 +737,36 @@ function DirectMessages() {
     }
   };
 
-  const acceptCall = (callData) => {
+  const acceptCall = async (callData) => {
     console.log('[DM] Accepting call:', callData);
-    socketService.emit('call:accept', {
-      callerId: callData.callerId,
-      type: callData.type
-    });
-    setInCall(true);
-    setCallType(callData.type);
     
     // Find the caller in friends list
     const caller = friends.find(f => 
       f.id === callData.callerId || 
       f._id === callData.callerId
     );
-    setCallTarget(caller || { 
+    const target = caller || { 
       id: callData.callerId, 
       username: callData.callerName 
-    });
+    };
+    
+    setCallTarget(target);
+    setInCall(true);
+    setCallType(callData.type);
     setIncomingCall(null);
+    
+    // Initialize WebRTC for the receiver
+    await initializeWebRTC({ 
+      callerId: callData.callerId, 
+      type: callData.type,
+      isReceiver: true 
+    });
+    
+    // Then send acceptance
+    socketService.emit('call:accept', {
+      callerId: callData.callerId,
+      type: callData.type
+    });
   };
   
   const rejectCall = (callData) => {
@@ -890,19 +911,32 @@ function DirectMessages() {
         }
       };
       
-      // If we initiated the call, create and send offer
-      if (!data.callerId || data.initiator === user?.id) {
-        console.log('[WebRTC] Creating offer...');
+      // Determine who creates the offer
+      // The caller creates the offer after receiving acceptance
+      // The receiver waits for the offer
+      if (data.isCaller) {
+        console.log('[WebRTC] Caller creating offer...');
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         
-        const targetId = callTarget?.id || callTarget?._id;
-        console.log('[WebRTC] Sending offer to:', targetId);
+        // Try multiple sources for targetId
+        const targetId = data.targetId || data.accepterId || callTarget?.id || callTarget?._id;
+        console.log('[WebRTC] Caller sending offer to:', targetId, 'data:', data, 'callTarget:', callTarget);
+        
+        if (!targetId) {
+          console.error('[WebRTC] No target ID available!');
+          console.error('[WebRTC] Data provided:', data);
+          console.error('[WebRTC] CallTarget:', callTarget);
+          return;
+        }
         
         socketService.emit('webrtc:offer', {
           targetUserId: targetId,
           offer: offer
         });
+      } else if (data.isReceiver) {
+        console.log('[WebRTC] Receiver waiting for offer...');
+        // Receiver will handle offer in setupWebRTCListeners
       }
       
     } catch (error) {

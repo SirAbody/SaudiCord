@@ -569,25 +569,36 @@ module.exports = (io) => {
     // Legacy WebRTC signaling (keeping for compatibility)
     socket.on('webrtc:offer', (data) => {
       const { targetUserId, offer } = data;
+      logger.info(`[WebRTC] Offer from ${socket.userId} to ${targetUserId}`);
       const targetSocket = userSockets.get(targetUserId);
       
       if (targetSocket) {
+        logger.info(`[WebRTC] Forwarding offer to ${targetUserId}`);
         targetSocket.emit('webrtc:offer', {
           senderId: socket.userId,
+          senderName: socket.user?.username || socket.username,
           offer
         });
+      } else {
+        logger.warn(`[WebRTC] Target socket not found for user ${targetUserId}`);
+        socket.emit('error', { message: 'Target user not online' });
       }
     });
 
     socket.on('webrtc:answer', (data) => {
       const { targetUserId, answer } = data;
+      logger.info(`[WebRTC] Answer from ${socket.userId} to ${targetUserId}`);
       const targetSocket = userSockets.get(targetUserId);
       
       if (targetSocket) {
+        logger.info(`[WebRTC] Forwarding answer to ${targetUserId}`);
         targetSocket.emit('webrtc:answer', {
           senderId: socket.userId,
+          senderName: socket.user?.username || socket.username,
           answer
         });
+      } else {
+        logger.warn(`[WebRTC] Target socket not found for user ${targetUserId}`);
       }
     });
 
@@ -600,6 +611,8 @@ module.exports = (io) => {
           senderId: socket.userId,
           candidate
         });
+      } else {
+        logger.debug(`[WebRTC] Target socket not found for ICE candidate to ${targetUserId}`);
       }
     });
 

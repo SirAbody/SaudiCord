@@ -51,14 +51,16 @@ module.exports = (io) => {
       next();
     }
   });
-
   io.on('connection', (socket) => {
     console.log('[Socket] New connection:', socket.id);
     
     // Immediate auth if token exists in handshake
     if (socket.userId && socket.username) {
-      // Already authenticated via middleware
-      activeUsers.set(socket.userId, socket.user || { username: socket.username });
+      // Already authenticated
+      // Store in memory maps - use string ID for consistency
+      const userIdStr = socket.userId || socket.userIdString;
+      activeUsers.set(userIdStr, socket.user);
+      userSockets.set(userIdStr, socket);
       userSockets.set(socket.userId.toString(), socket.id);
       
       // Join user room
@@ -85,6 +87,7 @@ module.exports = (io) => {
         if (user) {
           socket.user = user;
           socket.userId = user._id.toString();
+          socket.userIdString = user._id.toString();
           socket.username = user.username;
           
           user.status = 'online';
@@ -412,15 +415,21 @@ module.exports = (io) => {
       const { to, offer } = data;
       console.log(`[Socket] Relaying offer from ${socket.userId} to ${to}`);
       
-      // Find target socket
+      // Find target socket - check multiple ID formats for MongoDB compatibility
       const targetSocket = Array.from(io.sockets.sockets.values())
-        .find(s => s.userId === to);
+        .find(s => {
+          const sId = s.userId?.toString();
+          const toId = to?.toString();
+          return sId === toId || s.userId === to || s.userIdString === to;
+        });
       
       if (targetSocket) {
         targetSocket.emit('voice:offer', {
           from: socket.userId,
           offer: offer
         });
+      } else {
+        console.log(`[Socket] Target socket not found for user ${to}`);
       }
     });
     
@@ -483,29 +492,70 @@ module.exports = (io) => {
       });
     });
     
-    // Handle WebRTC offer (OLD - keeping for compatibility)
+    // Handle WebRTC offer for DM calls
     socket.on('webrtc:offer', (data) => {
       const { targetUserId, offer } = data;
-      const targetSocketId = userSockets.get(targetUserId?.toString());
+      console.log(`[Socket] WebRTC offer from ${socket.userId} to ${targetUserId}`);
+      
+      // Try multiple ways to find the target socket
+      let targetSocketId = userSockets.get(targetUserId?.toString());
+      
+      // If not found, try without toString
+      if (!targetSocketId) {
+        targetSocketId = userSockets.get(targetUserId);
+      }
       
       if (targetSocketId) {
+        console.log(`[Socket] Found target socket for ${targetUserId}`);
         io.to(targetSocketId).emit('webrtc:offer', {
-          userId: socket.userId,
+          senderId: socket.userId,
+          userId: socket.userId, // Keep for backwards compatibility
           offer
         });
+      } else {
+        console.log(`[Socket] Target socket not found for ${targetUserId}`);
+        // Try to find socket by iterating
+        const targetSocket = Array.from(io.sockets.sockets.values())
+          .find(s => s.userId?.toString() === targetUserId?.toString());
+        
+        if (targetSocket) {
+          targetSocket.emit('webrtc:offer', {
+            senderId: socket.userId,
+            userId: socket.userId,
+            offer
+          });
+        }
       }
     });
     
     // Handle WebRTC answer
     socket.on('webrtc:answer', (data) => {
       const { targetUserId, answer } = data;
-      const targetSocketId = userSockets.get(targetUserId?.toString());
+      console.log(`[Socket] WebRTC answer from ${socket.userId} to ${targetUserId}`);
+      
+      let targetSocketId = userSockets.get(targetUserId?.toString());
+      if (!targetSocketId) {
+        targetSocketId = userSockets.get(targetUserId);
+      }
       
       if (targetSocketId) {
         io.to(targetSocketId).emit('webrtc:answer', {
-          userId: socket.userId,
+          senderId: socket.userId,
+          userId: socket.userId, // Keep for backwards compatibility
           answer
         });
+      } else {
+        // Try to find socket by iterating
+        const targetSocket = Array.from(io.sockets.sockets.values())
+          .find(s => s.userId?.toString() === targetUserId?.toString());
+        
+        if (targetSocket) {
+          targetSocket.emit('webrtc:answer', {
+            senderId: socket.userId,
+            userId: socket.userId,
+            answer
+          });
+        }
       }
     });
     
@@ -557,30 +607,7 @@ module.exports = (io) => {
       }
     });
 
-    // WebRTC signaling
-    socket.on('webrtc:offer', (data) => {
-      const { targetUserId, offer } = data;
-      const targetSocket = userSockets.get(targetUserId);
-      
-      if (targetSocket) {
-        targetSocket.emit('webrtc:offer', {
-          senderId: socket.userId,
-          offer
-        });
-      }
-    });
-
-    socket.on('webrtc:answer', (data) => {
-      const { targetUserId, answer } = data;
-      const targetSocket = userSockets.get(targetUserId);
-      
-      if (targetSocket) {
-        targetSocket.emit('webrtc:answer', {
-          senderId: socket.userId,
-          answer
-        });
-      }
-    });
+    // REMOVED DUPLICATE - Already handled above
 
     socket.on('webrtc:ice-candidate', (data) => {
       const { targetUserId, candidate } = data;
