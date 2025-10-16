@@ -1388,8 +1388,8 @@ function DirectMessages() {
           {/* Chat Area - Full Remaining Width (Discord Style) - NO RIGHT SIDEBAR */}
           <div className="dm-chat-area flex-1 flex flex-col min-w-0 bg-gray-700" style={{ width: 'calc(100vw - 332px)' }}>
             {selectedConversation ? (
-          <>
-            {/* Chat Header - Modern Design */}
+              <React.Fragment>
+                {/* Chat Header - Modern Design */}
             <div className="h-16 px-6 flex items-center justify-between border-b border-primary-900/20 glass-morphism">
               <div className="flex items-center space-x-4">
                 <div className="relative">
@@ -1626,7 +1626,7 @@ function DirectMessages() {
                 </button>
               </div>
             </div>
-          </div>
+          </React.Fragment>
         ) : (
           /* Not in friends tab - show DM conversation */
           selectedConversation ? (
