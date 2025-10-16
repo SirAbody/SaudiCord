@@ -4,14 +4,16 @@ import {
   PhoneXMarkIcon,
   MicrophoneIcon,
   VideoCameraIcon,
+  VideoCameraSlashIcon,
   ComputerDesktopIcon,
-  SpeakerWaveIcon
-} from '@heroicons/react/24/outline';
-import {
-  MicrophoneIcon as MicrophoneSlashIcon,
-  VideoCameraIcon as VideoCameraSlashIcon,
-  SpeakerWaveIcon as SpeakerSlashIcon
+  SpeakerWaveIcon,
+  SpeakerXMarkIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
+  Cog6ToothIcon,
+  XMarkIcon
 } from '@heroicons/react/24/solid';
+import { VideoCameraIcon as VideoCameraOutlineIcon } from '@heroicons/react/24/outline';
 import socketService from '../../services/socket';
 
 function CallInterface({ 
@@ -20,16 +22,23 @@ function CallInterface({
   onEndCall, 
   isIncoming = false,
   onAccept,
-  onReject 
+  onReject,
+  screenShare = null,
+  remoteScreenShare = null 
 }) {
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isSpeakerOff, setIsSpeakerOff] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [volume, setVolume] = useState(100);
   const intervalRef = useRef(null);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!isIncoming && !isConnected) {
@@ -80,8 +89,44 @@ function CallInterface({
     socketService.emit('call:video', { enabled: !isVideoOff });
   };
 
-  const handleSpeakerToggle = () => {
-    setIsSpeakerOff(!isSpeakerOff);
+  const handleDeafen = () => {
+    setIsDeafened(!isDeafened);
+    if (!isDeafened && !isMuted) {
+      setIsMuted(true);
+      socketService.emit('call:mute', { muted: true });
+    }
+  };
+
+  const handleScreenShare = async () => {
+    try {
+      if (!isScreenSharing) {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+        setIsScreenSharing(true);
+        socketService.emit('call:screenshare', { sharing: true });
+        
+        stream.getVideoTracks()[0].onended = () => {
+          setIsScreenSharing(false);
+          socketService.emit('call:screenshare', { sharing: false });
+        };
+      } else {
+        setIsScreenSharing(false);
+        socketService.emit('call:screenshare', { sharing: false });
+      }
+    } catch (error) {
+      console.error('Screen share error:', error);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      containerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+    setIsFullscreen(!isFullscreen);
   };
 
   const handleEndCall = () => {
@@ -139,130 +184,269 @@ function CallInterface({
     );
   }
 
-  // Active call UI
+  // Active call UI - Discord Style
   return (
-    <div className="fixed inset-0 bg-black/95 flex flex-col z-50">
-      {/* Video Area */}
-      {callType === 'video' && (
-        <div className="flex-1 relative">
-          {/* Remote Video */}
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
-          
-          {/* Local Video (Picture-in-Picture) */}
-          <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Voice Call View */}
-      {callType === 'voice' && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-32 h-32 mx-auto bg-primary-500 rounded-full flex items-center justify-center mb-4 animate-pulse">
-              {targetUser.avatar ? (
-                <img src={targetUser.avatar} alt="" className="w-full h-full rounded-full" />
-              ) : (
-                <span className="text-4xl text-white">
-                  {targetUser.username?.[0]?.toUpperCase()}
+    <div ref={containerRef} className="fixed inset-0 bg-[#202225] flex flex-col z-50">
+      {/* Top Bar with Participants */}
+      <div className="h-[88px] bg-[#2f3136] border-b border-[#202225] flex items-center justify-between px-4">
+        <div className="flex items-center space-x-3">
+          {/* User avatars */}
+          <div className="flex items-center -space-x-3">
+            {/* Current user */}
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#2f3136] bg-[#36393f]">
+                <span className="flex items-center justify-center w-full h-full text-white">
+                  You
                 </span>
+              </div>
+              {isMuted && (
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#f23f42] rounded-full flex items-center justify-center">
+                  <XMarkIcon className="w-3 h-3 text-white" />
+                </div>
               )}
             </div>
             
-            <h2 className="text-3xl font-bold text-white mb-2">
-              {targetUser.displayName || targetUser.username}
-            </h2>
-            
-            <p className="text-xl text-gray-400">
-              {isConnected ? formatDuration(callDuration) : 'Connecting...'}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Call Controls */}
-      <div className="bg-gray-900/90 backdrop-blur p-4">
-        <div className="max-w-md mx-auto">
-          <div className="flex justify-center items-center space-x-4">
-            {/* Mute Button */}
-            <button
-              onClick={handleMute}
-              className={`p-4 rounded-full transition ${
-                isMuted ? 'bg-primary-500 hover:bg-primary-600' : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              {isMuted ? (
-                <MicrophoneSlashIcon className="w-6 h-6 text-white" />
-              ) : (
-                <MicrophoneIcon className="w-6 h-6 text-white" />
-              )}
-            </button>
-
-            {/* Video Toggle (for video calls) */}
-            {callType === 'video' && (
-              <button
-                onClick={handleVideoToggle}
-                className={`p-4 rounded-full transition ${
-                  isVideoOff ? 'bg-primary-500 hover:bg-primary-600' : 'bg-gray-700 hover:bg-gray-600'
-                }`}
-              >
-                {isVideoOff ? (
-                  <VideoCameraSlashIcon className="w-6 h-6 text-white" />
+            {/* Target user */}
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#2f3136] bg-[#36393f]">
+                {targetUser.avatar ? (
+                  <img src={targetUser.avatar} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <VideoCameraIcon className="w-6 h-6 text-white" />
+                  <span className="flex items-center justify-center w-full h-full text-white font-semibold">
+                    {targetUser.username?.[0]?.toUpperCase()}
+                  </span>
                 )}
-              </button>
-            )}
-
-            {/* Speaker Toggle */}
-            <button
-              onClick={handleSpeakerToggle}
-              className={`p-4 rounded-full transition ${
-                isSpeakerOff ? 'bg-primary-500 hover:bg-primary-600' : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              {isSpeakerOff ? (
-                <SpeakerSlashIcon className="w-6 h-6 text-white" />
-              ) : (
-                <SpeakerWaveIcon className="w-6 h-6 text-white" />
-              )}
-            </button>
-
-            {/* Screen Share (for video calls) */}
-            {callType === 'video' && (
-              <button
-                onClick={() => {/* Handle screen share */}}
-                className="p-4 bg-gray-700 hover:bg-gray-600 rounded-full transition"
-              >
-                <ComputerDesktopIcon className="w-6 h-6 text-white" />
-              </button>
-            )}
-
-            {/* End Call */}
-            <button
-              onClick={handleEndCall}
-              className="p-4 bg-primary-600 hover:bg-primary-700 rounded-full transition ml-8"
-            >
-              <PhoneXMarkIcon className="w-6 h-6 text-white" />
-            </button>
+              </div>
+            </div>
           </div>
-
-          {/* Call Status */}
-          <div className="text-center mt-4 text-sm text-gray-400">
-            {isConnected ? 'Connected' : 'Connecting...'}
+          
+          {/* Call info */}
+          <div>
+            <div className="text-white font-semibold">
+              {targetUser.displayName || targetUser.username}
+            </div>
+            <div className="text-[#b9bbbe] text-sm">
+              {isConnected ? formatDuration(callDuration) : 'Connecting...'}
+            </div>
           </div>
         </div>
+        
+        {/* Top controls */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 text-[#b9bbbe] hover:text-white hover:bg-[#36393f] rounded transition"
+          >
+            {isFullscreen ? (
+              <ArrowsPointingInIcon className="w-5 h-5" />
+            ) : (
+              <ArrowsPointingOutIcon className="w-5 h-5" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 text-[#b9bbbe] hover:text-white hover:bg-[#36393f] rounded transition"
+          >
+            <Cog6ToothIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 relative bg-[#36393f] overflow-hidden">
+        {/* Screen Share or Video */}
+        {(isScreenSharing || remoteScreenShare || callType === 'video') ? (
+          <div className="h-full w-full flex items-center justify-center p-4">
+            {/* Main video/screen share */}
+            {remoteScreenShare ? (
+              <div className="relative max-w-full max-h-full">
+                <div className="bg-black rounded-lg overflow-hidden">
+                  {/* Remote screen share content */}
+                  <div className="aspect-video bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                    <span className="text-white text-2xl">Screen Share</span>
+                  </div>
+                </div>
+                <div className="absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-white text-sm">
+                  {targetUser.username} is sharing their screen
+                </div>
+              </div>
+            ) : callType === 'video' ? (
+              <div className="relative w-full h-full">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+                {/* Local video PiP */}
+                <div className="absolute bottom-4 right-4 w-64 h-36 bg-[#202225] rounded-lg overflow-hidden border border-[#202225]">
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+            ) : null}
+            
+            {/* User cards when screen sharing */}
+            {(isScreenSharing || remoteScreenShare) && (
+              <div className="absolute bottom-4 right-4 flex space-x-3">
+                <UserCard user={{ username: "You" }} isMuted={isMuted} />
+                <UserCard user={targetUser} />
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Voice call or video off view */
+          <div className="h-full flex items-center justify-center">
+            <div className="grid grid-cols-2 gap-4 max-w-4xl w-full px-8">
+              {/* Current user card */}
+              <div className="bg-[#292b2f] rounded-lg p-8 flex flex-col items-center justify-center aspect-video">
+                <div className="w-32 h-32 rounded-full bg-[#36393f] flex items-center justify-center mb-4">
+                  <span className="text-4xl text-white">You</span>
+                </div>
+                <h3 className="text-white text-xl font-semibold">You</h3>
+                {isMuted && (
+                  <div className="mt-2 text-[#f23f42] text-sm">Muted</div>
+                )}
+              </div>
+              
+              {/* Target user card */}
+              <div className="bg-[#292b2f] rounded-lg p-8 flex flex-col items-center justify-center aspect-video">
+                <div className="w-32 h-32 rounded-full bg-[#36393f] flex items-center justify-center mb-4">
+                  {targetUser.avatar ? (
+                    <img src={targetUser.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <span className="text-4xl text-white">
+                      {targetUser.username?.[0]?.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-white text-xl font-semibold">
+                  {targetUser.displayName || targetUser.username}
+                </h3>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Control Bar - Discord Style */}
+      <div className="h-[88px] bg-[#292b2f] border-t border-[#202225] flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          {/* Microphone */}
+          <button
+            onClick={handleMute}
+            className={`relative p-3 rounded-full transition-colors ${
+              isMuted 
+                ? 'bg-[#36393f] hover:bg-[#40444b] text-white' 
+                : 'bg-[#36393f] hover:bg-[#40444b] text-[#b9bbbe] hover:text-white'
+            }`}
+            title={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? (
+              <div className="relative">
+                <MicrophoneIcon className="w-5 h-5" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-6 h-0.5 bg-[#f23f42] rotate-45" />
+                </div>
+              </div>
+            ) : (
+              <MicrophoneIcon className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Deafen */}
+          <button
+            onClick={handleDeafen}
+            className={`p-3 rounded-full transition-colors ${
+              isDeafened 
+                ? 'bg-[#36393f] hover:bg-[#40444b] text-white' 
+                : 'bg-[#36393f] hover:bg-[#40444b] text-[#b9bbbe] hover:text-white'
+            }`}
+            title={isDeafened ? "Undeafen" : "Deafen"}
+          >
+            {isDeafened ? (
+              <SpeakerXMarkIcon className="w-5 h-5" />
+            ) : (
+              <SpeakerWaveIcon className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Video */}
+          <button
+            onClick={handleVideoToggle}
+            className={`p-3 rounded-full transition-colors ${
+              isVideoOff 
+                ? 'bg-[#36393f] hover:bg-[#40444b] text-white' 
+                : 'bg-[#36393f] hover:bg-[#40444b] text-[#b9bbbe] hover:text-white'
+            }`}
+            title={isVideoOff ? "Turn on Camera" : "Turn off Camera"}
+          >
+            {isVideoOff ? (
+              <div className="relative">
+                <VideoCameraIcon className="w-5 h-5" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-6 h-0.5 bg-[#f23f42] rotate-45" />
+                </div>
+              </div>
+            ) : (
+              <VideoCameraIcon className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Screen Share */}
+          <button
+            onClick={handleScreenShare}
+            className={`p-3 rounded-full transition-colors ${
+              isScreenSharing 
+                ? 'bg-[#3ba55d] hover:bg-[#2d7d46] text-white' 
+                : 'bg-[#36393f] hover:bg-[#40444b] text-[#b9bbbe] hover:text-white'
+            }`}
+            title={isScreenSharing ? "Stop Sharing" : "Share Your Screen"}
+          >
+            <ComputerDesktopIcon className="w-5 h-5" />
+          </button>
+
+          {/* End Call */}
+          <button
+            onClick={handleEndCall}
+            className="p-3 bg-[#f23f42] hover:bg-[#d83c3f] rounded-full text-white transition-colors ml-4"
+            title="Leave Call"
+          >
+            <PhoneXMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// User Card Component
+function UserCard({ user, isMuted = false }) {
+  return (
+    <div className="bg-[#292b2f] rounded-lg p-4 flex flex-col items-center min-w-[180px]">
+      <div className="relative">
+        <div className="w-20 h-20 rounded-full bg-[#36393f] flex items-center justify-center">
+          {user.avatar ? (
+            <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+          ) : (
+            <span className="text-2xl text-white">
+              {user.username?.[0]?.toUpperCase()}
+            </span>
+          )}
+        </div>
+        {isMuted && (
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#f23f42] rounded-full flex items-center justify-center">
+            <XMarkIcon className="w-4 h-4 text-white" />
+          </div>
+        )}
+      </div>
+      <div className="mt-2 text-white text-sm font-medium">
+        {user.username}
       </div>
     </div>
   );

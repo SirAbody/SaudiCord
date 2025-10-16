@@ -992,60 +992,149 @@ function DirectMessages() {
   );
 
   return (
-    <div className="flex h-full bg-background-primary">
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Discord-style Tabs Header */}
-        <div className="h-14 bg-gray-800 border-b border-gray-700 flex items-center px-6">
-          <UserIcon className="w-5 h-5 text-gray-400 mr-2" />
-          <span className="text-white font-semibold mr-8">Friends</span>
-          
-          <div className="flex items-center gap-5">
-            <button
-              onClick={() => setActiveTab('online')}
-              className={`px-4 py-1.5 text-sm font-medium rounded transition-all ${
-                activeTab === 'online' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-              }`}
-            >
-              Online
-            </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-1.5 text-sm font-medium rounded transition-all ${
-                activeTab === 'all' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`px-4 py-1.5 text-sm font-medium rounded relative transition-all ${
-                activeTab === 'pending' 
-                  ? 'bg-gray-700 text-white' 
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-              }`}
-            >
-              Pending
-              {pendingRequests.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-semibold">
-                  {pendingRequests.length}
-                </span>
-              )}
-            </button>
-          </div>
-          
-          <button
-            onClick={() => setShowAddFriend(true)}
-            className="ml-auto px-4 py-1.5 text-sm font-medium rounded border transition-all text-primary-400 border-primary-400 hover:bg-primary-500/10"
-            style={{ borderColor: '#53FC18', color: '#53FC18' }}
-          >
-            Add Friend
+    <div className="flex h-full bg-[#36393f]">
+      {/* Discord-style DM Sidebar */}
+      <div className="w-60 bg-[#2f3136] flex flex-col">
+        {/* Search/Find Conversation */}
+        <div className="px-2 pt-2">
+          <button className="w-full px-2 py-1 text-[#dcddde] text-sm text-left bg-[#202225] rounded hover:bg-[#40444b] transition">
+            Find or start a conversation
           </button>
         </div>
+        
+        {/* Quick Actions */}
+        <div className="mt-4 px-2 space-y-1">
+          <button
+            onClick={() => setActiveTab('friends')}
+            className={`w-full px-3 py-2 flex items-center rounded hover:bg-[#393c43] transition ${
+              activeTab === 'friends' ? 'bg-[#393c43] text-white' : 'text-[#8e9297]'
+            }`}
+          >
+            <UserIcon className="w-5 h-5 mr-3" />
+            <span className="font-medium">Friends</span>
+          </button>
+          <button className="w-full px-3 py-2 flex items-center text-[#8e9297] rounded hover:bg-[#393c43] hover:text-[#dcddde] transition">
+            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5.433 21a.12.12 0 01-.118-.141L6 17H2.143a.12.12 0 01-.118-.14l.308-1.76a.12.12 0 01.118-.1H6l.622-3.562H2.768a.12.12 0 01-.118-.141l.308-1.76a.12.12 0 01.118-.099h3.775l.723-4.146a.12.12 0 01.118-.099h1.76a.12.12 0 01.118.141l-.69 3.963h3.562l.723-4.146a.12.12 0 01.118-.099h1.76a.12.12 0 01.118.141l-.69 3.963h3.856a.12.12 0 01.118.14l-.308 1.76a.12.12 0 01-.118.1H15l-.622 3.562h3.856a.12.12 0 01.118.14l-.308 1.76a.12.12 0 01-.118.1h-3.776l-.723 4.146a.12.12 0 01-.118.099h-1.76a.12.12 0 01-.118-.141l.69-3.963H8.562l-.723 4.146a.12.12 0 01-.118.099H5.961a.12.12 0 01-.118-.141l.69-3.963H2.678a.12.12 0 01-.118-.14l.308-1.76a.12.12 0 01.118-.1h3.775l.622-3.562H3.528a.12.12 0 01-.118-.14l.308-1.76a.12.12 0 01.118-.1h3.856l.723-4.146a.12.12 0 01.118-.099h1.76a.12.12 0 01.118.141l-.69 3.963h3.562l.723-4.146a.12.12 0 01.118-.099h1.76a.12.12 0 01.118.141l-.69 3.963h3.856a.12.12 0 01.118.14l-.308 1.76a.12.12 0 01-.118.1H15l-.622 3.562h3.856a.12.12 0 01.118.14l-.308 1.76a.12.12 0 01-.118.1h-3.776l-.723 4.146a.12.12 0 01-.118.099h-1.76a.12.12 0 01-.118-.141l.69-3.963H8.562l-.723 4.146a.12.12 0 01-.118.099H5.961zm3.754-6.342h3.562l.622-3.562H9.809l-.622 3.562z"/>
+            </svg>
+            <span className="font-medium">Nitro</span>
+          </button>
+          <button className="w-full px-3 py-2 flex items-center text-[#8e9297] rounded hover:bg-[#393c43] hover:text-[#dcddde] transition">
+            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            <span className="font-medium">Shop</span>
+          </button>
+        </div>
+        
+        {/* Direct Messages Header */}
+        <div className="mt-4 px-3 mb-2 flex items-center justify-between">
+          <span className="text-xs font-semibold text-[#8e9297] uppercase">Direct Messages</span>
+          <button
+            onClick={() => setShowAddFriend(true)}
+            className="text-[#dcddde] hover:text-white transition"
+          >
+            <PlusIcon className="w-4 h-4" />
+          </button>
+        </div>
+        
+        {/* DM List */}
+        <div className="flex-1 overflow-y-auto px-2">
+          {conversations.map(conv => (
+            <button
+              key={conv.id || conv._id}
+              onClick={() => selectConversation(conv)}
+              className={`w-full px-2 py-1.5 mb-0.5 flex items-center rounded hover:bg-[#393c43] transition group ${
+                selectedConversation?.id === conv.id || selectedConversation?._id === conv._id 
+                  ? 'bg-[#393c43]' 
+                  : ''
+              }`}
+            >
+              <div className="relative mr-3">
+                <div className="w-8 h-8 rounded-full bg-[#36393f] flex items-center justify-center">
+                  {conv.avatar ? (
+                    <img src={conv.avatar} alt="" className="w-full h-full rounded-full" />
+                  ) : (
+                    <span className="text-sm text-[#dcddde]">
+                      {conv.username?.[0]?.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                {/* Online status indicator */}
+                {conv.status === 'online' && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#3ba55d] border-2 border-[#2f3136] rounded-full"></div>
+                )}
+              </div>
+              <span className="text-sm text-[#dcddde] font-medium truncate">
+                {conv.displayName || conv.username}
+              </span>
+              {/* Close button */}
+              <XMarkIcon className="w-4 h-4 ml-auto text-[#8e9297] opacity-0 group-hover:opacity-100 hover:text-white transition" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {activeTab === 'friends' ? (
+          <>
+            {/* Friends Page Header */}
+            <div className="h-12 bg-[#36393f] border-b border-[#202225] flex items-center px-4">
+              <UserIcon className="w-5 h-5 text-[#8e9297] mr-2" />
+              <span className="text-white font-semibold mr-4">Friends</span>
+              <div className="h-6 w-px bg-[#4f545c] mr-4"></div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('online')}
+                  className={`px-3 py-1 text-sm font-medium rounded transition ${
+                    activeTab === 'online' 
+                      ? 'bg-[#4f545c] text-white' 
+                      : 'text-[#b9bbbe] hover:text-white hover:bg-[#4f545c]'
+                  }`}
+                >
+                  Online
+                </button>
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`px-3 py-1 text-sm font-medium rounded transition ${
+                    activeTab === 'all' 
+                      ? 'bg-[#4f545c] text-white' 
+                      : 'text-[#b9bbbe] hover:text-white hover:bg-[#4f545c]'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setActiveTab('pending')}
+                  className={`px-3 py-1 text-sm font-medium rounded transition relative ${
+                    activeTab === 'pending' 
+                      ? 'bg-[#4f545c] text-white' 
+                      : 'text-[#b9bbbe] hover:text-white hover:bg-[#4f545c]'
+                  }`}
+                >
+                  Pending
+                  {pendingRequests.length > 0 && (
+                    <span className="ml-1 px-1.5 bg-[#ed4245] text-white text-xs rounded-full">
+                      {pendingRequests.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  className="px-3 py-1 text-sm font-medium text-[#b9bbbe] hover:text-white hover:bg-[#4f545c] rounded transition"
+                >
+                  Blocked
+                </button>
+              </div>
+              
+              <button
+                onClick={() => setShowAddFriend(true)}
+                className="ml-auto px-3 py-1 text-sm font-medium rounded bg-[#3ba55d] hover:bg-[#2d7d46] text-white transition"
+              >
+                Add Friend
+              </button>
+            </div>
 
         {/* Content based on active tab */}
         <div className="flex-1 flex overflow-hidden">
