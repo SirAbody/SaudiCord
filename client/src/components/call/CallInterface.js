@@ -24,13 +24,14 @@ function CallInterface({
   onAccept,
   onReject,
   screenShare = null,
-  remoteScreenShare = null 
+  remoteScreenShare = null,
+  isCallConnected = false 
 }) {
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(isCallConnected);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -40,25 +41,22 @@ function CallInterface({
   const remoteVideoRef = useRef(null);
   const containerRef = useRef(null);
 
+  // Update connection status from prop
   useEffect(() => {
-    if (!isIncoming && !isConnected) {
-      // Start connecting
-      setTimeout(() => setIsConnected(true), 2000); // Simulate connection
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isIncoming, isConnected]);
+    setIsConnected(isCallConnected);
+  }, [isCallConnected]);
 
   useEffect(() => {
     if (isConnected) {
-      // Start timer
+      // Start timer only when connected
       intervalRef.current = setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
+    } else {
+      // Stop timer when not connected
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     }
 
     return () => {
@@ -161,10 +159,10 @@ function CallInterface({
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => {
-                  setIsConnected(true);
                   onAccept();
                 }}
-                className="p-4 bg-green-500 hover:bg-green-600 rounded-full transition"
+                className="p-4 bg-[#3ba55d] hover:bg-[#2d7d46] rounded-full transition"
+                title="Accept Call"
               >
                 <PhoneIcon className="w-6 h-6 text-white" />
               </button>
@@ -173,7 +171,8 @@ function CallInterface({
                 onClick={() => {
                   onReject();
                 }}
-                className="p-4 bg-primary-500 hover:bg-primary-600 rounded-full transition"
+                className="p-4 bg-[#f23f42] hover:bg-[#d83c3f] rounded-full transition"
+                title="Reject Call"
               >
                 <PhoneXMarkIcon className="w-6 h-6 text-white" />
               </button>

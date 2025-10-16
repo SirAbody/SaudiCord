@@ -48,6 +48,7 @@ function DirectMessages() {
   const [callType, setCallType] = useState(null); // 'voice' or 'video'
   const [callTarget, setCallTarget] = useState(null); // User being called
   const [incomingCall, setIncomingCall] = useState(null); // Incoming call data
+  const [isCallConnected, setIsCallConnected] = useState(false); // Track actual connection status
   const [loading, setLoading] = useState(false); // eslint-disable-line no-unused-vars
   const [activeTab, setActiveTab] = useState('online');
   const [contextMenu, setContextMenu] = useState(null);
@@ -468,6 +469,13 @@ function DirectMessages() {
     socketService.on('call:accepted', async (data) => {
       console.log('[DM] Call accepted:', data);
       console.log('[DM] Current callTarget:', callTarget);
+      
+      // Check if we already have a peer connection
+      if (peerConnectionRef.current) {
+        console.log('[DM] WebRTC already initialized, skipping re-initialization');
+        return;
+      }
+      
       toast.success('Call connected!');
       
       // The caller should already have callTarget set from startCall
@@ -772,17 +780,17 @@ function DirectMessages() {
     setCallType(callData.type);
     setIncomingCall(null);
     
-    // Initialize WebRTC for the receiver
+    // Send acceptance first  
+    socketService.emit('call:accept', {
+      callerId: callData.callerId,
+      type: callData.type
+    });
+    
+    // Then initialize WebRTC for the receiver
     await initializeWebRTC({ 
       callerId: callData.callerId, 
       type: callData.type,
       isReceiver: true 
-    });
-    
-    // Then send acceptance
-    socketService.emit('call:accept', {
-      callerId: callData.callerId,
-      type: callData.type
     });
   };
   
@@ -838,12 +846,20 @@ function DirectMessages() {
     setCallType(null);
     setCallTarget(null);
     setIncomingCall(null);
+    setIsCallConnected(false);
     toast('Call ended');
   };
   
   const initializeWebRTC = async (data) => {
     try {
       console.log('[WebRTC] Initializing WebRTC for call:', data);
+      
+      // Check if we already have a peer connection
+      if (peerConnectionRef.current) {
+        console.warn('[WebRTC] Peer connection already exists, closing it first');
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
       
       // Clear any existing ICE candidates queue
       iceCandidatesQueue.current = [];
@@ -914,8 +930,23 @@ function DirectMessages() {
       // Handle ICE candidates
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log('[WebRTC] Sending ICE candidate');
-          const targetId = callTarget?.id || callTarget?._id || data.callerId;
+          // Determine target ID based on role
+          let targetId;
+          if (data.isCaller) {
+            // Caller sends to accepter
+            targetId = data.targetId || data.accepterId || callTarget?.id || callTarget?._id;
+          } else {
+            // Receiver sends to caller
+            targetId = data.callerId || incomingCall?.callerId;
+          }
+          
+          console.log('[WebRTC] Sending ICE candidate to:', targetId);
+          
+          if (!targetId) {
+            console.error('[WebRTC] Cannot send ICE candidate - no target ID');
+            return;
+          }
+          
           socketService.emit('webrtc:ice-candidate', {
             targetUserId: targetId,
             candidate: event.candidate
@@ -927,10 +958,14 @@ function DirectMessages() {
       pc.onconnectionstatechange = () => {
         console.log('[WebRTC] Connection state:', pc.connectionState);
         if (pc.connectionState === 'connected') {
+          setIsCallConnected(true);
           toast.success('Call connected!');
-        } else if (pc.connectionState === 'failed') {
-          toast.error('Call connection failed');
-          endCall();
+        } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          setIsCallConnected(false);
+          if (pc.connectionState === 'failed') {
+            toast.error('Call connection failed');
+            endCall();
+          }
         }
       };
       
@@ -1697,6 +1732,7 @@ function DirectMessages() {
             })}
             onEndCall={endCall}
             isIncoming={!!incomingCall}
+            isCallConnected={isCallConnected}
             onAccept={() => acceptCall(incomingCall)}
             onReject={() => rejectCall(incomingCall)}
           />
