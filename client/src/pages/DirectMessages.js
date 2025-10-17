@@ -25,7 +25,18 @@ import {
   BookmarkIcon,
   EllipsisHorizontalIcon,
   FolderPlusIcon,
-  PhotoIcon
+  PhotoIcon,
+  DocumentIcon,
+  FilmIcon,
+  MusicalNoteIcon,
+  LinkIcon,
+  HandThumbUpIcon,
+  ChatBubbleLeftRightIcon,
+  TrashIcon,
+  PencilIcon,
+  ClipboardDocumentIcon,
+  ExclamationTriangleIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import { 
   UserIcon as SolidUserIcon,
@@ -61,6 +72,12 @@ const DirectMessages = () => {
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [hoveredMessage, setHoveredMessage] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   // Call states
   const [inCall, setInCall] = useState(false);
@@ -398,6 +415,249 @@ const DirectMessages = () => {
     });
   };
 
+  const formatMessageTimeHover = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const formatMessageContent = (content) => {
+    // Simple text processing for now - can be enhanced later with proper markdown parser
+    const parts = [];
+    let currentText = content;
+    
+    // Split by markdown patterns and create JSX elements
+    const patterns = [
+      { regex: /\*\*(.*?)\*\*/g, component: (text, key) => <strong key={key}>{text}</strong> },
+      { regex: /\*(.*?)\*/g, component: (text, key) => <em key={key}>{text}</em> },
+      { regex: /~~(.*?)~~/g, component: (text, key) => <del key={key}>{text}</del> },
+      { regex: /`(.*?)`/g, component: (text, key) => <code key={key} className="bg-[#2f3136] px-1 rounded text-[#f8f8ff]">{text}</code> },
+      { regex: /@(\w+)/g, component: (text, key) => <span key={key} className="text-[#00aff4] bg-[#00aff4]/10 px-1 rounded">@{text}</span> }
+    ];
+    
+    // For now, return simple text - can be enhanced with proper markdown parsing
+    return content;
+  };
+
+  const renderAttachment = (attachment) => {
+    const { type, url, name, size } = attachment;
+    
+    if (type?.startsWith('image/')) {
+      return (
+        <div className="max-w-md">
+          <img 
+            src={url} 
+            alt={name}
+            className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90"
+            onClick={() => window.open(url, '_blank')}
+          />
+        </div>
+      );
+    }
+    
+    if (type?.startsWith('video/')) {
+      return (
+        <div className="max-w-md">
+          <video 
+            src={url} 
+            controls
+            className="rounded-lg max-w-full h-auto"
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div className="flex items-center space-x-3 bg-[#2f3136] border border-[#202225] rounded p-3 max-w-md">
+        <div className="flex-shrink-0">
+          {type?.startsWith('image/') && <PhotoIcon className="w-8 h-8 text-[#b9bbbe]" />}
+          {type?.startsWith('video/') && <FilmIcon className="w-8 h-8 text-[#b9bbbe]" />}
+          {type?.startsWith('audio/') && <MusicalNoteIcon className="w-8 h-8 text-[#b9bbbe]" />}
+          {!type?.match(/^(image|video|audio)\//) && <DocumentIcon className="w-8 h-8 text-[#b9bbbe]" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[#00aff4] hover:underline cursor-pointer truncate">{name}</div>
+          <div className="text-xs text-[#b9bbbe]">{formatFileSize(size)}</div>
+        </div>
+        <button className="flex-shrink-0 p-1 hover:bg-[#393c43] rounded">
+          <svg className="w-5 h-5 text-[#b9bbbe]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </button>
+      </div>
+    );
+  };
+
+  const renderEmbed = (embed) => {
+    return (
+      <div className="border-l-4 border-[#5865f2] bg-[#2f3136] p-4 rounded-r max-w-md">
+        {embed.title && (
+          <div className="font-semibold text-[#00aff4] hover:underline cursor-pointer mb-1">
+            {embed.title}
+          </div>
+        )}
+        {embed.description && (
+          <div className="text-[#dcddde] text-sm mb-2">
+            {embed.description}
+          </div>
+        )}
+        {embed.image && (
+          <img 
+            src={embed.image} 
+            alt=""
+            className="rounded max-w-full h-auto"
+          />
+        )}
+      </div>
+    );
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const openUserProfile = (user) => {
+    // Open user profile modal
+    console.log('Opening profile for:', user);
+  };
+
+  const startEditMessage = (message) => {
+    setEditingMessage(message);
+  };
+
+  const handleEditKeyDown = async (e, message) => {
+    if (e.key === 'Enter') {
+      const newContent = e.target.value.trim();
+      if (newContent && newContent !== message.content) {
+        try {
+          await axios.put(`/dm/messages/${message.id}`, { content: newContent });
+          setMessages(prev => prev.map(msg => 
+            msg.id === message.id ? { ...msg, content: newContent, edited: true } : msg
+          ));
+          toast.success('Message edited');
+        } catch (error) {
+          toast.error('Failed to edit message');
+        }
+      }
+      setEditingMessage(null);
+    } else if (e.key === 'Escape') {
+      setEditingMessage(null);
+    }
+  };
+
+  const copyMessage = (content) => {
+    navigator.clipboard.writeText(content);
+    toast.success('Message copied to clipboard');
+  };
+
+  const deleteMessage = async (messageId) => {
+    if (window.confirm('Are you sure you want to delete this message?')) {
+      try {
+        await axios.delete(`/dm/messages/${messageId}`);
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+        toast.success('Message deleted');
+      } catch (error) {
+        toast.error('Failed to delete message');
+      }
+    }
+  };
+
+  const addReaction = async (messageId, emoji) => {
+    try {
+      await axios.post(`/dm/messages/${messageId}/reactions`, { emoji });
+      // Update local state optimistically
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          const reactions = msg.reactions || [];
+          const existingReaction = reactions.find(r => r.emoji === emoji);
+          
+          if (existingReaction) {
+            if (!existingReaction.users.includes(user._id)) {
+              existingReaction.users.push(user._id);
+              existingReaction.count++;
+            }
+          } else {
+            reactions.push({
+              emoji,
+              count: 1,
+              users: [user._id]
+            });
+          }
+          
+          return { ...msg, reactions };
+        }
+        return msg;
+      }));
+    } catch (error) {
+      toast.error('Failed to add reaction');
+    }
+  };
+
+  const toggleReaction = async (messageId, emoji) => {
+    try {
+      await axios.post(`/dm/messages/${messageId}/reactions/toggle`, { emoji });
+      // Update local state
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          const reactions = msg.reactions || [];
+          const reactionIndex = reactions.findIndex(r => r.emoji === emoji);
+          
+          if (reactionIndex !== -1) {
+            const reaction = reactions[reactionIndex];
+            const userIndex = reaction.users.indexOf(user._id);
+            
+            if (userIndex !== -1) {
+              reaction.users.splice(userIndex, 1);
+              reaction.count--;
+              
+              if (reaction.count === 0) {
+                reactions.splice(reactionIndex, 1);
+              }
+            } else {
+              reaction.users.push(user._id);
+              reaction.count++;
+            }
+          }
+          
+          return { ...msg, reactions };
+        }
+        return msg;
+      }));
+    } catch (error) {
+      toast.error('Failed to toggle reaction');
+    }
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
+    } else if (e.key === 'Escape' && replyingTo) {
+      setReplyingTo(null);
+    }
+  };
+
+  const handleFileSelect = (files) => {
+    if (!files || files.length === 0) return;
+    
+    const fileArray = Array.from(files);
+    console.log('Selected files:', fileArray);
+    
+    // TODO: Implement file upload
+    toast.success(`Selected ${fileArray.length} file(s) for upload`);
+  };
+
+  const handleFileDrop = (files) => {
+    handleFileSelect(files);
+  };
+
   const getFilteredFriends = () => {
     let filtered = friends;
     
@@ -577,31 +837,198 @@ const DirectMessages = () => {
               messages.map((message, index) => {
                 const isOwn = message.sender?._id === user?._id || message.sender?.id === user?.id;
                 const showAvatar = index === 0 || messages[index - 1]?.sender?._id !== message.sender?._id;
+                const prevMessage = messages[index - 1];
+                const nextMessage = messages[index + 1];
+                const showTime = showAvatar || (prevMessage && new Date(message.timestamp) - new Date(prevMessage.timestamp) > 300000); // 5 minutes
                 
                 return (
-                  <div key={message.id || index} className={`flex ${isOwn ? 'justify-end' : ''} mb-4 group`}>
-                    {!isOwn && showAvatar && (
-                      <img
-                        src={message.sender?.avatar || `https://ui-avatars.com/api/?name=${message.sender?.username}`}
-                        alt={message.sender?.username}
-                        className="w-10 h-10 rounded-full mr-3 mt-0.5"
-                      />
-                    )}
-                    {!isOwn && !showAvatar && <div className="w-10 mr-3" />}
-                    
-                    <div className={`max-w-[70%] ${isOwn ? 'items-end' : ''}`}>
-                      {showAvatar && (
-                        <div className="flex items-baseline mb-1">
-                          <span className={`font-semibold ${isOwn ? 'text-[#00b0f4]' : 'text-[#f04747]'} mr-2`}>
-                            {message.sender?.displayName || message.sender?.username}
-                          </span>
-                          <span className="text-xs text-[#72767d]">
-                            {formatMessageTime(message.timestamp || message.createdAt)}
-                          </span>
-                        </div>
+                  <div 
+                    key={message.id || index} 
+                    className={`message-container group relative px-4 py-0.5 hover:bg-[#32353b] ${
+                      hoveredMessage === message.id ? 'bg-[#32353b]' : ''
+                    }`}
+                    onMouseEnter={() => setHoveredMessage(message.id)}
+                    onMouseLeave={() => setHoveredMessage(null)}
+                  >
+                    {/* Message Actions */}
+                    <div className={`absolute right-4 top-2 flex items-center space-x-1 bg-[#2f3136] border border-[#202225] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
+                      <button 
+                        onClick={() => addReaction(message.id, '👍')}
+                        className="p-2 hover:bg-[#393c43] rounded text-[#b9bbbe] hover:text-white"
+                        title="Add reaction"
+                      >
+                        <FaceSmileIcon className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => setReplyingTo(message)}
+                        className="p-2 hover:bg-[#393c43] rounded text-[#b9bbbe] hover:text-white"
+                        title="Reply"
+                      >
+                        <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                      </button>
+                      {isOwn && (
+                        <button 
+                          onClick={() => startEditMessage(message)}
+                          className="p-2 hover:bg-[#393c43] rounded text-[#b9bbbe] hover:text-white"
+                          title="Edit"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
                       )}
-                      <div className={`${isOwn ? 'bg-[#5865f2]' : 'bg-[#4f545c]'} rounded-lg px-3 py-2`}>
-                        <p className="text-[#dcddde] break-words">{message.content}</p>
+                      <button 
+                        onClick={() => copyMessage(message.content)}
+                        className="p-2 hover:bg-[#393c43] rounded text-[#b9bbbe] hover:text-white"
+                        title="Copy text"
+                      >
+                        <ClipboardDocumentIcon className="w-4 h-4" />
+                      </button>
+                      {isOwn && (
+                        <button 
+                          onClick={() => deleteMessage(message.id)}
+                          className="p-2 hover:bg-[#393c43] rounded text-red-400 hover:text-red-300"
+                          title="Delete"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex">
+                      {/* Avatar */}
+                      <div className="w-10 mr-3 flex-shrink-0">
+                        {showAvatar ? (
+                          <img
+                            src={message.sender?.avatar || `https://ui-avatars.com/api/?name=${message.sender?.username}`}
+                            alt={message.sender?.username}
+                            className="w-10 h-10 rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => openUserProfile(message.sender)}
+                          />
+                        ) : (
+                          <div className="w-10 h-5 flex items-center justify-center">
+                            {showTime && (
+                              <span className="text-xs text-[#72767d] opacity-0 group-hover:opacity-100 transition-opacity">
+                                {formatMessageTimeHover(message.timestamp)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Message Content */}
+                      <div className="flex-1 min-w-0">
+                        {/* Header */}
+                        {showAvatar && (
+                          <div className="flex items-baseline mb-1">
+                            <span 
+                              className="font-semibold text-white hover:underline cursor-pointer mr-2"
+                              onClick={() => openUserProfile(message.sender)}
+                            >
+                              {message.sender?.displayName || message.sender?.username}
+                            </span>
+                            <span className="text-xs text-[#72767d]">
+                              {formatMessageTime(message.timestamp || message.createdAt)}
+                            </span>
+                            {message.edited && (
+                              <span className="text-xs text-[#72767d] ml-1">(edited)</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Reply Reference */}
+                        {message.replyTo && (
+                          <div className="flex items-center mb-1 text-xs text-[#b9bbbe] hover:text-white cursor-pointer">
+                            <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 117 7v-1a1 1 0 112 0v1a9 9 0 01-9 9H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            <img 
+                              src={message.replyTo.sender?.avatar || `https://ui-avatars.com/api/?name=${message.replyTo.sender?.username}`}
+                              className="w-4 h-4 rounded-full mr-1"
+                              alt=""
+                            />
+                            <span className="font-semibold mr-1">{message.replyTo.sender?.username}</span>
+                            <span className="truncate max-w-[200px]">{message.replyTo.content}</span>
+                          </div>
+                        )}
+
+                        {/* Message Body */}
+                        <div className="message-content">
+                          {editingMessage?.id === message.id ? (
+                            /* Edit Mode */
+                            <div className="bg-[#40444b] rounded p-2">
+                              <input
+                                type="text"
+                                defaultValue={message.content}
+                                onKeyDown={(e) => handleEditKeyDown(e, message)}
+                                onBlur={() => setEditingMessage(null)}
+                                autoFocus
+                                className="w-full bg-transparent text-[#dcddde] focus:outline-none"
+                              />
+                              <div className="text-xs text-[#72767d] mt-1">
+                                escape to <span className="text-[#00aff4]">cancel</span> • enter to <span className="text-[#00aff4]">save</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[#dcddde] break-words">
+                              {/* Regular text content */}
+                              <span>{formatMessageContent(message.content)}</span>
+                              
+                              {/* Attachments */}
+                              {message.attachments?.map((attachment, i) => (
+                                <div key={i} className="mt-2">
+                                  {renderAttachment(attachment)}
+                                </div>
+                              ))}
+                              
+                              {/* Embeds */}
+                              {message.embeds?.map((embed, i) => (
+                                <div key={i} className="mt-2">
+                                  {renderEmbed(embed)}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Message Status */}
+                          {isOwn && (
+                            <div className="flex items-center justify-end mt-1">
+                              {message.status === 'sending' && (
+                                <div className="w-4 h-4 border-2 border-[#72767d] border-t-transparent rounded-full animate-spin"></div>
+                              )}
+                              {message.status === 'sent' && (
+                                <CheckIcon className="w-4 h-4 text-[#72767d]" />
+                              )}
+                              {message.status === 'failed' && (
+                                <ExclamationTriangleIcon className="w-4 h-4 text-red-400" />
+                              )}
+                            </div>
+                          )}
+
+                          {/* Reactions */}
+                          {message.reactions && message.reactions.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {message.reactions.map((reaction, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => toggleReaction(message.id, reaction.emoji)}
+                                  className={`flex items-center space-x-1 px-1.5 py-0.5 rounded text-xs border ${
+                                    reaction.users.includes(user._id) 
+                                      ? 'bg-[#5865f2]/20 border-[#5865f2] text-[#5865f2]' 
+                                      : 'bg-[#2f3136] border-[#4f545c] text-[#b9bbbe] hover:border-[#72767d]'
+                                  }`}
+                                >
+                                  <span>{reaction.emoji}</span>
+                                  <span>{reaction.count}</span>
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => setShowEmojiPicker(message.id)}
+                                className="flex items-center justify-center w-6 h-6 rounded border border-[#4f545c] text-[#b9bbbe] hover:border-[#72767d] hover:text-white"
+                              >
+                                <PlusCircleIcon className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -625,33 +1052,181 @@ const DirectMessages = () => {
           </div>
 
           {/* Message Input */}
-          <form onSubmit={sendMessage} className="px-4 pb-4">
-            <div className="bg-[#40444b] rounded-lg flex items-center px-4">
-              <button type="button" className="text-[#b9bbbe] hover:text-[#dcddde] mr-3">
-                <PlusCircleIcon className="w-6 h-6" />
-              </button>
-              <input
-                ref={messageInputRef}
-                type="text"
-                value={messageInput}
-                onChange={handleTyping}
-                placeholder={`Message @${selectedConversation.friend?.username}`}
-                className="flex-1 bg-transparent text-[#dcddde] py-3 focus:outline-none placeholder-[#72767d]"
-                disabled={sendingMessage}
-              />
-              <div className="flex items-center space-x-3 ml-3">
-                <button type="button" className="text-[#b9bbbe] hover:text-[#dcddde]">
-                  <GiftIcon className="w-6 h-6" />
-                </button>
-                <button type="button" className="text-[#b9bbbe] hover:text-[#dcddde]">
-                  <PhotoIcon className="w-6 h-6" />
-                </button>
-                <button type="button" className="text-[#b9bbbe] hover:text-[#dcddde]">
-                  <FaceSmileIcon className="w-6 h-6" />
+          <div className="px-4 pb-4">
+            {/* Reply Indicator */}
+            {replyingTo && (
+              <div className="bg-[#2f3136] border-l-4 border-[#4f545c] px-3 py-2 mb-2 rounded-r flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-[#b9bbbe]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 117 7v-1a1 1 0 112 0v1a9 9 0 01-9 9H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-xs text-[#b9bbbe]">
+                    Replying to <span className="text-white font-semibold">{replyingTo.sender?.username}</span>
+                  </span>
+                  <span className="text-xs text-[#72767d] truncate max-w-[200px]">{replyingTo.content}</span>
+                </div>
+                <button 
+                  onClick={() => setReplyingTo(null)}
+                  className="text-[#b9bbbe] hover:text-white"
+                >
+                  <XMarkIcon className="w-4 h-4" />
                 </button>
               </div>
+            )}
+
+            {/* File Upload Area */}
+            <div 
+              className={`${isDragOver ? 'border-[#5865f2] bg-[#5865f2]/10' : 'border-transparent'} border-2 border-dashed rounded-lg transition-all`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOver(true);
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragOver(false);
+                handleFileDrop(e.dataTransfer.files);
+              }}
+            >
+              <form onSubmit={sendMessage}>
+                <div className="bg-[#40444b] rounded-lg flex items-end min-h-[44px]">
+                  {/* File Upload Button */}
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[#b9bbbe] hover:text-[#dcddde] p-3 flex-shrink-0"
+                    title="Upload a file"
+                  >
+                    <PlusCircleIcon className="w-6 h-6" />
+                  </button>
+                  
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleFileSelect(e.target.files)}
+                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+                  />
+
+                  {/* Message Input */}
+                  <div className="flex-1 min-h-[44px] max-h-[200px] overflow-y-auto">
+                    <textarea
+                      ref={messageInputRef}
+                      value={messageInput}
+                      onChange={handleTyping}
+                      onKeyDown={handleInputKeyDown}
+                      placeholder={`Message @${selectedConversation.friend?.username}`}
+                      className="w-full bg-transparent text-[#dcddde] py-3 px-0 resize-none focus:outline-none placeholder-[#72767d] min-h-[44px]"
+                      disabled={sendingMessage}
+                      rows={1}
+                      style={{ 
+                        height: 'auto',
+                        minHeight: '44px'
+                      }}
+                      onInput={(e) => {
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                      }}
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-2 p-3 flex-shrink-0">
+                    <button 
+                      type="button" 
+                      className="text-[#b9bbbe] hover:text-[#dcddde] transition-colors"
+                      title="Send a gift"
+                    >
+                      <GiftIcon className="w-5 h-5" />
+                    </button>
+                    <button 
+                      type="button" 
+                      className="text-[#b9bbbe] hover:text-[#dcddde] transition-colors"
+                      title="Upload an image"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => handleFileSelect(e.target.files);
+                        input.click();
+                      }}
+                    >
+                      <PhotoIcon className="w-5 h-5" />
+                    </button>
+                    <div className="relative">
+                      <button 
+                        type="button" 
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="text-[#b9bbbe] hover:text-[#dcddde] transition-colors"
+                        title="Add emoji"
+                      >
+                        <FaceSmileIcon className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Simple Emoji Picker */}
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full right-0 mb-2 bg-[#2f3136] border border-[#202225] rounded-lg shadow-lg p-3 z-50">
+                          <div className="grid grid-cols-8 gap-1">
+                            {['😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒'].map(emoji => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => {
+                                  setMessageInput(prev => prev + emoji);
+                                  setShowEmojiPicker(false);
+                                }}
+                                className="text-lg hover:bg-[#393c43] rounded p-1"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Send Button */}
+                    {messageInput.trim() && (
+                      <button
+                        type="submit"
+                        disabled={sendingMessage}
+                        className="bg-[#5865f2] hover:bg-[#4752c4] disabled:opacity-50 text-white p-2 rounded-full transition-colors"
+                        title="Send message"
+                      >
+                        {sendingMessage ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <PaperAirplaneIcon className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* File Preview Area */}
+                <div className="mt-2 space-y-2">
+                  {/* Show selected files for upload */}
+                </div>
+
+                {/* Discord-style hints */}
+                <div className="flex items-center justify-between text-xs text-[#72767d] mt-1 px-1">
+                  <div className="flex items-center space-x-4">
+                    <span>Use <kbd className="bg-[#2f3136] px-1 rounded">Shift+Enter</kbd> for new line</span>
+                    {replyingTo && (
+                      <span>Use <kbd className="bg-[#2f3136] px-1 rounded">Escape</kbd> to cancel reply</span>
+                    )}
+                  </div>
+                  {messageInput.length > 1900 && (
+                    <span className={`${messageInput.length > 2000 ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {2000 - messageInput.length}
+                    </span>
+                  )}
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </div>
       ) : (
         /* Friends View */
