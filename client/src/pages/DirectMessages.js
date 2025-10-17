@@ -78,9 +78,20 @@ const DirectMessages = () => {
       const response = await axios.get('/friends');
       console.log('Friends API response:', response.data);
       
-      // Handle different response formats
-      const friendsData = response.data.friends || response.data || [];
-      const pendingData = response.data.pending || [];
+      // Handle different response formats - API returns array directly
+      let friendsData = [];
+      let pendingData = [];
+      
+      if (Array.isArray(response.data)) {
+        // Direct array response
+        friendsData = response.data;
+      } else if (response.data.friends) {
+        // Object with friends property
+        friendsData = response.data.friends || [];
+        pendingData = response.data.pending || [];
+      }
+      
+      console.log('Processed friends:', friendsData);
       
       // Ensure arrays
       setFriends(Array.isArray(friendsData) ? friendsData : []);
@@ -89,7 +100,7 @@ const DirectMessages = () => {
       const onlineSet = new Set();
       if (Array.isArray(friendsData)) {
         friendsData.forEach(friend => {
-          if (friend.status === 'online') {
+          if (friend.status === 'online' || friend.isOnline) {
             onlineSet.add(friend._id || friend.id);
           }
         });
@@ -106,13 +117,51 @@ const DirectMessages = () => {
     try {
       const response = await axios.get('/friends/conversations');
       console.log('Conversations API response:', response.data);
-      const conversationsData = response.data || [];
+      
+      let conversationsData = response.data || [];
+      
+      // Process conversations to ensure friend data is properly structured
+      if (Array.isArray(conversationsData)) {
+        conversationsData = conversationsData.map(conv => {
+          // Extract friend data from conversation
+          let friendData = null;
+          
+          // Check different possible structures
+          if (conv.friend) {
+            friendData = conv.friend;
+          } else if (conv.participants) {
+            // Find the friend (not the current user)
+            friendData = conv.participants.find(p => p._id !== user?._id && p.id !== user?.id);
+          } else if (conv.user) {
+            friendData = conv.user;
+          }
+          
+          // If we found friend data, ensure it has all needed fields
+          if (friendData) {
+            return {
+              ...conv,
+              friend: {
+                _id: friendData._id || friendData.id,
+                id: friendData.id || friendData._id,
+                username: friendData.username || friendData.name || 'User',
+                displayName: friendData.displayName || friendData.username || friendData.name,
+                avatar: friendData.avatar || friendData.profilePicture,
+                status: friendData.status || 'offline'
+              }
+            };
+          }
+          
+          return conv;
+        });
+      }
+      
+      console.log('Processed conversations:', conversationsData);
       setConversations(Array.isArray(conversationsData) ? conversationsData : []);
     } catch (error) {
       console.error('Error loading conversations:', error);
       setConversations([]);
     }
-  }, []);
+  }, [user]);
 
   const loadMessages = useCallback(async (conversationId) => {
     setLoadingMessages(true);
@@ -648,11 +697,11 @@ const DirectMessages = () => {
 
   return (
     <div className="flex h-screen bg-[#36393f] overflow-hidden">
-      {/* Left Sidebar - Friends List */}
-      <div className="w-60 bg-[#2f3136] flex flex-col border-r border-[#202225]">
+      {/* Left Sidebar - Conversations List */}
+      <div className="w-[240px] bg-[#2f3136] flex flex-col flex-shrink-0">
         {/* Search Bar */}
-        <div className="p-4 border-b border-[#202225]">
-          <button className="w-full bg-[#202225] text-[#96989d] px-3 py-2 rounded text-sm text-left hover:text-[#dcddde] transition-colors">
+        <div className="h-[48px] px-[10px] shadow-md flex items-center border-b border-[#202225]">
+          <button className="w-full bg-[#202225] text-[#a3a6aa] px-[6px] h-[28px] text-[14px] rounded text-left hover:text-[#dcddde] transition-colors">
             Find or start a conversation
           </button>
         </div>
@@ -664,14 +713,14 @@ const DirectMessages = () => {
               setSelectedConversation(null);
               setActiveTab('online');
             }}
-            className={`flex items-center space-x-3 w-full px-2 py-2 rounded ${
-              !selectedConversation ? 'bg-[#393c43] text-white' : 'hover:bg-[#393c43] text-[#96989d] hover:text-[#dcddde]'
+            className={`flex items-center w-full h-[42px] px-[12px] mx-[8px] rounded ${
+              !selectedConversation ? 'bg-[#42464d] text-white' : 'hover:bg-[#393c43] text-[#b5b9bd] hover:text-[#dcddde]'
             } transition-all`}
           >
-            <SolidUserIcon className="w-6 h-6" />
-            <span className="font-semibold">Friends</span>
+            <SolidUserIcon className="w-[24px] h-[24px] mr-[12px]" />
+            <span className="font-medium text-[16px] flex-1 text-left">Friends</span>
             {pendingRequests.length > 0 && (
-              <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+              <span className="bg-[#ed4245] text-white text-[12px] px-[5px] h-[16px] rounded-full flex items-center justify-center min-w-[16px]">
                 {pendingRequests.length}
               </span>
             )}
@@ -679,51 +728,65 @@ const DirectMessages = () => {
         </div>
 
         {/* Direct Messages Header */}
-        <div className="px-4 py-2 flex items-center justify-between border-t border-[#202225]">
-          <span className="text-xs font-semibold text-[#96989d] uppercase tracking-wide">Direct Messages</span>
-          <button className="text-[#96989d] hover:text-[#dcddde] transition-colors">
-            <PlusCircleIcon className="w-4 h-4" />
+        <h2 className="px-[18px] h-[40px] flex items-center">
+          <span className="text-[12px] font-semibold text-[#8e9297] uppercase tracking-[.02em]">
+            Direct Messages
+          </span>
+          <button className="ml-auto text-[#b5b9bd] hover:text-[#dcddde] transition-colors">
+            <PlusCircleIcon className="w-[16px] h-[16px]" />
           </button>
-        </div>
+        </h2>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 scrollbar-thin scrollbar-thumb-[#202225] scrollbar-track-transparent">
           {conversations.length > 0 ? conversations.map(conv => (
-            <button
+            <div
               key={conv._id || conv.id}
               onClick={() => setSelectedConversation(conv)}
-              className={`flex items-center space-x-3 w-full px-2 py-3 rounded group mb-1 ${
+              className={`flex items-center h-[42px] mx-[8px] px-[8px] rounded cursor-pointer group mb-[2px] ${
                 selectedConversation?._id === conv._id || selectedConversation?.id === conv.id
                   ? 'bg-[#393c43] text-white'
-                  : 'hover:bg-[#393c43] text-[#96989d] hover:text-[#dcddde]'
+                  : 'hover:bg-[#35373c] text-[#8e9297] hover:text-[#dcddde]'
               } transition-all`}
             >
-              <div className="relative flex-shrink-0">
+              <div className="relative mr-[12px] flex-shrink-0">
                 <img
                   src={conv.friend?.avatar || `https://ui-avatars.com/api/?name=${conv.friend?.username || 'U'}`}
-                  alt={conv.friend?.username}
-                  className="w-8 h-8 rounded-full"
+                  alt=""
+                  className="w-[32px] h-[32px] rounded-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://ui-avatars.com/api/?name=${conv.friend?.username || 'U'}&background=5865f2&color=fff`;
+                  }}
                 />
-                {onlineUsers.has(conv.friend?._id || conv.friend?.id) && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2f3136]"></div>
+                {(onlineUsers.has(conv.friend?._id) || onlineUsers.has(conv.friend?.id)) && (
+                  <div className="absolute bottom-[-2px] right-[-2px] w-[10px] h-[10px] bg-[#3ba55c] rounded-full border-[2.5px] border-[#2f3136]"></div>
                 )}
               </div>
-              <span className="text-sm truncate flex-1 text-left">
-                {conv.friend?.displayName || conv.friend?.username || 'Unknown User'}
-              </span>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-[16px] leading-[20px] truncate">
+                  {conv.friend?.displayName || conv.friend?.username || 'Unknown User'}
+                </div>
+                {conv.lastMessage && (
+                  <div className="text-[12px] text-[#a3a6aa] truncate mt-[1px]">
+                    {conv.lastMessage.content}
+                  </div>
+                )}
+              </div>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   // Close conversation
                 }}
-                className="opacity-0 group-hover:opacity-100 text-[#96989d] hover:text-white transition-opacity"
+                className="ml-2 opacity-0 group-hover:opacity-100 text-[#b5b9bd] hover:text-white transition-opacity"
               >
-                <XMarkIcon className="w-4 h-4" />
+                <XMarkIcon className="w-[16px] h-[16px]" />
               </button>
-            </button>
+            </div>
           )) : (
-            <div className="text-[#96989d] text-sm text-center py-4">
-              No conversations yet
+            <div className="text-[#72767d] text-[14px] text-center mt-[20px] px-4">
+              <div className="mb-2">No Direct Messages</div>
+              <div className="text-[12px]">You have no direct messages yet.</div>
             </div>
           )}
         </div>
@@ -1195,58 +1258,62 @@ const DirectMessages = () => {
         </div>
       ) : (
         /* Friends View */
-        <div className="flex-1 flex flex-col max-w-full">
+        <div className="flex-1 flex flex-col bg-[#36393f]">
           {/* Header */}
-          <div className="h-12 bg-[#36393f] border-b border-[#202225] flex items-center px-6">
-            <SolidUserIcon className="w-6 h-6 text-[#72767d] mr-3" />
-            <span className="font-semibold text-white">Friends</span>
+          <div className="h-[48px] bg-[#36393f] shadow-md flex items-center px-[20px]">
+            <div className="flex items-center">
+              <SolidUserIcon className="w-[24px] h-[24px] text-[#8e9297] mr-[8px]" />
+              <h2 className="text-white font-semibold text-[16px]">Friends</h2>
+            </div>
+            
+            <div className="h-[24px] w-[1px] bg-[#4f545c] mx-[20px]" />
             
             {/* Tabs */}
-            <div className="flex items-center space-x-8 ml-8">
+            <div className="flex items-center">
               <button
                 onClick={() => setActiveTab('online')}
-                className={`${activeTab === 'online' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all`}
+                className={`${activeTab === 'online' ? 'text-white bg-[#42464d]' : 'text-[#b5b9bd] hover:text-white'} px-[8px] py-[2px] mx-[8px] rounded text-[14px] font-medium transition-all`}
               >
                 Online
               </button>
               <button
                 onClick={() => setActiveTab('all')}
-                className={`${activeTab === 'all' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all`}
+                className={`${activeTab === 'all' ? 'text-white bg-[#42464d]' : 'text-[#b5b9bd] hover:text-white'} px-[8px] py-[2px] mx-[8px] rounded text-[14px] font-medium transition-all`}
               >
                 All
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`${activeTab === 'pending' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all relative`}
+                className={`${activeTab === 'pending' ? 'text-white bg-[#42464d]' : 'text-[#b5b9bd] hover:text-white'} px-[8px] py-[2px] mx-[8px] rounded text-[14px] font-medium transition-all relative`}
               >
                 Pending
                 {pendingRequests.length > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-[8px] -right-[8px] bg-[#ed4245] text-white text-[10px] px-[4px] h-[16px] rounded-full flex items-center justify-center min-w-[16px]">
                     {pendingRequests.length}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => setActiveTab('blocked')}
-                className={`${activeTab === 'blocked' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all`}
+                className={`${activeTab === 'blocked' ? 'text-white bg-[#42464d]' : 'text-[#b5b9bd] hover:text-white'} px-[8px] py-[2px] mx-[8px] rounded text-[14px] font-medium transition-all`}
               >
                 Blocked
               </button>
-              <div className="ml-auto">
-                <button
-                  onClick={() => setShowAddFriend(true)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors text-sm"
-                >
-                  Add Friend
-                </button>
-              </div>
             </div>
+            
+            <button
+              onClick={() => setShowAddFriend(true)}
+              className="ml-auto bg-[#3ba55c] hover:bg-[#2d7d46] text-white px-[16px] h-[32px] rounded text-[14px] font-medium transition-colors"
+            >
+              Add Friend
+            </button>
           </div>
 
-          {/* Friends List */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-4xl mx-auto p-8">
-              {activeTab === 'pending' ? (
+          {/* Friends Content Area */}
+          <div className="flex-1 flex bg-[#36393f]">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[#202225] scrollbar-track-transparent">
+              <div className="min-h-full px-[30px] py-[20px]">
+                {activeTab === 'pending' ? (
                 /* Pending Requests */
                 <div>
                   <h3 className="text-xs font-semibold text-[#96989d] uppercase mb-4 tracking-wide">
@@ -1361,6 +1428,7 @@ const DirectMessages = () => {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
