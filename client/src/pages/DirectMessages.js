@@ -104,27 +104,41 @@ const DirectMessages = () => {
   const loadFriends = useCallback(async () => {
     try {
       const response = await axios.get('/friends');
-      setFriends(response.data.friends || []);
-      setPendingRequests(response.data.pending || []);
+      console.log('Friends API response:', response.data);
+      
+      // Handle different response formats
+      const friendsData = response.data.friends || response.data || [];
+      const pendingData = response.data.pending || [];
+      
+      // Ensure arrays
+      setFriends(Array.isArray(friendsData) ? friendsData : []);
+      setPendingRequests(Array.isArray(pendingData) ? pendingData : []);
       
       const onlineSet = new Set();
-      response.data.friends?.forEach(friend => {
-        if (friend.status === 'online') {
-          onlineSet.add(friend._id || friend.id);
-        }
-      });
+      if (Array.isArray(friendsData)) {
+        friendsData.forEach(friend => {
+          if (friend.status === 'online') {
+            onlineSet.add(friend._id || friend.id);
+          }
+        });
+      }
       setOnlineUsers(onlineSet);
     } catch (error) {
       console.error('Error loading friends:', error);
+      setFriends([]);
+      setPendingRequests([]);
     }
   }, []);
 
   const loadConversations = useCallback(async () => {
     try {
       const response = await axios.get('/friends/conversations');
-      setConversations(response.data || []);
+      console.log('Conversations API response:', response.data);
+      const conversationsData = response.data || [];
+      setConversations(Array.isArray(conversationsData) ? conversationsData : []);
     } catch (error) {
       console.error('Error loading conversations:', error);
+      setConversations([]);
     }
   }, []);
 
@@ -132,10 +146,13 @@ const DirectMessages = () => {
     setLoadingMessages(true);
     try {
       const response = await axios.get(`/dm/messages/${conversationId}`);
-      setMessages(response.data || []);
+      const messagesData = response.data || [];
+      // Ensure messages is always an array
+      setMessages(Array.isArray(messagesData) ? messagesData : []);
     } catch (error) {
       console.error('Error loading messages:', error);
       toast.error('Failed to load messages');
+      setMessages([]); // Set empty array on error
     } finally {
       setLoadingMessages(false);
     }
@@ -261,7 +278,7 @@ const DirectMessages = () => {
     socketService.on('friend:request:accepted', handleFriendAccepted);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
-  }, []);
+  }, [handleReceiveMessage, handleMessageSent, handleUserTyping, handleUserStopTyping, handleFriendRequest, handleFriendAccepted, handleUserOnline, handleUserOffline]);
 
   const cleanupSocketListeners = useCallback(() => {
     socketService.off('dm:receive');
@@ -275,10 +292,10 @@ const DirectMessages = () => {
   }, []);
 
 
-  const handleReceiveMessage = (message) => {
+  const handleReceiveMessage = useCallback((message) => {
     if (selectedConversation?.friend?._id === message.sender?._id ||
         selectedConversation?.friend?.id === message.sender?.id) {
-      setMessages(prev => [...prev, message]);
+      setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
     }
     
     if (!document.hasFocus() || 
@@ -287,7 +304,7 @@ const DirectMessages = () => {
       toast.custom((t) => (
         <div className="flex items-center space-x-3 bg-gray-800 rounded-lg p-3">
           <img
-            src={message.sender?.avatar || `https://ui-avatars.com/api/?name=${message.sender?.username}`}
+            src={message.sender?.avatar || `https://ui-avatars.com/api/?name=${message.sender?.username || 'U'}`}
             alt={message.sender?.username}
             className="w-10 h-10 rounded-full"
           />
@@ -298,15 +315,15 @@ const DirectMessages = () => {
         </div>
       ));
     }
-  };
+  }, [selectedConversation]);
 
-  const handleMessageSent = ({ tempId, messageId, message }) => {
-    setMessages(prev => prev.map(msg => 
+  const handleMessageSent = useCallback(({ tempId, messageId, message }) => {
+    setMessages(prev => Array.isArray(prev) ? prev.map(msg => 
       msg.id === tempId ? { ...message, id: messageId, status: 'sent' } : msg
-    ));
-  };
+    ) : []);
+  }, []);
 
-  const handleUserTyping = ({ userId }) => {
+  const handleUserTyping = useCallback(({ userId }) => {
     setTypingUsers(prev => ({ ...prev, [userId]: true }));
     setTimeout(() => {
       setTypingUsers(prev => {
@@ -315,37 +332,37 @@ const DirectMessages = () => {
         return newState;
       });
     }, 3000);
-  };
+  }, []);
 
-  const handleUserStopTyping = ({ userId }) => {
+  const handleUserStopTyping = useCallback(({ userId }) => {
     setTypingUsers(prev => {
       const newState = { ...prev };
       delete newState[userId];
       return newState;
     });
-  };
+  }, []);
 
-  const handleFriendRequest = (request) => {
+  const handleFriendRequest = useCallback((request) => {
     toast.success(`${request.from?.username} sent you a friend request!`);
     loadFriends();
-  };
+  }, [loadFriends]);
 
-  const handleFriendAccepted = (data) => {
+  const handleFriendAccepted = useCallback((data) => {
     toast.success(`${data.username} accepted your friend request!`);
     loadFriends();
-  };
+  }, [loadFriends]);
 
-  const handleUserOnline = ({ userId }) => {
+  const handleUserOnline = useCallback(({ userId }) => {
     setOnlineUsers(prev => new Set([...prev, userId]));
-  };
+  }, []);
 
-  const handleUserOffline = ({ userId }) => {
+  const handleUserOffline = useCallback(({ userId }) => {
     setOnlineUsers(prev => {
       const newSet = new Set(prev);
       newSet.delete(userId);
       return newSet;
     });
-  };
+  }, []);
 
   const formatMessageTime = (timestamp) => {
     const date = new Date(timestamp);
@@ -624,16 +641,16 @@ const DirectMessages = () => {
   return (
     <div className="flex h-screen bg-[#36393f] overflow-hidden">
       {/* Left Sidebar - Friends List */}
-      <div className="w-60 bg-[#2f3136] flex flex-col">
+      <div className="w-60 bg-[#2f3136] flex flex-col border-r border-[#202225]">
         {/* Search Bar */}
-        <div className="p-2 border-b border-[#202225]">
-          <button className="w-full bg-[#202225] text-[#96989d] px-2 py-1.5 rounded text-sm text-left hover:text-[#dcddde] transition-colors">
+        <div className="p-4 border-b border-[#202225]">
+          <button className="w-full bg-[#202225] text-[#96989d] px-3 py-2 rounded text-sm text-left hover:text-[#dcddde] transition-colors">
             Find or start a conversation
           </button>
         </div>
 
         {/* Friends Button */}
-        <div className="px-2 py-3">
+        <div className="px-2 py-2">
           <button 
             onClick={() => {
               setSelectedConversation(null);
@@ -654,28 +671,28 @@ const DirectMessages = () => {
         </div>
 
         {/* Direct Messages Header */}
-        <div className="px-4 py-2 flex items-center justify-between">
-          <span className="text-xs font-semibold text-[#96989d] uppercase">Direct Messages</span>
-          <button className="text-[#96989d] hover:text-[#dcddde]">
+        <div className="px-4 py-2 flex items-center justify-between border-t border-[#202225]">
+          <span className="text-xs font-semibold text-[#96989d] uppercase tracking-wide">Direct Messages</span>
+          <button className="text-[#96989d] hover:text-[#dcddde] transition-colors">
             <PlusCircleIcon className="w-4 h-4" />
           </button>
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {conversations.map(conv => (
+        <div className="flex-1 overflow-y-auto px-2">
+          {conversations.length > 0 ? conversations.map(conv => (
             <button
               key={conv._id || conv.id}
               onClick={() => setSelectedConversation(conv)}
-              className={`flex items-center space-x-3 w-full px-2 py-2 mx-2 rounded ${
+              className={`flex items-center space-x-3 w-full px-2 py-3 rounded group mb-1 ${
                 selectedConversation?._id === conv._id || selectedConversation?.id === conv.id
                   ? 'bg-[#393c43] text-white'
                   : 'hover:bg-[#393c43] text-[#96989d] hover:text-[#dcddde]'
               } transition-all`}
             >
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <img
-                  src={conv.friend?.avatar || `https://ui-avatars.com/api/?name=${conv.friend?.username}`}
+                  src={conv.friend?.avatar || `https://ui-avatars.com/api/?name=${conv.friend?.username || 'U'}`}
                   alt={conv.friend?.username}
                   className="w-8 h-8 rounded-full"
                 />
@@ -683,18 +700,24 @@ const DirectMessages = () => {
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2f3136]"></div>
                 )}
               </div>
-              <span className="text-sm">{conv.friend?.displayName || conv.friend?.username}</span>
+              <span className="text-sm truncate flex-1 text-left">
+                {conv.friend?.displayName || conv.friend?.username || 'Unknown User'}
+              </span>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   // Close conversation
                 }}
-                className="ml-auto opacity-0 group-hover:opacity-100 text-[#96989d] hover:text-white"
+                className="opacity-0 group-hover:opacity-100 text-[#96989d] hover:text-white transition-opacity"
               >
                 <XMarkIcon className="w-4 h-4" />
               </button>
             </button>
-          ))}
+          )) : (
+            <div className="text-[#96989d] text-sm text-center py-4">
+              No conversations yet
+            </div>
+          )}
         </div>
       </div>
 
@@ -741,12 +764,6 @@ const DirectMessages = () => {
                 />
                 <MagnifyingGlassIcon className="absolute right-2 top-1.5 w-4 h-4 text-[#72767d]" />
               </div>
-              <button 
-                onClick={() => setShowUserInfo(!showUserInfo)}
-                className="text-[#b9bbbe] hover:text-[#dcddde] transition-colors"
-              >
-                <InformationCircleIcon className="w-5 h-5" />
-              </button>
             </div>
           </div>
 
@@ -770,7 +787,7 @@ const DirectMessages = () => {
                   This is the beginning of your direct message history with @{selectedConversation.friend?.username}.
                 </p>
               </div>
-            ) : (
+            ) : Array.isArray(messages) && messages.length > 0 ? (
               messages.map((message, index) => {
                 const isOwn = message.sender?._id === user?._id || message.sender?.id === user?.id;
                 const showAvatar = index === 0 || messages[index - 1]?.sender?._id !== message.sender?._id;
@@ -970,6 +987,10 @@ const DirectMessages = () => {
                   </div>
                 );
               })
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-[#96989d] text-sm">No messages available</div>
+              </div>
             )}
             
             {/* Typing Indicator */}
@@ -1166,187 +1187,177 @@ const DirectMessages = () => {
         </div>
       ) : (
         /* Friends View */
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col max-w-full">
           {/* Header */}
-          <div className="h-12 bg-[#36393f] border-b border-[#202225] flex items-center px-4">
+          <div className="h-12 bg-[#36393f] border-b border-[#202225] flex items-center px-6">
             <SolidUserIcon className="w-6 h-6 text-[#72767d] mr-3" />
             <span className="font-semibold text-white">Friends</span>
             
             {/* Tabs */}
-            <div className="flex items-center space-x-6 ml-8">
+            <div className="flex items-center space-x-8 ml-8">
               <button
                 onClick={() => setActiveTab('online')}
-                className={`${activeTab === 'online' ? 'text-white bg-[#42464d]' : 'text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#42464d]'} px-2 py-0.5 rounded transition-all`}
+                className={`${activeTab === 'online' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all`}
               >
                 Online
               </button>
               <button
                 onClick={() => setActiveTab('all')}
-                className={`${activeTab === 'all' ? 'text-white bg-[#42464d]' : 'text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#42464d]'} px-2 py-0.5 rounded transition-all`}
+                className={`${activeTab === 'all' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all`}
               >
                 All
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`${activeTab === 'pending' ? 'text-white bg-[#42464d]' : 'text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#42464d]'} px-2 py-0.5 rounded transition-all relative`}
+                className={`${activeTab === 'pending' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all relative`}
               >
                 Pending
                 {pendingRequests.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
                     {pendingRequests.length}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => setActiveTab('blocked')}
-                className={`${activeTab === 'blocked' ? 'text-white bg-[#42464d]' : 'text-[#b9bbbe] hover:text-[#dcddde] hover:bg-[#42464d]'} px-2 py-0.5 rounded transition-all`}
+                className={`${activeTab === 'blocked' ? 'text-white border-b-2 border-white' : 'text-[#b9bbbe] hover:text-[#dcddde]'} px-2 py-1 transition-all`}
               >
                 Blocked
               </button>
-              <button
-                onClick={() => setShowAddFriend(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-2 py-0.5 rounded transition-colors"
-              >
-                Add Friend
-              </button>
+              <div className="ml-auto">
+                <button
+                  onClick={() => setShowAddFriend(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors text-sm"
+                >
+                  Add Friend
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Friends List */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {activeTab === 'pending' ? (
-              /* Pending Requests */
-              <div>
-                <h3 className="text-xs font-semibold text-[#96989d] uppercase mb-4">
-                  Pending — {pendingRequests.length}
-                </h3>
-                {pendingRequests.map(request => (
-                  <div key={request._id || request.id} className="flex items-center p-3 rounded hover:bg-[#42464d] group">
-                    <img
-                      src={request.from?.avatar || `https://ui-avatars.com/api/?name=${request.from?.username}`}
-                      alt={request.from?.username}
-                      className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold text-white">
-                        {request.from?.displayName || request.from?.username}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto p-8">
+              {activeTab === 'pending' ? (
+                /* Pending Requests */
+                <div>
+                  <h3 className="text-xs font-semibold text-[#96989d] uppercase mb-4 tracking-wide">
+                    Pending — {pendingRequests.length}
+                  </h3>
+                  <div className="space-y-2">
+                    {pendingRequests.length > 0 ? pendingRequests.map(request => (
+                      <div key={request._id || request.id} className="flex items-center p-4 border-t border-[#2f3136] hover:bg-[#32353b] transition-colors">
+                        <img
+                          src={request.from?.avatar || `https://ui-avatars.com/api/?name=${request.from?.username || 'U'}`}
+                          alt={request.from?.username}
+                          className="w-10 h-10 rounded-full mr-4"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-white">
+                            {request.from?.displayName || request.from?.username || 'Unknown User'}
+                          </div>
+                          <div className="text-sm text-[#b9bbbe]">
+                            Incoming Friend Request
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => acceptFriendRequest(request._id || request.id)}
+                            className="p-2 bg-[#3ba55d] hover:bg-[#2d8049] rounded-full text-white transition-colors"
+                          >
+                            <CheckIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => rejectFriendRequest(request._id || request.id)}
+                            className="p-2 bg-[#4f545c] hover:bg-[#42464d] rounded-full text-white transition-colors"
+                          >
+                            <XMarkIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-xs text-[#b9bbbe]">
-                        Incoming Friend Request
+                    )) : (
+                      <div className="text-center py-8">
+                        <div className="text-[#96989d] text-sm">No pending friend requests</div>
                       </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => acceptFriendRequest(request._id || request.id)}
-                        className="p-2 bg-[#3ba55d] hover:bg-[#2d8049] rounded-full text-white"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => rejectFriendRequest(request._id || request.id)}
-                        className="p-2 bg-[#4f545c] hover:bg-[#42464d] rounded-full text-white"
-                      >
-                        <XMarkIcon className="w-5 h-5" />
-                      </button>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            ) : (
-              /* Friends List */
-              <div>
-                <h3 className="text-xs font-semibold text-[#96989d] uppercase mb-4">
-                  {activeTab === 'online' ? `Online — ${getFilteredFriends().length}` : `All Friends — ${getFilteredFriends().length}`}
-                </h3>
-                {getFilteredFriends().map(friend => (
-                  <div key={friend._id || friend.id} className="flex items-center p-3 rounded hover:bg-[#42464d] group">
-                    <div className="relative">
-                      <img
-                        src={friend.avatar || `https://ui-avatars.com/api/?name=${friend.username}`}
-                        alt={friend.username}
-                        className="w-10 h-10 rounded-full mr-3"
-                      />
-                      {onlineUsers.has(friend._id || friend.id) && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#36393f]"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 ml-3">
-                      <div className="font-semibold text-white">
-                        {friend.displayName || friend.username}
+                </div>
+              ) : (
+                /* Friends List */
+                <div>
+                  <h3 className="text-xs font-semibold text-[#96989d] uppercase mb-4 tracking-wide">
+                    {activeTab === 'online' ? `Online — ${getFilteredFriends().length}` : `All Friends — ${getFilteredFriends().length}`}
+                  </h3>
+                  <div className="space-y-2">
+                    {getFilteredFriends().length > 0 ? getFilteredFriends().map(friend => (
+                      <div key={friend._id || friend.id} className="flex items-center p-4 border-t border-[#2f3136] hover:bg-[#32353b] group transition-colors">
+                        <div className="relative mr-4">
+                          <img
+                            src={friend.avatar || `https://ui-avatars.com/api/?name=${friend.username || 'U'}`}
+                            alt={friend.username}
+                            className="w-10 h-10 rounded-full"
+                          />
+                          {onlineUsers.has(friend._id || friend.id) && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-[#36393f]"></div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-white">
+                            {friend.displayName || friend.username || 'Unknown User'}
+                          </div>
+                          <div className="text-sm text-[#b9bbbe]">
+                            {onlineUsers.has(friend._id || friend.id) ? 'Online' : 'Offline'}
+                          </div>
+                        </div>
+                        <div className="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              const conv = conversations.find(c => 
+                                c.friend?._id === friend._id || c.friend?.id === friend.id
+                              );
+                              if (conv) {
+                                setSelectedConversation(conv);
+                              } else {
+                                // Create new conversation
+                                setSelectedConversation({ friend });
+                              }
+                            }}
+                            className="p-2 bg-[#4f545c] hover:bg-[#5865f2] rounded-full text-white transition-colors"
+                            title="Send Message"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          </button>
+                          <button 
+                            className="p-2 bg-[#4f545c] hover:bg-[#42464d] rounded-full text-white transition-colors"
+                            title="More"
+                          >
+                            <EllipsisHorizontalIcon className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-xs text-[#b9bbbe]">
-                        {onlineUsers.has(friend._id || friend.id) ? 'Online' : 'Offline'}
+                    )) : (
+                      <div className="text-center py-8">
+                        <div className="text-[#96989d] text-sm">
+                          {activeTab === 'online' ? 'No friends are currently online' : 'No friends yet'}
+                        </div>
+                        <button
+                          onClick={() => setShowAddFriend(true)}
+                          className="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+                        >
+                          Add Friend
+                        </button>
                       </div>
-                    </div>
-                    <div className="flex space-x-2 opacity-0 group-hover:opacity-100">
-                      <button
-                        onClick={() => {
-                          const conv = conversations.find(c => 
-                            c.friend?._id === friend._id || c.friend?.id === friend.id
-                          );
-                          if (conv) {
-                            setSelectedConversation(conv);
-                          } else {
-                            // Create new conversation
-                            setSelectedConversation({ friend });
-                          }
-                        }}
-                        className="p-2 bg-[#42464d] hover:bg-[#36393f] rounded-full text-[#b9bbbe]"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      </button>
-                      <button className="p-2 bg-[#42464d] hover:bg-[#36393f] rounded-full text-[#b9bbbe]">
-                        <EllipsisHorizontalIcon className="w-5 h-5" />
-                      </button>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Right Sidebar - User Info */}
-      {selectedConversation && showUserInfo && (
-        <div className="w-80 bg-[#2f3136] border-l border-[#202225] p-4">
-          <div className="flex flex-col items-center">
-            <img
-              src={selectedConversation.friend?.avatar || `https://ui-avatars.com/api/?name=${selectedConversation.friend?.username}`}
-              alt={selectedConversation.friend?.username}
-              className="w-20 h-20 rounded-full mb-3"
-            />
-            <h3 className="text-xl font-bold text-white mb-1">
-              {selectedConversation.friend?.displayName || selectedConversation.friend?.username}
-            </h3>
-            <p className="text-[#b9bbbe] text-sm">
-              @{selectedConversation.friend?.username}
-            </p>
-          </div>
-          
-          <div className="mt-8">
-            <h4 className="text-xs font-semibold text-[#96989d] uppercase mb-3">About Me</h4>
-            <p className="text-[#dcddde] text-sm">
-              {selectedConversation.friend?.bio || 'No bio available'}
-            </p>
-          </div>
-          
-          <div className="mt-8">
-            <h4 className="text-xs font-semibold text-[#96989d] uppercase mb-3">Member Since</h4>
-            <p className="text-[#dcddde] text-sm">
-              {new Date(selectedConversation.friend?.createdAt).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-              })}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Add Friend Modal */}
       {showAddFriend && (
