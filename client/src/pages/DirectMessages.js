@@ -72,34 +72,6 @@ const DirectMessages = () => {
   const localStreamRef = useRef(null);
   const screenShareStreamRef = useRef(null);
 
-  // Load initial data
-  useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    loadFriends();
-    loadConversations();
-    setupSocketListeners();
-    
-    return () => {
-      cleanupSocketListeners();
-    };
-  }, [user, navigate, loadFriends, loadConversations, setupSocketListeners, cleanupSocketListeners]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Load messages when conversation changes
-  useEffect(() => {
-    if (selectedConversation) {
-      loadMessages(selectedConversation._id || selectedConversation.id);
-    }
-  }, [selectedConversation, loadMessages]);
-
   // API Functions
   const loadFriends = useCallback(async () => {
     try {
@@ -158,6 +130,137 @@ const DirectMessages = () => {
     }
   }, []);
 
+  // Socket event handlers
+  const handleReceiveMessage = useCallback((message) => {
+    if (selectedConversation?.friend?._id === message.sender?._id ||
+        selectedConversation?.friend?.id === message.sender?.id) {
+      setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
+    }
+    
+    if (!document.hasFocus() || 
+        (selectedConversation?.friend?._id !== message.sender?._id &&
+         selectedConversation?.friend?.id !== message.sender?.id)) {
+      toast.custom((t) => (
+        <div className="flex items-center space-x-3 bg-gray-800 rounded-lg p-3">
+          <img
+            src={message.sender?.avatar || `https://ui-avatars.com/api/?name=${message.sender?.username || 'U'}`}
+            alt={message.sender?.username}
+            className="w-10 h-10 rounded-full"
+          />
+          <div>
+            <p className="font-semibold text-white">{message.sender?.username}</p>
+            <p className="text-gray-300 text-sm">{message.content}</p>
+          </div>
+        </div>
+      ));
+    }
+  }, [selectedConversation]);
+
+  const handleMessageSent = useCallback(({ tempId, messageId, message }) => {
+    setMessages(prev => Array.isArray(prev) ? prev.map(msg => 
+      msg.id === tempId ? { ...message, id: messageId, status: 'sent' } : msg
+    ) : []);
+  }, []);
+
+  const handleUserTyping = useCallback(({ userId }) => {
+    setTypingUsers(prev => ({ ...prev, [userId]: true }));
+    setTimeout(() => {
+      setTypingUsers(prev => {
+        const newState = { ...prev };
+        delete newState[userId];
+        return newState;
+      });
+    }, 3000);
+  }, []);
+
+  const handleUserStopTyping = useCallback(({ userId }) => {
+    setTypingUsers(prev => {
+      const newState = { ...prev };
+      delete newState[userId];
+      return newState;
+    });
+  }, []);
+
+  const handleFriendRequest = useCallback((request) => {
+    toast.success(`${request.from?.username} sent you a friend request!`);
+    loadFriends(); // Now this is safe to call
+  }, [loadFriends]);
+
+  const handleFriendAccepted = useCallback((data) => {
+    toast.success(`${data.username} accepted your friend request!`);
+    loadFriends(); // Now this is safe to call
+  }, [loadFriends]);
+
+  const handleUserOnline = useCallback(({ userId }) => {
+    setOnlineUsers(prev => new Set([...prev, userId]));
+  }, []);
+
+  const handleUserOffline = useCallback(({ userId }) => {
+    setOnlineUsers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(userId);
+      return newSet;
+    });
+  }, []);
+
+  // Socket setup functions
+  const setupSocketListeners = useCallback(() => {
+    socketService.on('dm:receive', handleReceiveMessage);
+    socketService.on('dm:sent', handleMessageSent);
+    socketService.on('dm:typing', handleUserTyping);
+    socketService.on('dm:stop-typing', handleUserStopTyping);
+    socketService.on('friend:request:received', handleFriendRequest);
+    socketService.on('friend:request:accepted', handleFriendAccepted);
+    socketService.on('user:online', handleUserOnline);
+    socketService.on('user:offline', handleUserOffline);
+  }, [handleReceiveMessage, handleMessageSent, handleUserTyping, handleUserStopTyping, handleFriendRequest, handleFriendAccepted, handleUserOnline, handleUserOffline]);
+
+  const cleanupSocketListeners = useCallback(() => {
+    socketService.off('dm:receive');
+    socketService.off('dm:sent');
+    socketService.off('dm:typing');
+    socketService.off('dm:stop-typing');
+    socketService.off('friend:request:received');
+    socketService.off('friend:request:accepted');
+    socketService.off('user:online');
+    socketService.off('user:offline');
+  }, []);
+
+  // Effects
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    const initializeData = async () => {
+      try {
+        await loadFriends();
+        await loadConversations();
+        setupSocketListeners();
+      } catch (error) {
+        console.error('Error initializing data:', error);
+      }
+    };
+    
+    initializeData();
+    
+    return () => {
+      cleanupSocketListeners();
+    };
+  }, [user, navigate, loadFriends, loadConversations, setupSocketListeners, cleanupSocketListeners]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation._id || selectedConversation.id);
+    }
+  }, [selectedConversation, loadMessages]);
+
+  // Message functions
   const sendMessage = async (e) => {
     e?.preventDefault();
     if (!messageInput.trim() || !selectedConversation || sendingMessage) return;
@@ -268,101 +371,6 @@ const DirectMessages = () => {
   };
 
 
-  // Socket event setup and handlers
-  const setupSocketListeners = useCallback(() => {
-    socketService.on('dm:receive', handleReceiveMessage);
-    socketService.on('dm:sent', handleMessageSent);
-    socketService.on('dm:typing', handleUserTyping);
-    socketService.on('dm:stop-typing', handleUserStopTyping);
-    socketService.on('friend:request:received', handleFriendRequest);
-    socketService.on('friend:request:accepted', handleFriendAccepted);
-    socketService.on('user:online', handleUserOnline);
-    socketService.on('user:offline', handleUserOffline);
-  }, [handleReceiveMessage, handleMessageSent, handleUserTyping, handleUserStopTyping, handleFriendRequest, handleFriendAccepted, handleUserOnline, handleUserOffline]);
-
-  const cleanupSocketListeners = useCallback(() => {
-    socketService.off('dm:receive');
-    socketService.off('dm:sent');
-    socketService.off('dm:typing');
-    socketService.off('dm:stop-typing');
-    socketService.off('friend:request:received');
-    socketService.off('friend:request:accepted');
-    socketService.off('user:online');
-    socketService.off('user:offline');
-  }, []);
-
-
-  const handleReceiveMessage = useCallback((message) => {
-    if (selectedConversation?.friend?._id === message.sender?._id ||
-        selectedConversation?.friend?.id === message.sender?.id) {
-      setMessages(prev => Array.isArray(prev) ? [...prev, message] : [message]);
-    }
-    
-    if (!document.hasFocus() || 
-        (selectedConversation?.friend?._id !== message.sender?._id &&
-         selectedConversation?.friend?.id !== message.sender?.id)) {
-      toast.custom((t) => (
-        <div className="flex items-center space-x-3 bg-gray-800 rounded-lg p-3">
-          <img
-            src={message.sender?.avatar || `https://ui-avatars.com/api/?name=${message.sender?.username || 'U'}`}
-            alt={message.sender?.username}
-            className="w-10 h-10 rounded-full"
-          />
-          <div>
-            <p className="font-semibold text-white">{message.sender?.username}</p>
-            <p className="text-gray-300 text-sm">{message.content}</p>
-          </div>
-        </div>
-      ));
-    }
-  }, [selectedConversation]);
-
-  const handleMessageSent = useCallback(({ tempId, messageId, message }) => {
-    setMessages(prev => Array.isArray(prev) ? prev.map(msg => 
-      msg.id === tempId ? { ...message, id: messageId, status: 'sent' } : msg
-    ) : []);
-  }, []);
-
-  const handleUserTyping = useCallback(({ userId }) => {
-    setTypingUsers(prev => ({ ...prev, [userId]: true }));
-    setTimeout(() => {
-      setTypingUsers(prev => {
-        const newState = { ...prev };
-        delete newState[userId];
-        return newState;
-      });
-    }, 3000);
-  }, []);
-
-  const handleUserStopTyping = useCallback(({ userId }) => {
-    setTypingUsers(prev => {
-      const newState = { ...prev };
-      delete newState[userId];
-      return newState;
-    });
-  }, []);
-
-  const handleFriendRequest = useCallback((request) => {
-    toast.success(`${request.from?.username} sent you a friend request!`);
-    loadFriends();
-  }, [loadFriends]);
-
-  const handleFriendAccepted = useCallback((data) => {
-    toast.success(`${data.username} accepted your friend request!`);
-    loadFriends();
-  }, [loadFriends]);
-
-  const handleUserOnline = useCallback(({ userId }) => {
-    setOnlineUsers(prev => new Set([...prev, userId]));
-  }, []);
-
-  const handleUserOffline = useCallback(({ userId }) => {
-    setOnlineUsers(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(userId);
-      return newSet;
-    });
-  }, []);
 
   const formatMessageTime = (timestamp) => {
     const date = new Date(timestamp);
