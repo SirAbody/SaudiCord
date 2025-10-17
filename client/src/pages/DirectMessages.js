@@ -123,45 +123,67 @@ const DirectMessages = () => {
       // Process conversations to ensure friend data is properly structured
       if (Array.isArray(conversationsData)) {
         conversationsData = conversationsData.map(conv => {
-          console.log('Processing conversation:', conv);
+          console.log('Full conversation object:', JSON.stringify(conv, null, 2));
           
-          // Extract friend data from conversation
+          // The conversation ID format is userID1-userID2
+          // We need to extract the other user's ID
+          const conversationId = conv._id || conv.id || '';
+          const [userId1, userId2] = conversationId.split('-');
+          const otherUserId = userId1 === user?._id ? userId2 : userId1;
+          
+          // Try to find friend data in different places
           let friendData = null;
           
-          // Check different possible structures
+          // Check all possible field names
           if (conv.friend) {
             friendData = conv.friend;
-          } else if (conv.participants) {
-            // Find the friend (not the current user)
-            friendData = conv.participants.find(p => {
-              return (p._id && p._id !== user?._id) || (p.id && p.id !== user?.id);
-            });
-          } else if (conv.user) {
-            friendData = conv.user;
           } else if (conv.otherUser) {
             friendData = conv.otherUser;
+          } else if (conv.user) {
+            friendData = conv.user;
+          } else if (conv.recipient) {
+            friendData = conv.recipient;
+          } else if (conv.participants && Array.isArray(conv.participants)) {
+            // Find the friend (not the current user)
+            friendData = conv.participants.find(p => {
+              return p && ((p._id && p._id !== user?._id) || (p.id && p.id !== user?.id));
+            });
           }
           
-          // Log what we found
-          console.log('Friend data found:', friendData);
-          
-          // If we found friend data, ensure it has all needed fields
-          if (friendData) {
-            return {
-              ...conv,
-              friend: {
-                _id: friendData._id || friendData.id,
-                id: friendData.id || friendData._id,
-                username: friendData.username || friendData.name || 'User',
-                displayName: friendData.displayName || friendData.username || friendData.name,
-                avatar: friendData.avatar || friendData.profilePicture,
-                status: friendData.status || 'offline'
-              }
-            };
+          // If still no friend data, create a placeholder
+          if (!friendData && otherUserId) {
+            // Try to find from friends list
+            const friendFromList = friends.find(f => f._id === otherUserId || f.id === otherUserId);
+            if (friendFromList) {
+              friendData = friendFromList;
+            } else {
+              // Create placeholder
+              friendData = {
+                _id: otherUserId,
+                username: 'User_' + otherUserId.slice(-4),
+                displayName: 'User'
+              };
+            }
           }
           
-          return conv;
+          console.log('Friend data extracted:', friendData);
+          
+          // Return with friend data
+          return {
+            ...conv,
+            friend: friendData ? {
+              _id: friendData._id || friendData.id || otherUserId,
+              id: friendData.id || friendData._id || otherUserId,
+              username: friendData.username || friendData.name || 'User',
+              displayName: friendData.displayName || friendData.username || friendData.name || 'User',
+              avatar: friendData.avatar || friendData.profilePicture,
+              status: friendData.status || friendData.isOnline ? 'online' : 'offline'
+            } : null
+          };
         });
+        
+        // Filter out conversations without friend data
+        conversationsData = conversationsData.filter(conv => conv.friend);
       }
       
       console.log('Processed conversations:', conversationsData);
@@ -170,39 +192,58 @@ const DirectMessages = () => {
       console.error('Error loading conversations:', error);
       setConversations([]);
     }
-  }, [user]);
+  }, [user, friends]);
 
-  const loadMessages = useCallback(async (conversationId) => {
-    if (!conversationId) return;
+  const loadMessages = useCallback(async (conversation) => {
+    if (!conversation) return;
     
     setLoadingMessages(true);
     try {
-      // Use the correct endpoint format
-      const endpoint = `/api/dm/messages/${conversationId}`;
-      console.log('Loading messages from:', endpoint);
+      // Extract the other user's ID from the conversation
+      let otherUserId = conversation.friend?._id || conversation.friend?.id;
+      
+      if (!otherUserId && conversation._id) {
+        // Try to extract from conversation ID (format: userID1-userID2)
+        const conversationId = conversation._id || conversation.id || '';
+        const [userId1, userId2] = conversationId.split('-');
+        otherUserId = userId1 === user?._id ? userId2 : userId1;
+      }
+      
+      if (!otherUserId) {
+        console.error('Cannot determine other user ID for messages');
+        setMessages([]);
+        return;
+      }
+      
+      // The correct endpoint expects userId, not conversationId
+      const endpoint = `/dm/${otherUserId}`;
+      console.log('Loading messages from endpoint:', endpoint);
       
       const response = await axios.get(endpoint);
+      
       console.log('Messages API response:', response);
       
       // Check if response is HTML (error page) instead of JSON
       if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE')) {
         console.error('API returned HTML instead of JSON - endpoint may not exist');
+        // For now, return empty messages
         setMessages([]);
         return;
       }
       
-      const messagesData = response.data || [];
+      const messagesData = response.data?.messages || response.data || [];
       console.log('Messages data:', messagesData);
       
       // Ensure messages is always an array
       setMessages(Array.isArray(messagesData) ? messagesData : []);
     } catch (error) {
       console.error('Error loading messages:', error);
-      // Don't show toast for every error to avoid spam
-      if (error.response?.status !== 404) {
+      // Don't show error toast for missing endpoints
+      if (error.response?.status !== 404 && error.response?.status !== 500) {
         toast.error('Failed to load messages');
       }
-      setMessages([]); // Set empty array on error
+      // Set empty array for now
+      setMessages([]);
     } finally {
       setLoadingMessages(false);
     }
@@ -341,7 +382,7 @@ const DirectMessages = () => {
 
   useEffect(() => {
     if (selectedConversation) {
-      loadMessages(selectedConversation._id || selectedConversation.id);
+      loadMessages(selectedConversation);
     }
   }, [selectedConversation]); // Removed loadMessages to prevent infinite loop
 
@@ -351,8 +392,22 @@ const DirectMessages = () => {
     if (!messageInput.trim() || !selectedConversation || sendingMessage) return;
     
     const content = messageInput.trim();
-    const conversationId = selectedConversation._id || selectedConversation.id;
     const tempId = `temp-${Date.now()}`;
+    
+    // Extract friend ID properly
+    let friendId = selectedConversation.friend?._id || selectedConversation.friend?.id;
+    if (!friendId && selectedConversation._id) {
+      // Try to extract from conversation ID (format: userID1-userID2)
+      const conversationId = selectedConversation._id || selectedConversation.id || '';
+      const [userId1, userId2] = conversationId.split('-');
+      friendId = userId1 === user?._id ? userId2 : userId1;
+    }
+    
+    if (!friendId) {
+      console.error('Cannot determine recipient ID');
+      toast.error('Cannot send message - recipient not found');
+      return;
+    }
     
     const optimisticMessage = {
       id: tempId,
@@ -369,15 +424,16 @@ const DirectMessages = () => {
     
     try {
       const sent = socketService.emit('dm:send', {
-        conversationId,
-        receiverId: selectedConversation.friend?._id || selectedConversation.friend?.id,
+        conversationId: selectedConversation._id || selectedConversation.id,
+        receiverId: friendId,
         content,
         tempId
       });
       
       if (!sent) {
-        const response = await axios.post('/dm/send', {
-          receiverId: selectedConversation.friend?._id || selectedConversation.friend?.id,
+        // Use correct endpoint /dm with POST
+        const response = await axios.post('/dm', {
+          receiverId: friendId,
           content
         });
         
@@ -401,10 +457,20 @@ const DirectMessages = () => {
     
     if (!selectedConversation) return;
     
+    // Extract friend ID properly
+    let friendId = selectedConversation.friend?._id || selectedConversation.friend?.id;
+    if (!friendId && selectedConversation._id) {
+      const conversationId = selectedConversation._id || selectedConversation.id || '';
+      const [userId1, userId2] = conversationId.split('-');
+      friendId = userId1 === user?._id ? userId2 : userId1;
+    }
+    
+    if (!friendId) return;
+    
     if (!isTyping) {
       setIsTyping(true);
       socketService.emit('dm:typing', {
-        receiverId: selectedConversation.friend?._id || selectedConversation.friend?.id
+        receiverId: friendId
       });
     }
     
@@ -415,7 +481,7 @@ const DirectMessages = () => {
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       socketService.emit('dm:stop-typing', {
-        receiverId: selectedConversation.friend?._id || selectedConversation.friend?.id
+        receiverId: friendId
       });
     }, 2000);
   };
