@@ -649,14 +649,17 @@ const DirectMessages = () => {
     if (e.key === 'Enter') {
       const newContent = e.target.value.trim();
       if (newContent && newContent !== message.content) {
-        try {
-          await axios.put(`/dm/messages/${message.id}`, { content: newContent });
-          setMessages(prev => prev.map(msg => 
-            msg.id === message.id ? { ...msg, content: newContent, edited: true } : msg
-          ));
-          toast.success('Message edited');
-        } catch (error) {
-          toast.error('Failed to edit message');
+        const messageId = message._id || message.id;
+        if (messageId) {
+          try {
+            await axios.put(`/dm/messages/${messageId}`, { content: newContent });
+            setMessages(prev => prev.map(msg => 
+              (msg._id === messageId || msg.id === messageId) ? { ...msg, content: newContent, edited: true } : msg
+            ));
+            toast.success('Message edited');
+          } catch (error) {
+            toast.error('Failed to edit message');
+          }
         }
       }
       setEditingMessage(null);
@@ -671,10 +674,12 @@ const DirectMessages = () => {
   };
 
   const deleteMessage = async (messageId) => {
+    if (!messageId) return;
+    
     if (window.confirm('Are you sure you want to delete this message?')) {
       try {
         await axios.delete(`/dm/messages/${messageId}`);
-        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+        setMessages(prev => prev.filter(msg => msg._id !== messageId && msg.id !== messageId));
         toast.success('Message deleted');
       } catch (error) {
         toast.error('Failed to delete message');
@@ -683,11 +688,13 @@ const DirectMessages = () => {
   };
 
   const addReaction = async (messageId, emoji) => {
+    if (!messageId) return;
+    
     try {
       await axios.post(`/dm/messages/${messageId}/reactions`, { emoji });
       // Update local state optimistically
       setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId) {
+        if (msg._id === messageId || msg.id === messageId) {
           const reactions = msg.reactions || [];
           const existingReaction = reactions.find(r => r.emoji === emoji);
           
@@ -714,11 +721,13 @@ const DirectMessages = () => {
   };
 
   const toggleReaction = async (messageId, emoji) => {
+    if (!messageId) return;
+    
     try {
       await axios.post(`/dm/messages/${messageId}/reactions/toggle`, { emoji });
       // Update local state
       setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId) {
+        if (msg._id === messageId || msg.id === messageId) {
           const reactions = msg.reactions || [];
           const reactionIndex = reactions.findIndex(r => r.emoji === emoji);
           

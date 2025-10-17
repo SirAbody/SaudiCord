@@ -72,6 +72,11 @@ class SoundService {
     localStorage.setItem('soundVolume', this.volume);
   }
   
+  // Alias for backwards compatibility
+  playSound(soundName) {
+    return this.play(soundName);
+  }
+  
   async play(soundName) {
     if (!this.enabled) return;
     
