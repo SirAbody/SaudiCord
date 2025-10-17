@@ -123,6 +123,8 @@ const DirectMessages = () => {
       // Process conversations to ensure friend data is properly structured
       if (Array.isArray(conversationsData)) {
         conversationsData = conversationsData.map(conv => {
+          console.log('Processing conversation:', conv);
+          
           // Extract friend data from conversation
           let friendData = null;
           
@@ -131,10 +133,17 @@ const DirectMessages = () => {
             friendData = conv.friend;
           } else if (conv.participants) {
             // Find the friend (not the current user)
-            friendData = conv.participants.find(p => p._id !== user?._id && p.id !== user?.id);
+            friendData = conv.participants.find(p => {
+              return (p._id && p._id !== user?._id) || (p.id && p.id !== user?.id);
+            });
           } else if (conv.user) {
             friendData = conv.user;
+          } else if (conv.otherUser) {
+            friendData = conv.otherUser;
           }
+          
+          // Log what we found
+          console.log('Friend data found:', friendData);
           
           // If we found friend data, ensure it has all needed fields
           if (friendData) {
@@ -164,15 +173,35 @@ const DirectMessages = () => {
   }, [user]);
 
   const loadMessages = useCallback(async (conversationId) => {
+    if (!conversationId) return;
+    
     setLoadingMessages(true);
     try {
-      const response = await axios.get(`/dm/messages/${conversationId}`);
+      // Use the correct endpoint format
+      const endpoint = `/api/dm/messages/${conversationId}`;
+      console.log('Loading messages from:', endpoint);
+      
+      const response = await axios.get(endpoint);
+      console.log('Messages API response:', response);
+      
+      // Check if response is HTML (error page) instead of JSON
+      if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE')) {
+        console.error('API returned HTML instead of JSON - endpoint may not exist');
+        setMessages([]);
+        return;
+      }
+      
       const messagesData = response.data || [];
+      console.log('Messages data:', messagesData);
+      
       // Ensure messages is always an array
       setMessages(Array.isArray(messagesData) ? messagesData : []);
     } catch (error) {
       console.error('Error loading messages:', error);
-      toast.error('Failed to load messages');
+      // Don't show toast for every error to avoid spam
+      if (error.response?.status !== 404) {
+        toast.error('Failed to load messages');
+      }
       setMessages([]); // Set empty array on error
     } finally {
       setLoadingMessages(false);
@@ -282,11 +311,17 @@ const DirectMessages = () => {
       return;
     }
     
+    let isMounted = true;
+    
     const initializeData = async () => {
+      if (!isMounted) return;
+      
       try {
         await loadFriends();
         await loadConversations();
-        setupSocketListeners();
+        if (isMounted) {
+          setupSocketListeners();
+        }
       } catch (error) {
         console.error('Error initializing data:', error);
       }
@@ -295,9 +330,10 @@ const DirectMessages = () => {
     initializeData();
     
     return () => {
+      isMounted = false;
       cleanupSocketListeners();
     };
-  }, [user, navigate, loadFriends, loadConversations, setupSocketListeners, cleanupSocketListeners]);
+  }, [user?.id]); // Only re-run when user ID changes
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -307,7 +343,7 @@ const DirectMessages = () => {
     if (selectedConversation) {
       loadMessages(selectedConversation._id || selectedConversation.id);
     }
-  }, [selectedConversation, loadMessages]);
+  }, [selectedConversation]); // Removed loadMessages to prevent infinite loop
 
   // Message functions
   const sendMessage = async (e) => {
@@ -742,7 +778,10 @@ const DirectMessages = () => {
           {conversations.length > 0 ? conversations.map(conv => (
             <div
               key={conv._id || conv.id}
-              onClick={() => setSelectedConversation(conv)}
+              onClick={() => {
+                console.log('Selected conversation:', conv);
+                setSelectedConversation(conv);
+              }}
               className={`flex items-center h-[42px] mx-[8px] px-[8px] rounded cursor-pointer group mb-[2px] ${
                 selectedConversation?._id === conv._id || selectedConversation?.id === conv.id
                   ? 'bg-[#393c43] text-white'
@@ -751,25 +790,25 @@ const DirectMessages = () => {
             >
               <div className="relative mr-[12px] flex-shrink-0">
                 <img
-                  src={conv.friend?.avatar || `https://ui-avatars.com/api/?name=${conv.friend?.username || 'U'}`}
+                  src={conv.friend?.avatar || conv.otherUser?.avatar || `https://ui-avatars.com/api/?name=${conv.friend?.username || conv.otherUser?.username || 'U'}`}
                   alt=""
                   className="w-[32px] h-[32px] rounded-full object-cover"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = `https://ui-avatars.com/api/?name=${conv.friend?.username || 'U'}&background=5865f2&color=fff`;
+                    e.target.src = `https://ui-avatars.com/api/?name=${conv.friend?.username || conv.otherUser?.username || 'U'}&background=5865f2&color=fff`;
                   }}
                 />
-                {(onlineUsers.has(conv.friend?._id) || onlineUsers.has(conv.friend?.id)) && (
+                {(onlineUsers.has(conv.friend?._id) || onlineUsers.has(conv.friend?.id) || onlineUsers.has(conv.otherUser?._id)) && (
                   <div className="absolute bottom-[-2px] right-[-2px] w-[10px] h-[10px] bg-[#3ba55c] rounded-full border-[2.5px] border-[#2f3136]"></div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-[16px] leading-[20px] truncate">
-                  {conv.friend?.displayName || conv.friend?.username || 'Unknown User'}
+                  {conv.friend?.displayName || conv.friend?.username || conv.otherUser?.username || conv.otherUser?.displayName || 'Unknown User'}
                 </div>
                 {conv.lastMessage && (
                   <div className="text-[12px] text-[#a3a6aa] truncate mt-[1px]">
-                    {conv.lastMessage.content}
+                    {conv.lastMessage.content || 'No messages yet'}
                   </div>
                 )}
               </div>
@@ -794,15 +833,21 @@ const DirectMessages = () => {
 
       {/* Main Content */}
       {selectedConversation ? (
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col bg-[#36393f]">
           {/* Chat Header */}
-          <div className="h-12 bg-[#36393f] border-b border-[#202225] flex items-center px-4">
+          <div className="h-[48px] bg-[#36393f] shadow-md flex items-center px-[16px]">
             <div className="flex items-center space-x-3 flex-1">
               <AtSymbolIcon className="w-6 h-6 text-[#72767d]" />
               <span className="font-semibold text-white">
-                {selectedConversation.friend?.displayName || selectedConversation.friend?.username}
+                {selectedConversation.friend?.displayName || 
+                 selectedConversation.friend?.username || 
+                 selectedConversation.otherUser?.username || 
+                 selectedConversation.otherUser?.displayName ||
+                 'Unknown User'}
               </span>
-              {onlineUsers.has(selectedConversation.friend?._id || selectedConversation.friend?.id) && (
+              {(onlineUsers.has(selectedConversation.friend?._id) || 
+                onlineUsers.has(selectedConversation.friend?.id) ||
+                onlineUsers.has(selectedConversation.otherUser?._id)) && (
                 <span className="text-xs text-green-500">● Online</span>
               )}
             </div>
