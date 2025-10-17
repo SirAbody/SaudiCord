@@ -34,14 +34,16 @@ class SocketService {
         ? 'https://saudicord.onrender.com'
         : 'http://localhost:10000';
 
-      // Create new connection
+      // Create new connection with proper path
       this.socket = window.io(serverUrl, {
         transports: ['websocket', 'polling'],
         auth: { token },
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
-        timeout: 20000
+        timeout: 20000,
+        path: '/socket.io/',
+        withCredentials: true
       });
 
       // Connection events

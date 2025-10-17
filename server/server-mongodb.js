@@ -38,11 +38,25 @@ const io = socketIO(server, {
     origin: process.env.NODE_ENV === 'production' 
       ? ['https://saudicord.onrender.com', 'https://saudicord.com']
       : ['http://localhost:3000', 'http://localhost:3001'],
-    methods: ['GET', 'POST'],
-    credentials: true
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
   },
   transports: ['websocket', 'polling'],
-  pingTimeout: 60000
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 10000,
+  allowEIO3: true,
+  path: '/socket.io/'
+});
+
+// Socket.io error handling
+io.on('error', (error) => {
+  console.error('[Socket.io] Server error:', error);
+});
+
+io.engine.on('connection_error', (err) => {
+  console.error('[Socket.io] Connection error:', err);
 });
 
 // Middleware
