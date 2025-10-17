@@ -14,23 +14,13 @@ import {
   PlusCircleIcon,
   PaperAirplaneIcon,
   XMarkIcon,
-  Cog6ToothIcon,
-  MicrophoneIcon,
-  SpeakerWaveIcon,
-  ComputerDesktopIcon,
   AtSymbolIcon,
-  HashtagIcon,
-  BellIcon,
-  BellSlashIcon,
   BookmarkIcon,
   EllipsisHorizontalIcon,
-  FolderPlusIcon,
   PhotoIcon,
   DocumentIcon,
   FilmIcon,
   MusicalNoteIcon,
-  LinkIcon,
-  HandThumbUpIcon,
   ChatBubbleLeftRightIcon,
   TrashIcon,
   PencilIcon,
@@ -39,8 +29,7 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import { 
-  UserIcon as SolidUserIcon,
-  ChevronDownIcon
+  UserIcon as SolidUserIcon
 } from '@heroicons/react/24/solid';
 import { useAuthStore } from '../stores/authStore';
 import axios from 'axios';
@@ -61,7 +50,7 @@ const DirectMessages = () => {
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const [friends, setFriends] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
   const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -72,27 +61,15 @@ const DirectMessages = () => {
   const [showUserInfo, setShowUserInfo] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [hoveredMessage, setHoveredMessage] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   
-  // Call states
-  const [inCall, setInCall] = useState(false);
-  const [callType, setCallType] = useState(null);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [callDuration, setCallDuration] = useState(0);
-  const [callInterval, setCallInterval] = useState(null);
-  const [incomingCall, setIncomingCall] = useState(null);
-  
-  // WebRTC refs
+  // WebRTC refs  
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
-  const remoteStreamRef = useRef(null);
   const screenShareStreamRef = useRef(null);
 
   // Load initial data
@@ -108,9 +85,8 @@ const DirectMessages = () => {
     
     return () => {
       cleanupSocketListeners();
-      cleanupCall();
     };
-  }, [user]);
+  }, [user, navigate, loadFriends, loadConversations, setupSocketListeners, cleanupSocketListeners]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -122,10 +98,10 @@ const DirectMessages = () => {
     if (selectedConversation) {
       loadMessages(selectedConversation._id || selectedConversation.id);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, loadMessages]);
 
   // API Functions
-  const loadFriends = async () => {
+  const loadFriends = useCallback(async () => {
     try {
       const response = await axios.get('/friends');
       setFriends(response.data.friends || []);
@@ -141,18 +117,18 @@ const DirectMessages = () => {
     } catch (error) {
       console.error('Error loading friends:', error);
     }
-  };
+  }, []);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     try {
       const response = await axios.get('/friends/conversations');
       setConversations(response.data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
-  };
+  }, []);
 
-  const loadMessages = async (conversationId) => {
+  const loadMessages = useCallback(async (conversationId) => {
     setLoadingMessages(true);
     try {
       const response = await axios.get(`/dm/messages/${conversationId}`);
@@ -163,7 +139,7 @@ const DirectMessages = () => {
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, []);
 
   const sendMessage = async (e) => {
     e?.preventDefault();
@@ -274,21 +250,9 @@ const DirectMessages = () => {
     }
   };
 
-  const removeFriend = async (friendId) => {
-    try {
-      await axios.delete(`/friends/remove/${friendId}`);
-      toast.success('Friend removed');
-      loadFriends();
-      if (selectedConversation?.friend?._id === friendId) {
-        setSelectedConversation(null);
-      }
-    } catch (error) {
-      toast.error('Failed to remove friend');
-    }
-  };
 
   // Socket event setup and handlers
-  const setupSocketListeners = () => {
+  const setupSocketListeners = useCallback(() => {
     socketService.on('dm:receive', handleReceiveMessage);
     socketService.on('dm:sent', handleMessageSent);
     socketService.on('dm:typing', handleUserTyping);
@@ -297,9 +261,9 @@ const DirectMessages = () => {
     socketService.on('friend:request:accepted', handleFriendAccepted);
     socketService.on('user:online', handleUserOnline);
     socketService.on('user:offline', handleUserOffline);
-  };
+  }, []);
 
-  const cleanupSocketListeners = () => {
+  const cleanupSocketListeners = useCallback(() => {
     socketService.off('dm:receive');
     socketService.off('dm:sent');
     socketService.off('dm:typing');
@@ -308,22 +272,8 @@ const DirectMessages = () => {
     socketService.off('friend:request:accepted');
     socketService.off('user:online');
     socketService.off('user:offline');
-  };
+  }, []);
 
-  const cleanupCall = () => {
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-    }
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (screenShareStreamRef.current) {
-      screenShareStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (callInterval) {
-      clearInterval(callInterval);
-    }
-  };
 
   const handleReceiveMessage = (message) => {
     if (selectedConversation?.friend?._id === message.sender?._id ||
@@ -425,19 +375,6 @@ const DirectMessages = () => {
   };
 
   const formatMessageContent = (content) => {
-    // Simple text processing for now - can be enhanced later with proper markdown parser
-    const parts = [];
-    let currentText = content;
-    
-    // Split by markdown patterns and create JSX elements
-    const patterns = [
-      { regex: /\*\*(.*?)\*\*/g, component: (text, key) => <strong key={key}>{text}</strong> },
-      { regex: /\*(.*?)\*/g, component: (text, key) => <em key={key}>{text}</em> },
-      { regex: /~~(.*?)~~/g, component: (text, key) => <del key={key}>{text}</del> },
-      { regex: /`(.*?)`/g, component: (text, key) => <code key={key} className="bg-[#2f3136] px-1 rounded text-[#f8f8ff]">{text}</code> },
-      { regex: /@(\w+)/g, component: (text, key) => <span key={key} className="text-[#00aff4] bg-[#00aff4]/10 px-1 rounded">@{text}</span> }
-    ];
-    
     // For now, return simple text - can be enhanced with proper markdown parsing
     return content;
   };
@@ -838,7 +775,6 @@ const DirectMessages = () => {
                 const isOwn = message.sender?._id === user?._id || message.sender?.id === user?.id;
                 const showAvatar = index === 0 || messages[index - 1]?.sender?._id !== message.sender?._id;
                 const prevMessage = messages[index - 1];
-                const nextMessage = messages[index + 1];
                 const showTime = showAvatar || (prevMessage && new Date(message.timestamp) - new Date(prevMessage.timestamp) > 300000); // 5 minutes
                 
                 return (
